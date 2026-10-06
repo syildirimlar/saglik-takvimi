@@ -209,6 +209,9 @@ const Storage = {
       categoryId: eventData.categoryId,
       date: eventData.date, // YYYY-MM-DD
       time: eventData.time || '12:00', // HH:mm
+      status: eventData.status || 'completed', // 'completed' | 'planned' | 'skipped'
+      reminderSent: eventData.reminderSent || false,
+      checkinPrompted: eventData.checkinPrompted || false,
       details: eventData.details || {},
       notes: eventData.notes || '',
       createdAt: new Date().toISOString()
@@ -216,6 +219,22 @@ const Storage = {
     events.push(newEvent);
     this.saveEvents(events);
     return newEvent;
+  },
+
+  // Randevu durumunu güncelle (Yapıldı / Yapılmadı)
+  setEventStatus(eventId, newStatus, extraDetails = {}) {
+    const events = this.getEvents();
+    const event = events.find(e => e.id === eventId);
+    if (event) {
+      event.status = newStatus;
+      if (extraDetails && Object.keys(extraDetails).length > 0) {
+        event.details = { ...event.details, ...extraDetails };
+      }
+      event.updatedAt = new Date().toISOString();
+      this.saveEvents(events);
+      return event;
+    }
+    return null;
   },
 
   // Olay güncelle
@@ -423,6 +442,7 @@ const Storage = {
           categoryId: 'massage',
           date: dateStr,
           time: '20:30',
+          status: 'completed',
           details: {
             massageArea: mArea,
             duration: mDuration,
@@ -435,6 +455,55 @@ const Storage = {
         });
       }
     }
+
+    // Gelecek ve onay bekleyen örnek randevular (Kullanıcının sistemi test edebilmesi için)
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowStr = this.formatDate(tomorrow);
+
+    demoEvents.push({
+      id: 'demo_planned_sport_tomorrow',
+      categoryId: 'sport',
+      date: tomorrowStr,
+      time: '18:30',
+      status: 'planned', // ⏳ Randevu
+      reminderSent: false,
+      checkinPrompted: false,
+      details: {
+        sportType: 'Fitness / Ağırlık',
+        duration: 45,
+        intensityLevel: 'Orta Seviye',
+        quantity: 45,
+        unit: 'dk'
+      },
+      notes: 'Yarın akşam fitness antrenmanı randevusu (1 saat önce sessiz bildirim)',
+      createdAt: new Date().toISOString()
+    });
+
+    const inTwoDays = new Date();
+    inTwoDays.setDate(inTwoDays.getDate() + 2);
+    const inTwoDaysStr = this.formatDate(inTwoDays);
+
+    demoEvents.push({
+      id: 'demo_planned_massage_future',
+      categoryId: 'massage',
+      date: inTwoDaysStr,
+      time: '19:00',
+      status: 'planned', // ⏳ Randevu
+      reminderSent: false,
+      checkinPrompted: false,
+      details: {
+        massageArea: 'Boyun & Omuz',
+        duration: 40,
+        provider: 'Uzman Masöz / Masör',
+        reliefScore: 9,
+        intensity: 9,
+        quantity: 40,
+        unit: 'dk'
+      },
+      notes: 'Klinik randevusu - Boyun ve sırt masajı',
+      createdAt: new Date().toISOString()
+    });
 
     this.saveEvents(demoEvents);
     return demoEvents.length;

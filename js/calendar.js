@@ -192,21 +192,50 @@ const Calendar = {
       const badgesContainer = document.createElement('div');
       badgesContainer.className = 'day-badges';
 
-      // Kategorilere göre grupla
-      const categoryCounts = {};
+      // Kategorilere ve duruma göre grupla
+      const groups = {};
       dayEvents.forEach(e => {
-        categoryCounts[e.categoryId] = (categoryCounts[e.categoryId] || 0) + 1;
+        const status = e.status || 'completed';
+        const key = `${e.categoryId}_${status}`;
+        if (!groups[key]) {
+          groups[key] = {
+            categoryId: e.categoryId,
+            status: status,
+            count: 0,
+            times: []
+          };
+        }
+        groups[key].count++;
+        if (e.time) groups[key].times.push(e.time);
       });
 
-      // Her kategori için rozet oluştur
-      Object.keys(categoryCounts).forEach(catId => {
-        const cat = Storage.getCategoryById(catId);
-        const count = categoryCounts[catId];
+      // Her grup için rozet oluştur
+      Object.values(groups).forEach(g => {
+        const cat = Storage.getCategoryById(g.categoryId);
         const pill = document.createElement('span');
-        pill.className = 'day-pill';
-        pill.style.backgroundColor = cat.color;
-        pill.innerHTML = `<span>${cat.icon}</span> <span>${count}</span>`;
-        pill.title = `${cat.name}: ${count} kayıt`;
+
+        if (g.status === 'planned') {
+          // İleriye Dönük Randevu / Plan
+          pill.className = 'day-pill pill-planned';
+          pill.style.borderColor = cat.color;
+          pill.style.color = cat.color;
+          const timeLabel = g.times.length === 1 ? g.times[0] : `${g.count} randevu`;
+          pill.innerHTML = `<span>⏳ ${cat.icon}</span> <span>${timeLabel}</span>`;
+          pill.title = `Randevu / Planlanan: ${cat.name} (${g.times.join(', ')})`;
+        } else if (g.status === 'skipped') {
+          // Yapılmadı / Atlandı
+          pill.className = 'day-pill pill-skipped';
+          pill.innerHTML = `<span>❌ ${cat.icon}</span> <span>${g.count}</span>`;
+          pill.title = `Yapılmadı / İptal: ${cat.name}`;
+        } else {
+          // Tamamlandı / Yapıldı
+          pill.className = 'day-pill pill-completed';
+          pill.style.backgroundColor = cat.color;
+          const doneCheck = (g.categoryId === 'sport' || g.categoryId === 'massage') ? '✅ ' : '';
+          pill.innerHTML = `<span>${doneCheck}${cat.icon}</span> <span>${g.count}</span>`;
+          pill.title = `Yapıldı: ${cat.name} (${g.count} kez)`;
+        }
+
         badgesContainer.appendChild(pill);
       });
 
@@ -364,21 +393,74 @@ const Calendar = {
         }
       }
 
+      // Durum Rozetleri ve Onay Kutusu
+      const status = event.status || 'completed';
+      card.classList.add(`status-${status}`);
+
+      let statusBadge = '';
+      let checkinActionBox = '';
+
+      if (status === 'planned') {
+        statusBadge = `<span class="status-badge badge-planned">⏳ RANDEVU / PLAN</span>`;
+        checkinActionBox = `
+          <div class="card-checkin-box">
+            <span class="checkin-label">🔔 Aktivite yapıldı mı?</span>
+            <div class="checkin-btns">
+              <button class="btn btn-sm btn-success btn-mark-complete" title="Yapıldı olarak işaretle">✅ Yapıldı</button>
+              <button class="btn btn-sm btn-outline btn-mark-skip" title="Yapılmadı / İptal">❌ Yapılmadı</button>
+            </div>
+          </div>
+        `;
+      } else if (status === 'skipped') {
+        statusBadge = `<span class="status-badge badge-skipped">❌ YAPILMADI / İPTAL</span>`;
+        checkinActionBox = `
+          <div class="card-checkin-box">
+            <button class="btn btn-sm btn-outline btn-mark-complete" title="Tekrar Yapıldı Olarak İşaretle">🔄 Yapıldı Olarak Düzelt</button>
+          </div>
+        `;
+      } else {
+        const doneText = (event.categoryId === 'sport' || event.categoryId === 'massage') ? '✅ YAPILDI & BİTTİ' : '✅ TAMAMLANDI';
+        statusBadge = `<span class="status-badge badge-completed">${doneText}</span>`;
+      }
+
       card.innerHTML = `
         <div class="timeline-card-header">
           <div class="timeline-cat-name">
             <span>${cat.icon}</span>
             <span>${cat.name}</span>
+            ${statusBadge}
           </div>
           <span class="timeline-time">⏰ ${event.time || '12:00'}</span>
         </div>
         ${detailsHtml ? `<div class="timeline-subdetails">${detailsHtml}</div>` : ''}
         ${event.notes ? `<div class="timeline-notes">"${event.notes}"</div>` : ''}
+        ${checkinActionBox}
         <div class="timeline-actions">
           <button class="timeline-action-btn edit-btn" title="Düzenle">✏️ Düzenle</button>
           <button class="timeline-action-btn del del-btn" title="Sil">🗑️ Sil</button>
         </div>
       `;
+
+      // Onay butonları
+      const markCompleteBtn = card.querySelector('.btn-mark-complete');
+      if (markCompleteBtn) {
+        markCompleteBtn.addEventListener('click', () => {
+          Storage.setEventStatus(event.id, 'completed');
+          this.render();
+          if (window.App) window.App.refreshAllViews();
+          showToast(`"${cat.name}" başarıyla YAPILDI olarak kaydedildi! 🎉`, 'success');
+        });
+      }
+
+      const markSkipBtn = card.querySelector('.btn-mark-skip');
+      if (markSkipBtn) {
+        markSkipBtn.addEventListener('click', () => {
+          Storage.setEventStatus(event.id, 'skipped');
+          this.render();
+          if (window.App) window.App.refreshAllViews();
+          showToast(`"${cat.name}" yapılmadı / iptal olarak işaretlendi.`, 'info');
+        });
+      }
 
       // Düzenleme butonu
       const editBtn = card.querySelector('.edit-btn');

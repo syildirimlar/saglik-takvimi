@@ -60,6 +60,9 @@
 
       <!-- Ayarlar & Tema Düğmeleri -->
       <div class="header-tools">
+        <button id="btn-toggle-notif" class="icon-btn" title="Randevu Bildirimlerini Etkinleştir">
+          <span id="notif-icon">🔔</span>
+        </button>
         <button id="btn-toggle-theme" class="icon-btn" title="Karanlık / Aydınlık Mod">
           <span id="theme-icon">🌙</span>
         </button>
@@ -68,6 +71,9 @@
         </button>
       </div>
     </header>
+
+    <!-- Bildirim & Onay Bekleyen Randevular Çubuğu -->
+    <div id="checkin-alert-banner" class="checkin-alert-banner" style="display: none;"></div>
 
     <!-- Sekme Navigasyonu -->
     <nav class="nav-tabs">
@@ -573,6 +579,24 @@
           <div class="form-group">
             <label for="event-time">Saat <span class="req">*</span></label>
             <input type="time" id="event-time" class="form-control" required>
+          </div>
+        </div>
+
+        <!-- Kayıt Türü: Tamamlandı vs İleriye Dönük Randevu/Plan -->
+        <div class="form-group" id="group-event-status">
+          <label>Kayıt Türü & Durum</label>
+          <div class="radio-pill-group status-pill-group">
+            <label class="radio-pill">
+              <input type="radio" name="event-status" value="completed" checked>
+              <span>✅ Yapıldı & Bitti</span>
+            </label>
+            <label class="radio-pill">
+              <input type="radio" name="event-status" value="planned">
+              <span>⏳ Randevu / İleriye Dönük Plan</span>
+            </label>
+          </div>
+          <div id="status-hint-box" class="status-hint-box" style="display: none;">
+            <span>🔔 <strong>Hatırlatma:</strong> Randevu saatinden <strong>1 saat önce sessiz bildirim</strong> alacaksınız (alarm sesi çalmaz). Etkinlik saatinden sonra yapıldı / yapılmadı onayı verebilirsiniz.</span>
           </div>
         </div>
 

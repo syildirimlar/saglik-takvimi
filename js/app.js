@@ -42,6 +42,7 @@ const App = {
     CategoryManager.init();
     Calendar.init();
     Reports.init();
+    this.setupNotificationEngine();
 
     // İlk açılışta eğer hiç veri yoksa kullanıcıya ipucu ver veya demo teklifi yap
     const events = Storage.getEvents();
@@ -59,6 +60,7 @@ const App = {
     Calendar.render();
     Reports.render();
     this.renderAllEventsList();
+    this.checkScheduledAppointments();
   },
 
   // ================= 1. TEMA YÖNETİMİ =================
@@ -255,7 +257,34 @@ const App = {
         mBadge.textContent = text;
         mBadge.className = `intensity-badge ${cls}`;
       });
-    }
+    // Etkinlik Durumu (Tamamlandı vs Randevu) Değişimi
+    const statusRadios = form.querySelectorAll('input[name="event-status"]');
+    const hintBox = document.getElementById('status-hint-box');
+    statusRadios.forEach(radio => {
+      radio.addEventListener('change', () => {
+        if (hintBox) {
+          hintBox.style.display = radio.value === 'planned' ? 'block' : 'none';
+        }
+      });
+    });
+
+    // Tarih veya saat değiştiğinde gelecekteyse otomatik "Randevu" modunu seç
+    const dateInput = document.getElementById('event-date');
+    const timeInput = document.getElementById('event-time');
+    const checkFutureDate = () => {
+      if (dateInput.value && timeInput.value && !this.activeEditingEventId) {
+        const selectedDt = new Date(`${dateInput.value}T${timeInput.value}`);
+        if (selectedDt > new Date()) {
+          const plannedRadio = form.querySelector('input[name="event-status"][value="planned"]');
+          if (plannedRadio) {
+            plannedRadio.checked = true;
+            if (hintBox) hintBox.style.display = 'block';
+          }
+        }
+      }
+    };
+    if (dateInput) dateInput.addEventListener('change', checkFutureDate);
+    if (timeInput) timeInput.addEventListener('change', checkFutureDate);
 
     // Modal Silme Butonu
     if (delBtn) {
@@ -369,6 +398,13 @@ const App = {
         }
       }
 
+      // Durumu doldur (Yapıldı vs Randevu)
+      const statusVal = eventToEdit.status || 'completed';
+      const statusRadio = form.querySelector(`input[name="event-status"][value="${statusVal}"]`);
+      if (statusRadio) statusRadio.checked = true;
+      const hintBox = document.getElementById('status-hint-box');
+      if (hintBox) hintBox.style.display = statusVal === 'planned' ? 'block' : 'none';
+
     } else {
       // Yeni Ekleme Modu
       this.activeEditingEventId = null;
@@ -395,6 +431,14 @@ const App = {
         mSlider.value = 8;
         mSlider.dispatchEvent(new Event('input'));
       }
+
+      // Başlangıç durumunu ayarla (Gelecek gün seçildiyse varsayılan Randevu)
+      const isFutureDate = (dateInput.value > todayStr) || (dateInput.value === todayStr && timeInput.value > currentTimeStr);
+      const initialStatus = isFutureDate ? 'planned' : 'completed';
+      const statusRadio = form.querySelector(`input[name="event-status"][value="${initialStatus}"]`);
+      if (statusRadio) statusRadio.checked = true;
+      const hintBox = document.getElementById('status-hint-box');
+      if (hintBox) hintBox.style.display = initialStatus === 'planned' ? 'block' : 'none';
     }
 
     modal.showModal();
@@ -465,11 +509,16 @@ const App = {
       }
     }
 
+    const status = form.querySelector('input[name="event-status"]:checked')?.value || 'completed';
+
     const eventData = {
       id: editId || undefined,
       categoryId: catId,
       date,
       time,
+      status,
+      reminderSent: editId ? (Storage.getEvents().find(e => e.id === editId)?.reminderSent || false) : false,
+      checkinPrompted: editId ? (Storage.getEvents().find(e => e.id === editId)?.checkinPrompted || false) : false,
       details,
       notes
     };
@@ -479,7 +528,11 @@ const App = {
       showToast('Kayıt başarıyla güncellendi.', 'success');
     } else {
       Storage.addEvent(eventData);
-      showToast('Yeni olay takvime kaydedildi!', 'success');
+      const isPlanned = status === 'planned';
+      const msg = isPlanned 
+        ? 'Randevu takvime eklendi! (1 saat önce sessiz bildirim alacaksınız ⏰)' 
+        : 'Yeni olay takvime kaydedildi!';
+      showToast(msg, 'success');
     }
 
     this.refreshAllViews();
@@ -593,8 +646,31 @@ const App = {
         }
       }
 
+      // Durum rozeti oluştur
+      let statusHtml = '';
+      if (e.status === 'planned') {
+        statusHtml = `<div style="margin-top:4px;"><span class="status-badge badge-planned">⏳ Randevu / Plan</span></div>`;
+      } else if (e.status === 'skipped') {
+        statusHtml = `<div style="margin-top:4px;"><span class="status-badge badge-skipped">❌ Yapılmadı</span></div>`;
+      } else {
+        const isSpOrMas = (e.categoryId === 'sport' || e.categoryId === 'massage');
+        statusHtml = `<div style="margin-top:4px;"><span class="status-badge badge-completed">${isSpOrMas ? '✅ Yapıldı & Bitti' : '✅ Tamamlandı'}</span></div>`;
+      }
+
+      // Hızlı onay butonları (randevu ise)
+      let quickCheckinBtns = '';
+      if (e.status === 'planned') {
+        quickCheckinBtns = `
+          <button class="btn btn-sm btn-success btn-row-mark-complete" title="Hemen Yapıldı Olarak İşaretle">✅</button>
+          <button class="btn btn-sm btn-outline btn-row-mark-skip" title="Yapılmadı / İptal">❌</button>
+        `;
+      }
+
       tr.innerHTML = `
-        <td><strong>${e.date}</strong> <span style="color:var(--text-muted); font-size:0.8rem;">${e.time || ''}</span></td>
+        <td>
+          <strong>${e.date}</strong> <span style="color:var(--text-muted); font-size:0.8rem;">${e.time || ''}</span>
+          ${statusHtml}
+        </td>
         <td>
           <span style="display:inline-flex; align-items:center; gap:6px; font-weight:600;">
             <span style="background:${cat.color}; color:#fff; width:22px; height:22px; border-radius:4px; display:inline-flex; align-items:center; justify-content:center; font-size:0.8rem;">${cat.icon}</span>
@@ -605,12 +681,31 @@ const App = {
         <td>${valueStr}</td>
         <td><small>${noteAndTrigger}</small></td>
         <td>
-          <div style="display:flex; gap:6px;">
+          <div style="display:flex; gap:6px; align-items:center;">
+            ${quickCheckinBtns}
             <button class="btn btn-sm btn-outline btn-edit-row" title="Düzenle">✏️</button>
             <button class="btn btn-sm btn-outline btn-del-row" style="color:var(--danger);" title="Sil">🗑️</button>
           </div>
         </td>
       `;
+
+      const rowDoneBtn = tr.querySelector('.btn-row-mark-complete');
+      if (rowDoneBtn) {
+        rowDoneBtn.addEventListener('click', () => {
+          Storage.setEventStatus(e.id, 'completed');
+          this.refreshAllViews();
+          showToast(`"${cat.name}" başarıyla YAPILDI olarak kaydedildi! 🎉`, 'success');
+        });
+      }
+
+      const rowSkipBtn = tr.querySelector('.btn-row-mark-skip');
+      if (rowSkipBtn) {
+        rowSkipBtn.addEventListener('click', () => {
+          Storage.setEventStatus(e.id, 'skipped');
+          this.refreshAllViews();
+          showToast(`"${cat.name}" yapılmadı olarak işaretlendi.`, 'info');
+        });
+      }
 
       tr.querySelector('.btn-edit-row').addEventListener('click', () => {
         this.openEventModal(e);
@@ -684,6 +779,245 @@ const App = {
           this.refreshAllViews();
           showToast('Tüm veriler temizlendi ve varsayılan ayarlara dönüldü.', 'info');
         }
+      });
+    }
+  },
+
+  // ================= 7. SESSİZ BİLDİRİM & RANDEVU TAKİP SİSTEMİ =================
+  setupNotificationEngine() {
+    const notifBtn = document.getElementById('btn-toggle-notif');
+    const notifIcon = document.getElementById('notif-icon');
+
+    const updateNotifState = () => {
+      if (!('Notification' in window)) {
+        if (notifBtn) notifBtn.style.display = 'none';
+        return;
+      }
+      if (Notification.permission === 'granted') {
+        if (notifIcon) notifIcon.textContent = '🔔';
+        if (notifBtn) {
+          notifBtn.title = 'Randevu bildirimleri açık (Etkinlikten 1 saat önce sessiz bildirim)';
+          notifBtn.classList.add('active');
+        }
+      } else {
+        if (notifIcon) notifIcon.textContent = '🔕';
+        if (notifBtn) {
+          notifBtn.title = 'Randevu bildirimlerini açmak için tıklayın';
+          notifBtn.classList.remove('active');
+        }
+      }
+    };
+
+    updateNotifState();
+
+    if (notifBtn) {
+      notifBtn.addEventListener('click', async () => {
+        if (!('Notification' in window)) {
+          alert('Tarayıcınız masaüstü veya mobil bildirimleri desteklemiyor.');
+          return;
+        }
+
+        if (Notification.permission === 'granted') {
+          showToast('Randevu bildirimleri aktif durumda (1 saat önce sessiz bildirim gönderilir ⏰).', 'info');
+        } else {
+          try {
+            const perm = await Notification.requestPermission();
+            updateNotifState();
+            if (perm === 'granted') {
+              showToast('Randevu bildirimleri açıldı! Spor ve masaj saatlerinden 1 saat önce sessiz bildirim alacaksınız.', 'success');
+              // Örnek ilk sessiz bildirim gönder
+              try {
+                new Notification('Sağlık Takvimi Aktif! ⏰', {
+                  body: 'Randevularınızdan 1 saat önce bu şekilde sessiz bildirim alacaksınız (Alarm sesi çalmaz).',
+                  icon: './icons/icon-192.png',
+                  silent: true
+                });
+              } catch (e) {
+                console.log('Bildirim önizleme hatası:', e);
+              }
+            } else {
+              showToast('Bildirim izni verilmedi. Tarayıcı ayarlarından izin verebilirsiniz.', 'info');
+            }
+          } catch (err) {
+            console.error('Bildirim izin talebi hatası:', err);
+          }
+        }
+      });
+    }
+
+    // Periyodik kontrol: Her 25 saniyede bir randevu saatlerini denetle
+    this.checkScheduledAppointments();
+    if (!this._notifInterval) {
+      this._notifInterval = setInterval(() => {
+        this.checkScheduledAppointments();
+      }, 25000);
+    }
+
+    // Sekme tekrar odaklandığında anında denetle
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) {
+        this.checkScheduledAppointments();
+      }
+    });
+  },
+
+  // Randevu ve Onay Kontrol Motoru
+  checkScheduledAppointments() {
+    const events = Storage.getEvents();
+    const now = new Date();
+    const nowTs = now.getTime();
+    let hasChanges = false;
+    const pendingCheckins = [];
+
+    events.forEach(event => {
+      if (event.status !== 'planned') return;
+
+      const eventDateStr = event.date;
+      const eventTimeStr = event.time || '12:00';
+      const eventDateTime = new Date(`${eventDateStr}T${eventTimeStr}:00`);
+      const eventTs = eventDateTime.getTime();
+
+      if (isNaN(eventTs)) return;
+
+      const diffMs = eventTs - nowTs;
+      const diffMinutes = Math.floor(diffMs / (60 * 1000));
+      const cat = Storage.getCategoryById(event.categoryId);
+
+      // KURAL 1: 1 SAAT ÖNCE SESSİZ BİLDİRİM (Alarm sesi çalmaz!)
+      // Randevuya 60 dakika veya daha az kalmışsa ve henüz bildirim gitmediyse
+      if (diffMinutes <= 60 && diffMinutes >= -120 && !event.reminderSent) {
+        event.reminderSent = true;
+        hasChanges = true;
+
+        const catName = cat.name;
+        const subInfo = event.details?.sportType || event.details?.massageArea || '';
+        const title = `⏰ Hatırlatıcı: ${catName} (${eventTimeStr})`;
+        const bodyText = `1 saat sonra randevunuz var! (${subInfo ? subInfo + ' - ' : ''}${eventDateStr} ${eventTimeStr})`;
+
+        // Web Notification API ile SESSİZ bildirim (silent: true)
+        if ('Notification' in window && Notification.permission === 'granted') {
+          try {
+            new Notification(title, {
+              body: bodyText,
+              icon: './icons/icon-192.png',
+              badge: './icons/icon-192.png',
+              silent: true, // Kullanıcı isteği: Alarm çalmasın, sessiz bildirim olsun!
+              tag: `reminder-${event.id}`
+            });
+          } catch (e) {
+            console.log('Sessiz bildirim hatası:', e);
+          }
+        }
+
+        // Uygulama içi görsel uyarı
+        showToast(`⏰ Sessiz Hatırlatma: ${catName} randevunuza 1 saat kaldı! (${eventTimeStr})`, 'info');
+      }
+
+      // KURAL 2: 1 SAAT SONRA VE ETKİNLİK ZAMANINDA YAPILDI / YAPILMADI ONAYI
+      // "spor ve masaj saatinden 1 saat sonra da yapılıp yapılmadıgına dair ısaretlememe ızın versın"
+      const passedMinutes = Math.floor((nowTs - eventTs) / (60 * 1000));
+
+      if (passedMinutes >= 0) {
+        pendingCheckins.push({
+          event,
+          cat,
+          passedMinutes
+        });
+
+        // Randevu saatinden 60 dakika (1 saat) geçtikten sonra onay bildirimi gönder
+        if (passedMinutes >= 60 && !event.checkinPrompted) {
+          event.checkinPrompted = true;
+          hasChanges = true;
+
+          const catName = cat.name;
+          const title = `📋 Onay: ${catName} Yapıldı mı?`;
+          const bodyText = `Saat ${eventTimeStr} randevunuzun üzerinden 1 saat geçti. Yapıldı veya yapılmadı olarak işaretleyebilirsiniz.`;
+
+          if ('Notification' in window && Notification.permission === 'granted') {
+            try {
+              new Notification(title, {
+                body: bodyText,
+                icon: './icons/icon-192.png',
+                silent: true,
+                tag: `checkin-${event.id}`
+              });
+            } catch (e) {
+              console.log('Onay bildirim hatası:', e);
+            }
+          }
+
+          showToast(`📋 ${catName} saatinin üzerinden 1 saat geçti. Yapıldı mı? İşaretleyebilirsiniz.`, 'info');
+        }
+      }
+    });
+
+    if (hasChanges) {
+      Storage.saveEvents(events);
+    }
+
+    // Ekranın üst kısmındaki onay bannerını güncelle
+    this.renderCheckinBanner(pendingCheckins);
+  },
+
+  // Üst Onay Bannerını Çiz
+  renderCheckinBanner(pendingList) {
+    const banner = document.getElementById('checkin-alert-banner');
+    if (!banner) return;
+
+    if (!pendingList || pendingList.length === 0) {
+      banner.style.display = 'none';
+      banner.innerHTML = '';
+      return;
+    }
+
+    // Onay bekleyen ilk randevuyu al
+    const currentItem = pendingList[0];
+    const e = currentItem.event;
+    const cat = currentItem.cat;
+    const remainingOtherCount = pendingList.length - 1;
+
+    let subText = e.details?.sportType || e.details?.massageArea || '';
+    if (subText) subText = ` (${subText})`;
+
+    const otherBadge = remainingOtherCount > 0 
+      ? ` <span style="font-size:0.75rem; background:rgba(245,158,11,0.2); padding:2px 6px; border-radius:10px; font-weight:700;">+${remainingOtherCount} diğer bekleyen</span>` 
+      : '';
+
+    banner.innerHTML = `
+      <div class="banner-content">
+        <span class="banner-icon">🔔</span>
+        <div class="banner-text">
+          <strong>Aktivite Onayı:</strong> 
+          <span>${cat.icon} <strong>${cat.name}${subText}</strong> (${e.date} ${e.time || '12:00'}) yapıldı mı?</span>
+          ${otherBadge}
+        </div>
+      </div>
+      <div class="banner-actions">
+        <button id="banner-btn-complete" class="btn btn-sm btn-success" title="Yapıldı olarak işaretle">
+          ✅ Yapıldı
+        </button>
+        <button id="banner-btn-skip" class="btn btn-sm btn-outline" title="Yapılmadı olarak işaretle">
+          ❌ Yapılmadı
+        </button>
+      </div>
+    `;
+    banner.style.display = 'flex';
+
+    const btnComp = document.getElementById('banner-btn-complete');
+    if (btnComp) {
+      btnComp.addEventListener('click', () => {
+        Storage.setEventStatus(e.id, 'completed');
+        showToast(`"${cat.name}" başarıyla YAPILDI olarak onaylandı! 🎉`, 'success');
+        this.refreshAllViews();
+      });
+    }
+
+    const btnSkip = document.getElementById('banner-btn-skip');
+    if (btnSkip) {
+      btnSkip.addEventListener('click', () => {
+        Storage.setEventStatus(e.id, 'skipped');
+        showToast(`"${cat.name}" yapılmadı olarak işaretlendi.`, 'info');
+        this.refreshAllViews();
       });
     }
   }
