@@ -280,6 +280,30 @@ const Reports = {
       });
     }
 
+    // Spor & Egzersiz Analizi
+    const sportEvents = events.filter(e => e.categoryId === 'sport');
+    if (sportEvents.length > 0) {
+      const totalSportMin = sportEvents.reduce((acc, cur) => acc + (Number(cur.details?.duration) || Number(cur.details?.quantity) || 0), 0);
+      const avgSportMin = Math.round(totalSportMin / totalDays);
+      insights.push({
+        icon: '🏃',
+        title: 'Fiziksel Aktivite',
+        text: `Bu dönemde <strong>${sportEvents.length}</strong> kez spor yapıldı (Toplam <strong>${totalSportMin} dakika</strong>, günde ortalama ${avgSportMin} dk). Düzenli egzersiz baş ağrısı ve gerginliği azaltmada etkilidir.`
+      });
+    }
+
+    // Masaj Analizi
+    const massageEvents = events.filter(e => e.categoryId === 'massage');
+    if (massageEvents.length > 0) {
+      const sumRelief = massageEvents.reduce((acc, cur) => acc + (Number(cur.details?.reliefScore) || Number(cur.details?.intensity) || 8), 0);
+      const avgRelief = (sumRelief / massageEvents.length).toFixed(1);
+      insights.push({
+        icon: '💆',
+        title: 'Masaj & Kas Rahatlaması',
+        text: `Toplam <strong>${massageEvents.length}</strong> masaj seansı uygulandı. Seanslar sonrası ortalama rahatlama düzeyi <strong>${avgRelief} / 10</strong> olarak kaydedildi.`
+      });
+    }
+
     // Zaman Dilimi İçgörüsü
     const afternoonEvents = events.filter(e => {
       const h = parseInt((e.time || '00:00').split(':')[0], 10);
@@ -709,6 +733,15 @@ const Reports = {
         intensity = e.details?.intensity || '';
         triggerOrLoc = `${e.details?.location || ''} - Tetikleyici: ${e.details?.trigger || ''}`;
         med = e.details?.medTaken ? `Evet (${e.details?.medName || ''})` : 'Hayır';
+      } else if (e.categoryId === 'sport') {
+        subType = e.details?.sportType || 'Spor';
+        intensity = e.details?.intensityLevel || '';
+        quantity = `${e.details?.duration || e.details?.quantity || ''} dk`;
+      } else if (e.categoryId === 'massage') {
+        subType = e.details?.massageArea || 'Masaj';
+        intensity = e.details?.reliefScore || e.details?.intensity || '';
+        quantity = `${e.details?.duration || e.details?.quantity || ''} dk`;
+        triggerOrLoc = e.details?.provider ? `Uygulayan: ${e.details.provider}` : '';
       } else {
         if (e.details?.intensity) intensity = e.details.intensity;
         if (e.details?.quantity !== undefined && e.details?.quantity !== null) {

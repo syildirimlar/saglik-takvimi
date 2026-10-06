@@ -118,11 +118,15 @@ const CategoryManager = {
     // Dinamik Alan Görünürlükleri
     const fieldsWc = document.getElementById('fields-wc');
     const fieldsHeadache = document.getElementById('fields-headache');
+    const fieldsSport = document.getElementById('fields-sport');
+    const fieldsMassage = document.getElementById('fields-massage');
     const fieldsGenIntensity = document.getElementById('fields-generic-intensity');
     const fieldsGenQuantity = document.getElementById('fields-generic-quantity');
 
     if (fieldsWc) fieldsWc.style.display = 'none';
     if (fieldsHeadache) fieldsHeadache.style.display = 'none';
+    if (fieldsSport) fieldsSport.style.display = 'none';
+    if (fieldsMassage) fieldsMassage.style.display = 'none';
     if (fieldsGenIntensity) fieldsGenIntensity.style.display = 'none';
     if (fieldsGenQuantity) fieldsGenQuantity.style.display = 'none';
 
@@ -130,6 +134,10 @@ const CategoryManager = {
       if (fieldsWc) fieldsWc.style.display = 'block';
     } else if (catId === 'headache') {
       if (fieldsHeadache) fieldsHeadache.style.display = 'block';
+    } else if (catId === 'sport') {
+      if (fieldsSport) fieldsSport.style.display = 'block';
+    } else if (catId === 'massage') {
+      if (fieldsMassage) fieldsMassage.style.display = 'block';
     } else {
       // Özel veya diğer kategoriler
       if (category.hasIntensity && fieldsGenIntensity) {

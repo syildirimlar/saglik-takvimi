@@ -144,6 +144,22 @@ const App = {
       });
     }
 
+    // Üst Çubuk: Spor Butonu
+    const sportBtn = document.getElementById('btn-quick-sport');
+    if (sportBtn) {
+      sportBtn.addEventListener('click', () => {
+        this.openEventModal(null, null, 'sport');
+      });
+    }
+
+    // Üst Çubuk: Masaj Butonu
+    const massageBtn = document.getElementById('btn-quick-massage');
+    if (massageBtn) {
+      massageBtn.addEventListener('click', () => {
+        this.openEventModal(null, null, 'massage');
+      });
+    }
+
     // Üst Çubuk: Yeni Olay Ekle Butonu
     const addBtn = document.getElementById('btn-open-add-modal');
     if (addBtn) {
@@ -221,6 +237,23 @@ const App = {
       gSlider.addEventListener('input', () => {
         const val = parseInt(gSlider.value, 10);
         gBadge.textContent = `${val} / 10`;
+      });
+    }
+
+    // Masaj Rahatlama Slider'ı
+    const mSlider = document.getElementById('massage-relief');
+    const mBadge = document.getElementById('massage-relief-badge');
+    if (mSlider && mBadge) {
+      mSlider.addEventListener('input', () => {
+        const val = parseInt(mSlider.value, 10);
+        let text = `${val} / 10 - İyi`;
+        let cls = 'level-7';
+        if (val <= 3) { text = `${val} / 10 - Az Etki`; cls = 'level-1'; }
+        else if (val <= 6) { text = `${val} / 10 - Orta Rahatlama`; cls = 'level-5'; }
+        else if (val <= 8) { text = `${val} / 10 - Çok İyi`; cls = 'level-7'; }
+        else { text = `${val} / 10 - Mükemmel Rahatlama`; cls = 'level-10'; }
+        mBadge.textContent = text;
+        mBadge.className = `intensity-badge ${cls}`;
       });
     }
 
@@ -303,6 +336,25 @@ const App = {
           medTaken.dispatchEvent(new Event('change'));
         }
         if (medNameInput) medNameInput.value = eventToEdit.details?.medName || '';
+      } else if (eventToEdit.categoryId === 'sport') {
+        const spType = document.getElementById('sport-type');
+        if (spType) spType.value = eventToEdit.details?.sportType || 'Yürüyüş';
+        const spDur = document.getElementById('sport-duration');
+        if (spDur) spDur.value = eventToEdit.details?.duration || eventToEdit.details?.quantity || 30;
+        const spInt = form.querySelector(`input[name="sport-intensity"][value="${eventToEdit.details?.intensityLevel || 'Orta Seviye'}"]`);
+        if (spInt) spInt.checked = true;
+      } else if (eventToEdit.categoryId === 'massage') {
+        const mArea = document.getElementById('massage-area');
+        if (mArea) mArea.value = eventToEdit.details?.massageArea || 'Boyun & Omuz';
+        const mDur = document.getElementById('massage-duration');
+        if (mDur) mDur.value = eventToEdit.details?.duration || eventToEdit.details?.quantity || 20;
+        const mSlider = document.getElementById('massage-relief');
+        if (mSlider) {
+          mSlider.value = eventToEdit.details?.reliefScore || eventToEdit.details?.intensity || 8;
+          mSlider.dispatchEvent(new Event('input'));
+        }
+        const mProv = document.getElementById('massage-provider');
+        if (mProv) mProv.value = eventToEdit.details?.provider || 'Kendim';
       } else {
         if (eventToEdit.details?.intensity) {
           const gSlider = document.getElementById('generic-intensity');
@@ -336,6 +388,12 @@ const App = {
       if (hSlider) {
         hSlider.value = 5;
         hSlider.dispatchEvent(new Event('input'));
+      }
+      // Masaj slider varsayılanı tetikle
+      const mSlider = document.getElementById('massage-relief');
+      if (mSlider) {
+        mSlider.value = 8;
+        mSlider.dispatchEvent(new Event('input'));
       }
     }
 
@@ -374,6 +432,27 @@ const App = {
       details.trigger = trigger;
       details.medTaken = medTaken;
       if (medTaken) details.medName = medName;
+    } else if (catId === 'sport') {
+      const spType = document.getElementById('sport-type')?.value || 'Yürüyüş';
+      const spDur = parseInt(document.getElementById('sport-duration')?.value, 10) || 30;
+      const spInt = document.querySelector('input[name="sport-intensity"]:checked')?.value || 'Orta Seviye';
+      details.sportType = spType;
+      details.duration = spDur;
+      details.intensityLevel = spInt;
+      details.quantity = spDur;
+      details.unit = 'dk';
+    } else if (catId === 'massage') {
+      const mArea = document.getElementById('massage-area')?.value || 'Boyun & Omuz';
+      const mDur = parseInt(document.getElementById('massage-duration')?.value, 10) || 20;
+      const mRelief = parseInt(document.getElementById('massage-relief')?.value, 10) || 8;
+      const mProv = document.getElementById('massage-provider')?.value || 'Kendim';
+      details.massageArea = mArea;
+      details.duration = mDur;
+      details.reliefScore = mRelief;
+      details.provider = mProv;
+      details.intensity = mRelief;
+      details.quantity = mDur;
+      details.unit = 'dk';
     } else {
       const cat = Storage.getCategoryById(catId);
       if (cat.hasIntensity) {
@@ -494,6 +573,16 @@ const App = {
         }
         if (e.details?.trigger) {
           noteAndTrigger = `<strong>Tetikleyici:</strong> ${e.details.trigger} ${e.notes ? ` &bull; ${e.notes}` : ''}`;
+        }
+      } else if (e.categoryId === 'sport') {
+        subDetail = `${e.details?.sportType || 'Spor'} (${e.details?.duration || 30} dk)`;
+        valueStr = `<span style="color:var(--success); font-weight:700;">${e.details?.intensityLevel || 'Orta Seviye'}</span>`;
+      } else if (e.categoryId === 'massage') {
+        subDetail = `${e.details?.massageArea || 'Masaj'} (${e.details?.duration || 20} dk)`;
+        const rScore = e.details?.reliefScore || e.details?.intensity || 8;
+        valueStr = `<span class="intensity-badge level-7">Rahatlama: ${rScore}/10</span>`;
+        if (e.details?.provider) {
+          noteAndTrigger = `<strong>Uygulayan:</strong> ${e.details.provider} ${e.notes ? ` &bull; ${e.notes}` : ''}`;
         }
       } else {
         if (e.details?.intensity) {

@@ -29,9 +29,21 @@ Kişisel semptom, alışkanlık ve günlük olaylarınızı (özellikle **WC kul
 - **Olası Tetikleyiciler:** Uykusuzluk, Stres, Ekran Süresi, Susuzluk, Açlık, Lodos/Hava değişimi vb.
 - **İlaç Bilgisi:** İlaç / ağrı kesici alındı mı? (Hangi ilacın alındığı ve dozu).
 
-### 4. 🏷️ Aklınıza Gelen Başka Şeyleri Ekleme (Özel Kategoriler)
+### 4. 🏃 Spor & Egzersiz Takibi
+- **Hızlı Buton:** Üst çubuktaki yeşil **"🏃 Spor"** butonu ile anında kayıt.
+- **Spor Türü:** Yürüyüş, Koşu, Fitness / Ağırlık, Yoga & Esneme, Yüzme, Bisiklet, Pilates vb.
+- **Süre ve Efor:** Dakika cinsinden süre ve yoğunluk (Hafif Tempo, Orta Seviye, Yüksek/Terletici).
+- **Raporlama:** Raporlar sekmesinde toplam egzersiz dakikası ve ortalaması analiz edilir.
+
+### 5. 💆 Masaj & Kas Rahatlaması Takibi
+- **Hızlı Buton:** Üst çubuktaki pembe **"💆 Masaj"** butonu ile anında kayıt.
+- **Masaj Bölgesi:** Boyun & Omuz, Sırt & Bel, Baş & Şakak (Migren masajı), Tüm Vücut vb.
+- **Rahatlama Seviyesi (1 - 10):** Masajın baş ağrısına ve kas gerginliğine ne kadar iyi geldiğini puanlayabilme.
+- **Uygulama Yöntemi:** Kendim, Masaj Aleti/Tabancası, Masör/Profesyonel vb.
+
+### 6. 🏷️ Aklınıza Gelen Başka Şeyleri Ekleme (Özel Kategoriler)
 - "Kategoriler & Özel Alanlar" sekmesinden istediğiniz her türlü durumu tek tıkla ekleyebilirsiniz:
-  - Örnekler: **Kahve**, **Su**, **İlaç**, **Alerji**, **Mide Yanması**, **Ruh Hali/Stres**, **Sigara**, **Egzersiz**, **Uyku Süresi**...
+  - Örnekler: **Kahve**, **Su**, **İlaç**, **Alerji**, **Mide Yanması**, **Ruh Hali/Stres**, **Sigara**, **Uyku Süresi**...
   - **Özelleştirme:** İstediğiniz emojiyi/ikonu seçin, rengini belirleyin.
   - **Opsiyonel 1-10 Şiddet Skalası:** İlgili durumda şiddet derecesi takip edilsin mi?
   - **Opsiyonel Miktar / Birim:** İlgili durumda sayı girilsin mi? (Örn: fincan, bardak, adet, mg, km, dakika).

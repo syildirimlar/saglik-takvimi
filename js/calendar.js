@@ -340,6 +340,20 @@ const Calendar = {
           ${trig && trig !== 'Bilinmiyor' ? `<span>&bull; Tetikleyici: <strong>${trig}</strong></span>` : ''}
           ${medTaken ? `<span style="color:var(--success);">&bull; İlaç: ${medName || 'Alındı'}</span>` : ''}
         `;
+      } else if (event.categoryId === 'sport') {
+        const spType = event.details?.sportType || 'Spor Aktivitesi';
+        const spDur = event.details?.duration || event.details?.quantity || 30;
+        const spInt = event.details?.intensityLevel || 'Orta Seviye';
+        detailsHtml += `
+          <strong>${spType}</strong> &bull; <span>${spDur} dk</span> &bull; <span style="color:var(--success); font-weight:700;">${spInt}</span>
+        `;
+      } else if (event.categoryId === 'massage') {
+        const mArea = event.details?.massageArea || 'Masaj';
+        const mDur = event.details?.duration || event.details?.quantity || 20;
+        const relief = event.details?.reliefScore || event.details?.intensity || 8;
+        detailsHtml += `
+          <strong>${mArea}</strong> &bull; <span>${mDur} dk</span> &bull; <span class="intensity-badge level-7">Rahatlama: ${relief}/10</span>
+        `;
       } else {
         // Genel kategoriler
         if (event.details?.intensity) {

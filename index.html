@@ -38,15 +38,23 @@
       <div class="quick-actions">
         <button id="btn-quick-wc" class="btn btn-quick btn-wc" title="Şimdi WC Kullanımı Ekle">
           <span class="btn-icon">🚽</span>
-          <span class="btn-text">WC Kaydet</span>
+          <span class="btn-text">WC</span>
         </button>
         <button id="btn-quick-headache" class="btn btn-quick btn-headache" title="Şimdi Baş Ağrısı Ekle">
           <span class="btn-icon">🤕</span>
           <span class="btn-text">Baş Ağrısı</span>
         </button>
+        <button id="btn-quick-sport" class="btn btn-quick btn-sport" title="Şimdi Spor Aktivitesi Ekle">
+          <span class="btn-icon">🏃</span>
+          <span class="btn-text">Spor</span>
+        </button>
+        <button id="btn-quick-massage" class="btn btn-quick btn-massage" title="Şimdi Masaj Kaydet">
+          <span class="btn-icon">💆</span>
+          <span class="btn-text">Masaj</span>
+        </button>
         <button id="btn-open-add-modal" class="btn btn-primary" title="Detaylı veya Özel Olay Ekle">
           <span class="btn-icon">➕</span>
-          <span>Yeni Olay Ekle</span>
+          <span>Yeni Olay</span>
         </button>
       </div>
 
@@ -651,6 +659,92 @@
               <span>İlaç / Ağrı kesici alındı mı?</span>
             </label>
             <input type="text" id="headache-med-name" class="form-control" placeholder="Hangi ilaç alındı? (Örn: Parol, Arveles...)" style="margin-top: 8px; display: none;">
+          </div>
+        </div>
+
+        <!-- 3. SPOR & EGZERSİZ ALANLARI -->
+        <div id="fields-sport" class="dynamic-category-fields" style="display: none;">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="sport-type">Aktivite / Spor Türü</label>
+              <select id="sport-type" class="form-select">
+                <option value="Yürüyüş">🚶 Yürüyüş</option>
+                <option value="Koşu">🏃 Koşu</option>
+                <option value="Fitness / Ağırlık">🏋️ Fitness / Ağırlık</option>
+                <option value="Yoga & Esneme">🧘 Yoga & Esneme</option>
+                <option value="Yüzme">🏊 Yüzme</option>
+                <option value="Bisiklet">🚴 Bisiklet</option>
+                <option value="Pilates">🤸 Pilates</option>
+                <option value="Futbol / Basketbol">⚽ Takım Sporu</option>
+                <option value="Diğer">Diğer Egzersiz</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="sport-duration">Süre (Dakika)</label>
+              <input type="number" id="sport-duration" class="form-control" placeholder="Örn: 30" min="1" value="30">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Efor / Yoğunluk Seviyesi</label>
+            <div class="radio-pill-group">
+              <label class="radio-pill">
+                <input type="radio" name="sport-intensity" value="Hafif Tempo">
+                <span>🍃 Hafif Tempo</span>
+              </label>
+              <label class="radio-pill">
+                <input type="radio" name="sport-intensity" value="Orta Seviye" checked>
+                <span>🔥 Orta Seviye</span>
+              </label>
+              <label class="radio-pill">
+                <input type="radio" name="sport-intensity" value="Yüksek / Terletici">
+                <span>⚡ Yüksek / Tempolu</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4. MASAJ ALANLARI -->
+        <div id="fields-massage" class="dynamic-category-fields" style="display: none;">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="massage-area">Masaj Bölgesi / Tipi</label>
+              <select id="massage-area" class="form-select">
+                <option value="Boyun & Omuz">Boyun & Omuz (Gerginlik)</option>
+                <option value="Sırt & Bel">Sırt & Bel</option>
+                <option value="Baş & Şakak (Migren Masajı)">Baş & Şakak (Migren Masajı)</option>
+                <option value="Tüm Vücut">Tüm Vücut Rahatlama</option>
+                <option value="Bacak & Ayak">Bacak & Ayak</option>
+                <option value="Yüz Masajı">Yüz / Göz Çevresi</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="massage-duration">Süre (Dakika)</label>
+              <input type="number" id="massage-duration" class="form-control" placeholder="Örn: 20" min="1" value="20">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <div class="slider-label-wrap">
+              <label for="massage-relief">Rahatlama / Ağrı Azalma Düzeyi (1 - 10)</label>
+              <span id="massage-relief-badge" class="intensity-badge level-7">8 / 10 - Çok İyi</span>
+            </div>
+            <input type="range" id="massage-relief" class="form-range" min="1" max="10" value="8">
+            <div class="range-scale">
+              <span>1 (Az Etki)</span>
+              <span>5 (Orta Rahatlama)</span>
+              <span>10 (Mükemmel Rahatlama)</span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="massage-provider">Uygulama Yöntemi</label>
+            <select id="massage-provider" class="form-select">
+              <option value="Kendim">Kendi Kendime</option>
+              <option value="Masaj Cihazı / Tabancası">Masaj Aleti / Cihaz</option>
+              <option value="Yakınım / Eşim">Yakınım / Manuel</option>
+              <option value="Profesyonel / Masör">Profesyonel / Masör</option>
+            </select>
           </div>
         </div>
 

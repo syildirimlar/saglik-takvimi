@@ -32,6 +32,28 @@ const DEFAULT_CATEGORIES = [
     description: 'Ağrı şiddeti (1-10), bölge, tetikleyici ve ilaç takibi'
   },
   {
+    id: 'sport',
+    name: 'Spor & Egzersiz',
+    icon: '🏃',
+    color: '#10b981',
+    isSystem: true,
+    hasIntensity: true,
+    hasQuantity: true,
+    unit: 'dk',
+    description: 'Yürüyüş, koşu, fitness, yoga ve fiziksel aktiviteler'
+  },
+  {
+    id: 'massage',
+    name: 'Masaj',
+    icon: '💆',
+    color: '#ec4899',
+    isSystem: true,
+    hasIntensity: true,
+    hasQuantity: true,
+    unit: 'dk',
+    description: 'Boyun, sırt, baş veya tüm vücut masaj seansları'
+  },
+  {
     id: 'water',
     name: 'Su Tüketimi',
     icon: '💧',
@@ -95,10 +117,22 @@ const Storage = {
         this.saveCategories(DEFAULT_CATEGORIES);
         return DEFAULT_CATEGORIES;
       }
-      const parsed = JSON.parse(data);
+      let parsed = JSON.parse(data);
       if (!Array.isArray(parsed) || parsed.length === 0) {
         this.saveCategories(DEFAULT_CATEGORIES);
         return DEFAULT_CATEGORIES;
+      }
+      // Otomatik senkronizasyon: Eksik varsayılan kategorileri ekle
+      const existingIds = new Set(parsed.map(c => c.id));
+      let updated = false;
+      DEFAULT_CATEGORIES.forEach(dc => {
+        if (!existingIds.has(dc.id)) {
+          parsed.push(dc);
+          updated = true;
+        }
+      });
+      if (updated) {
+        this.saveCategories(parsed);
       }
       return parsed;
     } catch (e) {
@@ -355,6 +389,51 @@ const Storage = {
         notes: 'Filtre kahve',
         createdAt: new Date().toISOString()
       });
+
+      // 2 günde bir Spor Aktivitesi
+      if (i % 2 === 0) {
+        const sportTypes = ['Yürüyüş', 'Koşu', 'Fitness / Ağırlık', 'Yoga & Esneme', 'Yüzme'];
+        const spType = sportTypes[Math.floor(Math.random() * sportTypes.length)];
+        const spDuration = [30, 45, 60, 40][Math.floor(Math.random() * 4)];
+        const spIntensity = ['Hafif', 'Orta', 'Yüksek'][Math.floor(Math.random() * 3)];
+        demoEvents.push({
+          id: 'demo_sport_' + dateStr,
+          categoryId: 'sport',
+          date: dateStr,
+          time: '18:00',
+          details: {
+            sportType: spType,
+            duration: spDuration,
+            intensityLevel: spIntensity,
+            quantity: spDuration
+          },
+          notes: `${spDuration} dk ${spType} antrenmanı tamamlandı.`,
+          createdAt: new Date().toISOString()
+        });
+      }
+
+      // Haftada 1-2 gün Masaj Seansı
+      if (i % 5 === 0) {
+        const massageAreas = ['Boyun & Omuz', 'Sırt & Bel', 'Baş & Şakak (Migren)', 'Tüm Vücut'];
+        const mArea = massageAreas[Math.floor(Math.random() * massageAreas.length)];
+        const mDuration = [20, 30, 45][Math.floor(Math.random() * 3)];
+        const relief = Math.floor(Math.random() * 3) + 7; // 7-9 / 10 rahatlama
+        demoEvents.push({
+          id: 'demo_massage_' + dateStr,
+          categoryId: 'massage',
+          date: dateStr,
+          time: '20:30',
+          details: {
+            massageArea: mArea,
+            duration: mDuration,
+            reliefScore: relief,
+            intensity: relief,
+            quantity: mDuration
+          },
+          notes: `${mArea} bölgesine rahatlatıcı masaj yapıldı, gerginlik hafifledi.`,
+          createdAt: new Date().toISOString()
+        });
+      }
     }
 
     this.saveEvents(demoEvents);
