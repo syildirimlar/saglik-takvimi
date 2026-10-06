@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Sağlık & Yaşam Takip Takvimi</title>
+  
+  <!-- PWA & Mobil Uyumluluk -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#2563eb">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Sağlık Takvim">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+  <link rel="icon" type="image/png" href="icons/icon-192.png">
+
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body class="light-mode">
+  <!-- Ana Konteyner -->
+  <div class="app-container">
+    
+    <!-- Üst Başlık & Hızlı İşlemler Çubuğu -->
+    <header class="app-header">
+      <div class="brand">
+        <div class="logo-icon">📅</div>
+        <div>
+          <h1 class="logo-title">Sağlık & Yaşam Takvimi</h1>
+          <p class="logo-subtitle">Kişisel Alışkanlık, Semptom ve Olay Takip Sistemi</p>
+        </div>
+      </div>
+
+      <!-- Hızlı Ekle Butonları -->
+      <div class="quick-actions">
+        <button id="btn-quick-wc" class="btn btn-quick btn-wc" title="Şimdi WC Kullanımı Ekle">
+          <span class="btn-icon">🚽</span>
+          <span class="btn-text">WC Kaydet</span>
+        </button>
+        <button id="btn-quick-headache" class="btn btn-quick btn-headache" title="Şimdi Baş Ağrısı Ekle">
+          <span class="btn-icon">🤕</span>
+          <span class="btn-text">Baş Ağrısı</span>
+        </button>
+        <button id="btn-open-add-modal" class="btn btn-primary" title="Detaylı veya Özel Olay Ekle">
+          <span class="btn-icon">➕</span>
+          <span>Yeni Olay Ekle</span>
+        </button>
+      </div>
+
+      <!-- Ayarlar & Tema Düğmeleri -->
+      <div class="header-tools">
+        <button id="btn-toggle-theme" class="icon-btn" title="Karanlık / Aydınlık Mod">
+          <span id="theme-icon">🌙</span>
+        </button>
+        <button id="btn-load-demo" class="btn btn-secondary btn-sm" title="Denemek için örnek veriler yükle">
+          <span>✨ Örnek Veri</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Sekme Navigasyonu -->
+    <nav class="nav-tabs">
+      <button class="nav-tab active" data-tab="calendar">
+        <span class="tab-icon">📆</span>
+        <span>Takvim Görünümü</span>
+      </button>
+      <button class="nav-tab" data-tab="reports">
+        <span class="tab-icon">📊</span>
+        <span>Raporlar & İstatistikler</span>
+      </button>
+      <button class="nav-tab" data-tab="list">
+        <span class="tab-icon">📋</span>
+        <span>Tüm Kayıtlar</span>
+      </button>
+      <button class="nav-tab" data-tab="categories">
+        <span class="tab-icon">🏷️</span>
+        <span>Kategoriler & Özel Alanlar</span>
+      </button>
+      <button class="nav-tab" data-tab="backup">
+        <span class="tab-icon">💾</span>
+        <span>Yedekleme & Aktarım</span>
+      </button>
+    </nav>
+
+    <!-- Ana İçerik Bölümleri -->
+    <main class="main-content">
+
+      <!-- ================= SEKME 1: TAKVİM ================= -->
+      <section id="tab-calendar" class="tab-content active">
+        <div class="calendar-layout">
+          
+          <!-- Sol / Ana Kısım: Ay Takvimi -->
+          <div class="calendar-card card">
+            <div class="calendar-controls">
+              <div class="calendar-title-group">
+                <button id="cal-prev-month" class="icon-btn" title="Önceki Ay">◀</button>
+                <h2 id="calendar-month-year" class="cal-heading">Ekim 2026</h2>
+                <button id="cal-next-month" class="icon-btn" title="Sonraki Ay">▶</button>
+                <button id="cal-today-btn" class="btn btn-sm btn-outline">Bugün</button>
+              </div>
+
+              <!-- Kategori Filtresi (Takvimde hangi ikonlar gözüksün) -->
+              <div class="cal-filter-wrap">
+                <label for="cal-category-filter">Filtrele:</label>
+                <select id="cal-category-filter" class="form-select sm">
+                  <option value="all">Tüm Kategoriler</option>
+                  <!-- Dinamik doldurulacak -->
+                </select>
+              </div>
+            </div>
+
+            <!-- Haftanın Günleri Başlıkları -->
+            <div class="calendar-weekdays">
+              <div>Pzt</div>
+              <div>Sal</div>
+              <div>Çar</div>
+              <div>Per</div>
+              <div>Cum</div>
+              <div>Cmt</div>
+              <div>Paz</div>
+            </div>
+
+            <!-- Gün Hücreleri Izgarası -->
+            <div id="calendar-grid" class="calendar-grid">
+              <!-- JS ile dinamik üretilecek -->
+            </div>
+
+            <!-- Takvim Lejantı (Kategori İpuçları) -->
+            <div id="calendar-legend" class="calendar-legend">
+              <!-- Dinamik doldurulacak -->
+            </div>
+          </div>
+
+          <!-- Sağ Kısım: Seçili Günün Detayları & Günlük Akış -->
+          <aside class="day-details-card card">
+            <div class="day-details-header">
+              <div>
+                <span class="day-badge" id="selected-day-weekday">Bugün</span>
+                <h3 id="selected-day-title" class="selected-day-text">6 Ekim 2026</h3>
+              </div>
+              <button id="btn-add-to-selected-day" class="btn btn-sm btn-primary" title="Bu güne kayıt ekle">
+                ➕ Bu Güne Ekle
+              </button>
+            </div>
+
+            <div class="day-summary-stats" id="selected-day-summary">
+              <!-- O günün özet sayaçları -->
+            </div>
+
+            <!-- O Günün Olay Akışı (Timeline) -->
+            <div class="day-timeline-container">
+              <h4 class="timeline-heading">Günün Kayıtları</h4>
+              <div id="selected-day-events" class="day-events-list">
+                <!-- JS ile listelenecek -->
+              </div>
+            </div>
+          </aside>
+
+        </div>
+      </section>
+
+      <!-- ================= SEKME 2: RAPORLAR & İSTATİSTİKLER ================= -->
+      <section id="tab-reports" class="tab-content">
+        <div class="reports-toolbar card">
+          <div class="reports-filters">
+            <div class="filter-group">
+              <label for="report-range">Tarih Aralığı:</label>
+              <select id="report-range" class="form-select">
+                <option value="7">Son 7 Gün</option>
+                <option value="30" selected>Son 30 Gün</option>
+                <option value="this-month">Bu Ay</option>
+                <option value="prev-month">Geçen Ay</option>
+                <option value="90">Son 90 Gün</option>
+                <option value="all">Tüm Zamanlar</option>
+                <option value="custom">Özel Tarih Aralığı</option>
+              </select>
+            </div>
+
+            <div id="custom-date-inputs" class="filter-group custom-dates" style="display: none;">
+              <div>
+                <label for="report-start-date">Başlangıç:</label>
+                <input type="date" id="report-start-date" class="form-control">
+              </div>
+              <div>
+                <label for="report-end-date">Bitiş:</label>
+                <input type="date" id="report-end-date" class="form-control">
+              </div>
+            </div>
+
+            <div class="filter-group">
+              <label for="report-category">Kategori Odak:</label>
+              <select id="report-category" class="form-select">
+                <option value="all">Tüm Kategoriler</option>
+                <!-- Dinamik doldurulacak -->
+              </select>
+            </div>
+          </div>
+
+          <div class="reports-actions">
+            <button id="btn-print-report" class="btn btn-outline" title="Yazdır veya PDF olarak kaydet">
+              🖨️ Raporu Yazdır / PDF
+            </button>
+            <button id="btn-export-csv" class="btn btn-secondary" title="Excel uyumlu CSV formatında indir">
+              📊 Excel / CSV İndir
+            </button>
+          </div>
+        </div>
+
+        <!-- Yazdırılabilir Rapor Alanı -->
+        <div id="printable-report-area">
+          <div class="print-only report-print-header">
+            <h2>Kişisel Sağlık ve Alışkanlık Raporu</h2>
+            <p id="print-date-range-text">Dönem: Son 30 Gün</p>
+            <p class="print-meta">Oluşturulma Tarihi: <span id="print-generation-date"></span></p>
+          </div>
+
+          <!-- Özet Kartları Izgarası -->
+          <div class="stats-cards-grid">
+            <div class="stat-card">
+              <div class="stat-icon" style="background: rgba(59, 130, 246, 0.12); color: #2563eb;">📋</div>
+              <div class="stat-info">
+                <span class="stat-label">Toplam Kayıt</span>
+                <span id="stat-total-events" class="stat-value">0</span>
+                <span class="stat-subtext">Seçilen aralıkta</span>
+              </div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-icon" style="background: rgba(2, 132, 199, 0.12); color: #0284c7;">🚽</div>
+              <div class="stat-info">
+                <span class="stat-label">Tuvalet (WC) Sıklığı</span>
+                <span id="stat-wc-count" class="stat-value">0</span>
+                <span id="stat-wc-avg" class="stat-subtext">Günde 0.0 kez</span>
+              </div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-icon" style="background: rgba(239, 68, 68, 0.12); color: #ef4444;">🤕</div>
+              <div class="stat-info">
+                <span class="stat-label">Baş Ağrısı Sayısı</span>
+                <span id="stat-headache-count" class="stat-value">0</span>
+                <span id="stat-headache-intensity" class="stat-subtext">Ort. Şiddet: -</span>
+              </div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-icon" style="background: rgba(16, 185, 129, 0.12); color: #10b981;">💡</div>
+              <div class="stat-info">
+                <span class="stat-label">En Yoğun Saat Dilimi</span>
+                <span id="stat-peak-hour" class="stat-value">-</span>
+                <span id="stat-peak-category" class="stat-subtext">En sık yaşanan vakit</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Akıllı İçgörüler & Tespit Kutusu -->
+          <div class="insights-card card">
+            <div class="insights-header">
+              <span class="insights-icon">🧠</span>
+              <h3>Otomatik Analiz & Sağlık İçgörüleri</h3>
+            </div>
+            <div id="insights-content" class="insights-body">
+              <!-- Dinamik oluşturulacak içgörü metinleri -->
+            </div>
+          </div>
+
+          <!-- Grafikler Bölümü -->
+          <div class="charts-grid">
+            
+            <!-- Grafik 1: Günlük Trend (Zaman Çizelgesi) -->
+            <div class="chart-card card">
+              <div class="chart-header">
+                <h3>📈 Günlük Dağılım ve Trend</h3>
+                <span class="chart-subtitle">Güne göre vaka sayıları</span>
+              </div>
+              <div class="chart-container" id="trend-chart-container">
+                <!-- SVG Grafik Buraya Çizilecek -->
+              </div>
+            </div>
+
+            <!-- Grafik 2: Günün Saatlerine Göre Dağılım (Saat Analizi) -->
+            <div class="chart-card card">
+              <div class="chart-header">
+                <h3>⏰ Saat Dağılım Analizi (00:00 - 23:00)</h3>
+                <span class="chart-subtitle">Olaylar günün hangi saatlerinde gerçekleşiyor?</span>
+              </div>
+              <div class="chart-container" id="hourly-chart-container">
+                <!-- SVG Grafik Buraya Çizilecek -->
+              </div>
+            </div>
+
+            <!-- Grafik 3: Kategori & Tür Pasta/Halka Dağılımı -->
+            <div class="chart-card card">
+              <div class="chart-header">
+                <h3>🍩 Kategori Dağılımı</h3>
+                <span class="chart-subtitle">Toplam kayıtlar içindeki oranlar</span>
+              </div>
+              <div class="chart-container" id="category-chart-container">
+                <!-- SVG Grafik Buraya Çizilecek -->
+              </div>
+            </div>
+
+            <!-- Grafik 4: Baş Ağrısı Şiddet Dağılımı -->
+            <div class="chart-card card">
+              <div class="chart-header">
+                <h3>⚡ Baş Ağrısı Şiddet & Tetikleyici Tablosu</h3>
+                <span class="chart-subtitle">Ağrı düzeyleri (1-10) ve kayıtlı durumlar</span>
+              </div>
+              <div class="chart-container" id="intensity-chart-container">
+                <!-- SVG Grafik Buraya Çizilecek -->
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Rapor Dönemi Tablosu -->
+          <div class="report-table-card card">
+            <div class="card-header">
+              <h3>📑 Dönem Özeti Detay Tablosu</h3>
+            </div>
+            <div class="table-responsive">
+              <table class="data-table" id="report-summary-table">
+                <thead>
+                  <tr>
+                    <th>Kategori</th>
+                    <th>Toplam Adet</th>
+                    <th>Günlük Ortalama</th>
+                    <th>En Sık Saat</th>
+                    <th>Önemli Detay / Notlar</th>
+                  </tr>
+                </thead>
+                <tbody id="report-table-body">
+                  <!-- JS ile doldurulacak -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ================= SEKME 3: TÜM KAYITLAR LİSTESİ ================= -->
+      <section id="tab-list" class="tab-content">
+        <div class="card list-view-card">
+          <div class="list-controls">
+            <div class="search-input-wrap">
+              <span class="search-icon">🔍</span>
+              <input type="text" id="list-search-query" class="form-control" placeholder="Notlarda veya türlerde ara...">
+            </div>
+            
+            <div class="list-filters">
+              <select id="list-filter-category" class="form-select">
+                <option value="all">Tüm Kategoriler</option>
+                <!-- Dinamik doldurulacak -->
+              </select>
+
+              <select id="list-sort" class="form-select">
+                <option value="date-desc">En Yeni Tarih</option>
+                <option value="date-asc">En Eski Tarih</option>
+                <option value="intensity-desc">En Yüksek Şiddet</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="data-table" id="all-events-table">
+              <thead>
+                <tr>
+                  <th>Tarih & Saat</th>
+                  <th>Kategori</th>
+                  <th>Alt Tip / Detay</th>
+                  <th>Şiddet / Değer</th>
+                  <th>Notlar / Tetikleyiciler</th>
+                  <th>İşlemler</th>
+                </tr>
+              </thead>
+              <tbody id="all-events-tbody">
+                <!-- JS ile doldurulacak -->
+              </tbody>
+            </table>
+          </div>
+
+          <div id="list-empty-state" class="empty-state" style="display: none;">
+            <div class="empty-icon">📂</div>
+            <h3>Kayıt Bulunamadı</h3>
+            <p>Arama kriterlerinize uygun olay kaydı bulunmuyor.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= SEKME 4: KATEGORİLER & ÖZEL ALANLAR ================= -->
+      <section id="tab-categories" class="tab-content">
+        <div class="categories-layout">
+          
+          <!-- Sol: Mevcut Kategoriler -->
+          <div class="card current-categories-card">
+            <div class="card-header">
+              <h3>Mevcut Takip Kategorileri</h3>
+              <p class="section-desc">WC ve Baş Ağrısı dahil varsayılan veya kendi eklediğiniz tüm kategoriler.</p>
+            </div>
+            <div id="categories-grid" class="categories-grid">
+              <!-- JS ile kategori kartları listelenecek -->
+            </div>
+          </div>
+
+          <!-- Sağ: Yeni Özel Kategori Ekle -->
+          <div class="card create-category-card">
+            <div class="card-header">
+              <h3>➕ Yeni Kategori Oluştur</h3>
+              <p class="section-desc">Aklınıza gelen herhangi bir şeyi takip etmek için özel kategori ekleyin (örn: Kahve, İlaç, Alerji, Mide Yanması, Egzersiz vb.).</p>
+            </div>
+
+            <form id="form-create-category" class="category-form">
+              <div class="form-group">
+                <label for="cat-name">Kategori Adı <span class="req">*</span></label>
+                <input type="text" id="cat-name" class="form-control" placeholder="Örn: Kahve Tüketimi, Alerji, İlaç" required>
+              </div>
+
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="cat-icon">İkon / Emoji <span class="req">*</span></label>
+                  <div class="icon-selector-wrap">
+                    <input type="text" id="cat-icon" class="form-control" value="📌" maxlength="4" style="width: 70px; text-align: center; font-size: 1.3rem;">
+                    <div class="emoji-presets">
+                      <button type="button" class="preset-emoji">☕</button>
+                      <button type="button" class="preset-emoji">💊</button>
+                      <button type="button" class="preset-emoji">💧</button>
+                      <button type="button" class="preset-emoji">😴</button>
+                      <button type="button" class="preset-emoji">🏃</button>
+                      <button type="button" class="preset-emoji">🍔</button>
+                      <button type="button" class="preset-emoji">🤧</button>
+                      <button type="button" class="preset-emoji">⚡</button>
+                      <button type="button" class="preset-emoji">❤️</button>
+                      <button type="button" class="preset-emoji">🚬</button>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label for="cat-color">Renk</label>
+                  <input type="color" id="cat-color" class="form-control color-picker" value="#3b82f6">
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="checkbox-label">
+                  <input type="checkbox" id="cat-has-intensity">
+                  <span>Bu kategoride <strong>1-10 Şiddet Skalası</strong> olsun (Örn: Ağrı, Stres, Yorgunluk)</span>
+                </label>
+              </div>
+
+              <div class="form-group">
+                <label class="checkbox-label">
+                  <input type="checkbox" id="cat-has-quantity">
+                  <span>Bu kategoride <strong>Miktar/Sayı</strong> girilebilsin</span>
+                </label>
+              </div>
+
+              <div class="form-group" id="cat-unit-group" style="display: none;">
+                <label for="cat-unit-label">Miktar Birimi</label>
+                <input type="text" id="cat-unit-label" class="form-control" placeholder="Örn: fincan, bardak, adet, mg, dakika">
+              </div>
+
+              <div class="form-group">
+                <label for="cat-desc">Açıklama (İsteğe bağlı)</label>
+                <textarea id="cat-desc" class="form-control" rows="2" placeholder="Bu kategori hakkında not..."></textarea>
+              </div>
+
+              <button type="submit" class="btn btn-primary btn-block">
+                Kategoriyi Kaydet
+              </button>
+            </form>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ================= SEKME 5: YEDEKLEME & VERİ AKTARIMI ================= -->
+      <section id="tab-backup" class="tab-content">
+        <div class="backup-grid">
+          
+          <div class="card backup-card">
+            <div class="card-icon">💾</div>
+            <h3>Verileri Yedekle (JSON İndir)</h3>
+            <p>Tüm takvim kayıtlarınızı, özel kategorilerinizi ve geçmişinizi bilgisayarınıza güvenli bir JSON dosyası olarak kaydedin.</p>
+            <button id="btn-export-json" class="btn btn-primary">
+              💾 Tüm Verileri İndir (JSON)
+            </button>
+          </div>
+
+          <div class="card backup-card">
+            <div class="card-icon">📂</div>
+            <h3>Yedekten Geri Yükle</h3>
+            <p>Daha önce indirdiğiniz bir yedek dosyasını seçerek kayıtlarınızı geri yükleyin.</p>
+            <input type="file" id="input-import-json" accept=".json" style="display: none;">
+            <button id="btn-trigger-import" class="btn btn-secondary">
+              📂 Yedek Dosyası Seç (.json)
+            </button>
+          </div>
+
+          <div class="card backup-card">
+            <div class="card-icon">✨</div>
+            <h3>Örnek Veri Seti</h3>
+            <p>Programın takvimini ve rapor grafiklerini denemek için 30 günlük gerçekçi simülasyon verisi yükleyin.</p>
+            <button id="btn-load-demo-2" class="btn btn-outline">
+              ✨ 30 Günlük Örnek Veri Yükle
+            </button>
+          </div>
+
+          <div class="card backup-card danger-zone">
+            <div class="card-icon">🗑️</div>
+            <h3>Tüm Verileri Temizle</h3>
+            <p>Tarayıcıdaki tüm kayıtları sıfırlayın. Bu işlem geri alınamaz.</p>
+            <button id="btn-clear-all-data" class="btn btn-danger">
+              ⚠️ Tüm Kayıtları Sıfırla
+            </button>
+          </div>
+
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Alt Bilgi -->
+    <footer class="app-footer">
+      <p>Sağlık & Yaşam Takvim Programı &bull; Verileriniz %100 gizli olup yalnızca kendi tarayıcınızda (LocalStorage) saklanır.</p>
+    </footer>
+
+  </div>
+
+  <!-- ================= OLAY EKLEME / DÜZENLEME MODALI ================= -->
+  <dialog id="modal-event" class="app-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <span id="modal-category-badge-icon" class="modal-cat-icon">📝</span>
+          <h3 id="modal-event-title">Yeni Olay Kaydet</h3>
+        </div>
+        <button id="modal-btn-close" class="icon-btn close-btn" title="Kapat">✕</button>
+      </div>
+
+      <form id="form-event" class="modal-body">
+        <input type="hidden" id="event-edit-id">
+
+        <!-- Kategori Seçimi -->
+        <div class="form-group">
+          <label for="event-category">Kategori <span class="req">*</span></label>
+          <div class="category-pills" id="modal-category-pills">
+            <!-- Dinamik buton hapları -->
+          </div>
+          <select id="event-category" class="form-select" style="display: none;" required>
+            <!-- Dinamik doldurulacak -->
+          </select>
+        </div>
+
+        <!-- Tarih ve Saat -->
+        <div class="form-row">
+          <div class="form-group">
+            <label for="event-date">Tarih <span class="req">*</span></label>
+            <input type="date" id="event-date" class="form-control" required>
+          </div>
+          <div class="form-group">
+            <label for="event-time">Saat <span class="req">*</span></label>
+            <input type="time" id="event-time" class="form-control" required>
+          </div>
+        </div>
+
+        <!-- ============ KATEGORİYE ÖZEL ALANLAR ============ -->
+
+        <!-- 1. TUVALET (WC) ALANLARI -->
+        <div id="fields-wc" class="dynamic-category-fields" style="display: none;">
+          <div class="form-group">
+            <label>Tuvalet Tipi</label>
+            <div class="radio-pill-group">
+              <label class="radio-pill">
+                <input type="radio" name="wc-type" value="Küçük (İdrar)" checked>
+                <span>💧 Küçük (İdrar)</span>
+              </label>
+              <label class="radio-pill">
+                <input type="radio" name="wc-type" value="Büyük (Dışkı)">
+                <span>💩 Büyük (Dışkı)</span>
+              </label>
+              <label class="radio-pill">
+                <input type="radio" name="wc-type" value="İkisi Birlikte">
+                <span>🚽 İkisi Birlikte</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="form-group" id="wc-bowel-details">
+            <label for="wc-condition">Durum / Kıvam (Opsiyonel)</label>
+            <select id="wc-condition" class="form-select">
+              <option value="Normal">Normal</option>
+              <option value="Kabız / Sert">Kabız / Sert</option>
+              <option value="Yumuşak / Dağınık">Yumuşak / Dağınık</option>
+              <option value="Sıvı / İshal">Sıvı / İshal</option>
+              <option value="Ağrılı / Zorlanma">Ağrılı / Zorlanma</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- 2. BAŞ AĞRISI ALANLARI -->
+        <div id="fields-headache" class="dynamic-category-fields" style="display: none;">
+          <div class="form-group">
+            <div class="slider-label-wrap">
+              <label for="headache-intensity">Ağrı Şiddeti (1 - 10)</label>
+              <span id="headache-intensity-badge" class="intensity-badge level-5">5 / 10 - Orta</span>
+            </div>
+            <input type="range" id="headache-intensity" class="form-range" min="1" max="10" value="5">
+            <div class="range-scale">
+              <span>1 (Çok Hafif)</span>
+              <span>5 (Orta)</span>
+              <span>10 (Çok Şiddetli)</span>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="headache-location">Ağrı Bölgesi</label>
+              <select id="headache-location" class="form-select">
+                <option value="Şakaklar">Şakaklar (İki taraf)</option>
+                <option value="Alın">Alın</option>
+                <option value="Tek Taraflı (Migren)">Tek Taraflı (Migren)</option>
+                <option value="Ense ve Boyun">Ense ve Boyun</option>
+                <option value="Tepe / Tüm Baş">Tepe / Tüm Baş</option>
+                <option value="Göz Arkası">Göz Arkası</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="headache-trigger">Olası Tetikleyici</label>
+              <select id="headache-trigger" class="form-select">
+                <option value="Bilinmiyor">Bilinmiyor / Belirsiz</option>
+                <option value="Uykusuzluk">Uykusuzluk</option>
+                <option value="Stres / Kaygı">Stres / Kaygı</option>
+                <option value="Ekran Süresi / Göz">Ekran Süresi / Göz</option>
+                <option value="Susuzluk">Susuzluk (Dehidrasyon)</option>
+                <option value="Açlık / Öğün Atlama">Açlık / Öğün Atlama</option>
+                <option value="Hava Değişimi / Lodos">Hava Değişimi / Lodos</option>
+                <option value="Yüksek Kafein / Sigara">Yüksek Kafein / Sigara</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="checkbox-label">
+              <input type="checkbox" id="headache-med-taken">
+              <span>İlaç / Ağrı kesici alındı mı?</span>
+            </label>
+            <input type="text" id="headache-med-name" class="form-control" placeholder="Hangi ilaç alındı? (Örn: Parol, Arveles...)" style="margin-top: 8px; display: none;">
+          </div>
+        </div>
+
+        <!-- 3. GENEL ŞİDDET SKALASI (Özel kategoriler için) -->
+        <div id="fields-generic-intensity" class="dynamic-category-fields" style="display: none;">
+          <div class="form-group">
+            <div class="slider-label-wrap">
+              <label for="generic-intensity">Seviye / Şiddet (1 - 10)</label>
+              <span id="generic-intensity-badge" class="intensity-badge level-5">5 / 10</span>
+            </div>
+            <input type="range" id="generic-intensity" class="form-range" min="1" max="10" value="5">
+          </div>
+        </div>
+
+        <!-- 4. MİKTAR / SAYI ALANI (Özel kategoriler için) -->
+        <div id="fields-generic-quantity" class="dynamic-category-fields" style="display: none;">
+          <div class="form-group">
+            <label id="generic-quantity-label" for="generic-quantity">Miktar</label>
+            <input type="number" id="generic-quantity" class="form-control" step="any" placeholder="Sayı girin...">
+          </div>
+        </div>
+
+        <!-- Notlar / Detaylar -->
+        <div class="form-group">
+          <label for="event-notes">Ekstra Not / Açıklama</label>
+          <textarea id="event-notes" class="form-control" rows="2" placeholder="Nasıl hissediyorsunuz? İlaç adı, yedikleriniz veya aklınıza gelen herhangi bir detay..."></textarea>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" id="modal-btn-delete" class="btn btn-danger" style="display: none; margin-right: auto;">
+            🗑️ Bu Kaydı Sil
+          </button>
+          <button type="button" id="modal-btn-cancel" class="btn btn-outline">
+            İptal
+          </button>
+          <button type="submit" class="btn btn-primary">
+            💾 Kaydet
+          </button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <!-- Bildirim Toast Alanı -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- JavaScript Dosyaları -->
+  <script src="js/storage.js"></script>
+  <script src="js/categories.js"></script>
+  <script src="js/calendar.js"></script>
+  <script src="js/reports.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
