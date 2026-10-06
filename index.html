@@ -69,6 +69,9 @@
         <button id="btn-load-demo" class="btn btn-secondary btn-sm" title="Denemek için örnek veriler yükle">
           <span>✨ Örnek Veri</span>
         </button>
+        <button id="btn-clear-demo" class="btn btn-outline btn-sm" style="display: none; color: var(--danger); border-color: var(--danger);" title="Yüklenen örnek verileri kaldır ve takvimi temizle">
+          <span>🗑️ Örnekleri Temizle</span>
+        </button>
       </div>
     </header>
 
@@ -519,9 +522,14 @@
             <div class="card-icon">✨</div>
             <h3>Örnek Veri Seti</h3>
             <p>Programın takvimini ve rapor grafiklerini denemek için 30 günlük gerçekçi simülasyon verisi yükleyin.</p>
-            <button id="btn-load-demo-2" class="btn btn-outline">
-              ✨ 30 Günlük Örnek Veri Yükle
-            </button>
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+              <button id="btn-load-demo-2" class="btn btn-outline">
+                ✨ 30 Günlük Örnek Veri Yükle
+              </button>
+              <button id="btn-clear-demo-2" class="btn btn-outline" style="color:var(--danger); border-color:var(--danger);">
+                🗑️ Sadece Örnek Verileri Temizle
+              </button>
+            </div>
           </div>
 
           <div class="card backup-card danger-zone">

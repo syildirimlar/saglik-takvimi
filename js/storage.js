@@ -5,6 +5,7 @@
 
 const STORAGE_KEYS = {
   EVENTS: 'saglik_takvim_events_v1',
+  PREV_EVENTS: 'saglik_takvim_prev_events_backup',
   CATEGORIES: 'saglik_takvim_categories_v1',
   THEME: 'saglik_takvim_theme_v1'
 };
@@ -319,12 +320,51 @@ const Storage = {
   // Tüm verileri temizle
   clearAllData() {
     localStorage.removeItem(STORAGE_KEYS.EVENTS);
+    localStorage.removeItem(STORAGE_KEYS.PREV_EVENTS);
     localStorage.removeItem(STORAGE_KEYS.CATEGORIES);
     this.saveCategories(DEFAULT_CATEGORIES);
   },
 
+  // Demo verisi var mı kontrol et
+  hasDemoData() {
+    const events = this.getEvents();
+    return events.some(e => e.id && typeof e.id === 'string' && e.id.startsWith('demo_'));
+  },
+
+  // Sadece Örnek Verileri Kaldır (Önceki verileri geri yükler veya takvimi temizler)
+  removeDemoData() {
+    // Varsa yükleme öncesi gerçek verileri geri yükle
+    const prevData = localStorage.getItem(STORAGE_KEYS.PREV_EVENTS);
+    if (prevData) {
+      try {
+        const restored = JSON.parse(prevData);
+        if (Array.isArray(restored)) {
+          this.saveEvents(restored);
+          localStorage.removeItem(STORAGE_KEYS.PREV_EVENTS);
+          return { restored: true, count: restored.length };
+        }
+      } catch (e) {
+        console.error('Yedek geri yüklenirken hata:', e);
+      }
+    }
+
+    // Yedek yoksa, sadece demo olmayan gerçek kayıtları bırak
+    const events = this.getEvents();
+    const remaining = events.filter(e => !e.id || !e.id.startsWith('demo_'));
+    this.saveEvents(remaining);
+    localStorage.removeItem(STORAGE_KEYS.PREV_EVENTS);
+    return { restored: false, count: remaining.length };
+  },
+
   // Gerçekçi 30 Günlük Demo Verisi Yükle
   loadDemoData() {
+    // Mevcut gerçek verileri otomatik yedekle (Geri alabilmek için)
+    const existingEvents = this.getEvents();
+    const realEvents = existingEvents.filter(e => !e.id || !e.id.startsWith('demo_'));
+    if (realEvents.length > 0) {
+      localStorage.setItem(STORAGE_KEYS.PREV_EVENTS, JSON.stringify(realEvents));
+    }
+
     const today = new Date();
     const demoEvents = [];
 

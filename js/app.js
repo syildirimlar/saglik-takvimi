@@ -61,6 +61,7 @@ const App = {
     Reports.render();
     this.renderAllEventsList();
     this.checkScheduledAppointments();
+    this.updateDemoButtonState();
   },
 
   // ================= 1. TEMA YÖNETİMİ =================
@@ -177,6 +178,25 @@ const App = {
         this.loadDemo();
       });
     }
+
+    // Üst Çubuk: Örnek Verileri Temizle / Kaldır Butonu
+    const clearDemoBtn = document.getElementById('btn-clear-demo');
+    if (clearDemoBtn) {
+      clearDemoBtn.addEventListener('click', () => {
+        this.clearDemoData();
+      });
+    }
+
+    this.updateDemoButtonState();
+  },
+
+  updateDemoButtonState() {
+    const hasDemo = Storage.hasDemoData();
+    const clearBtn1 = document.getElementById('btn-clear-demo');
+    const clearBtn2 = document.getElementById('btn-clear-demo-2');
+
+    if (clearBtn1) clearBtn1.style.display = hasDemo ? 'inline-flex' : 'none';
+    if (clearBtn2) clearBtn2.style.display = hasDemo ? 'inline-flex' : 'none';
   },
 
   loadDemo() {
@@ -184,6 +204,18 @@ const App = {
       const count = Storage.loadDemoData();
       this.refreshAllViews();
       showToast(`${count} adet örnek kayıt başarıyla yüklendi!`, 'success');
+    }
+  },
+
+  clearDemoData() {
+    if (confirm('Yüklenen tüm örnek (demo) kayıtlar kaldırılacak ve takviminiz temizlenecek. Devam etmek istiyor musunuz?')) {
+      const res = Storage.removeDemoData();
+      this.refreshAllViews();
+      if (res.restored) {
+        showToast(`Örnek veriler kaldırıldı ve ${res.count} adet önceki gerçek kaydınız geri getirildi! 🎉`, 'success');
+      } else {
+        showToast('Örnek veriler başarıyla kaldırıldı. Takviminiz temizlendi! 👍', 'info');
+      }
     }
   },
 
@@ -767,6 +799,14 @@ const App = {
     if (demoBtn2) {
       demoBtn2.addEventListener('click', () => {
         this.loadDemo();
+      });
+    }
+
+    // Demo Verilerini Temizle Butonu 2
+    const clearDemoBtn2 = document.getElementById('btn-clear-demo-2');
+    if (clearDemoBtn2) {
+      clearDemoBtn2.addEventListener('click', () => {
+        this.clearDemoData();
       });
     }
 
