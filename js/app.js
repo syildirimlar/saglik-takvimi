@@ -31,25 +31,29 @@ const App = {
   activeEditingEventId: null,
 
   init() {
-    this.setupTheme();
-    this.setupNavigationTabs();
-    this.setupQuickButtons();
-    this.setupModal();
-    this.setupAllEventsListView();
-    this.setupBackupTab();
+    try { this.setupTheme(); } catch (e) { console.error('Theme hatası:', e); }
+    try { this.setupNavigationTabs(); } catch (e) { console.error('Tabs hatası:', e); }
+    try { this.setupQuickButtons(); } catch (e) { console.error('QuickButtons hatası:', e); }
+    try { this.setupModal(); } catch (e) { console.error('Modal hatası:', e); }
+    try { this.setupAllEventsListView(); } catch (e) { console.error('ListView hatası:', e); }
+    try { this.setupBackupTab(); } catch (e) { console.error('BackupTab hatası:', e); }
 
     // Alt modülleri başlat
-    CategoryManager.init();
-    Calendar.init();
-    Reports.init();
-    this.setupNotificationEngine();
+    try { CategoryManager.init(); } catch (e) { console.error('CategoryManager hatası:', e); }
+    try { Calendar.init(); } catch (e) { console.error('Calendar hatası:', e); }
+    try { Reports.init(); } catch (e) { console.error('Reports hatası:', e); }
+    try { this.setupNotificationEngine(); } catch (e) { console.error('Notification hatası:', e); }
 
     // İlk açılışta eğer hiç veri yoksa kullanıcıya ipucu ver veya demo teklifi yap
-    const events = Storage.getEvents();
-    if (events.length === 0) {
-      setTimeout(() => {
-        showToast('Hoş geldiniz! Takvimi test etmek için "✨ Örnek Veri" butonuna tıklayabilirsiniz.', 'info');
-      }, 800);
+    try {
+      const events = Storage.getEvents();
+      if (events.length === 0) {
+        setTimeout(() => {
+          showToast('Hoş geldiniz! Takvimi test etmek için "✨ Örnek Veri" butonuna tıklayabilirsiniz.', 'info');
+        }, 800);
+      }
+    } catch (e) {
+      console.error(e);
     }
   },
 
@@ -195,8 +199,13 @@ const App = {
     const clearBtn1 = document.getElementById('btn-clear-demo');
     const clearBtn2 = document.getElementById('btn-clear-demo-2');
 
-    if (clearBtn1) clearBtn1.style.display = hasDemo ? 'inline-flex' : 'none';
-    if (clearBtn2) clearBtn2.style.display = hasDemo ? 'inline-flex' : 'none';
+    if (clearBtn1) {
+      clearBtn1.style.display = 'inline-flex';
+      clearBtn1.innerHTML = hasDemo ? '<span>🗑️ Örnekleri Temizle</span>' : '<span>🗑️ Takvimi Temizle</span>';
+    }
+    if (clearBtn2) {
+      clearBtn2.style.display = 'inline-flex';
+    }
   },
 
   loadDemo() {
@@ -208,14 +217,16 @@ const App = {
   },
 
   clearDemoData() {
-    if (confirm('Yüklenen tüm örnek (demo) kayıtlar kaldırılacak ve takviminiz temizlenecek. Devam etmek istiyor musunuz?')) {
-      const res = Storage.removeDemoData();
+    const events = Storage.getEvents();
+    if (events.length === 0) {
+      showToast('Takvim zaten tertemiz ve boş durumda! ✨', 'info');
+      return;
+    }
+
+    if (confirm('Takvimdeki kayıtları temizlemek istediğinize emin misiniz? (Örnek veriler ve olaylar silinerek takvim sıfırlanacaktır)')) {
+      Storage.clearAllData();
       this.refreshAllViews();
-      if (res.restored) {
-        showToast(`Örnek veriler kaldırıldı ve ${res.count} adet önceki gerçek kaydınız geri getirildi! 🎉`, 'success');
-      } else {
-        showToast('Örnek veriler başarıyla kaldırıldı. Takviminiz temizlendi! 👍', 'info');
-      }
+      showToast('Takvim başarıyla temizlendi ve sıfırlandı! 👍', 'success');
     }
   },
 
@@ -1068,11 +1079,23 @@ const App = {
 // Sayfa yüklendiğinde başlat
 window.addEventListener('DOMContentLoaded', () => {
   window.App = App;
-  App.init();
+  try {
+    App.init();
+  } catch (err) {
+    console.error('App.init kritik hata:', err);
+    try {
+      CategoryManager.init();
+      Calendar.init();
+    } catch (e2) {
+      console.error('Kurtarma hatası:', e2);
+    }
+  }
 
-  // PWA Service Worker Kaydı (Mobil Çevrimdışı Çalışma)
+  // PWA Service Worker Kaydı (Mobil Çevrimdışı Çalışma & Anında Güncelleme)
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./sw.js').catch((err) => {
+    navigator.serviceWorker.register('./sw.js').then((reg) => {
+      reg.update();
+    }).catch((err) => {
       console.log('SW kayıt durumu:', err);
     });
   }

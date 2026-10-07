@@ -77,10 +77,10 @@ const Calendar = {
   },
 
   render() {
-    this.updateHeader();
-    this.renderGrid();
-    this.renderLegend();
-    this.renderSelectedDayDetails();
+    try { this.updateHeader(); } catch (e) { console.error('updateHeader hatası:', e); }
+    try { this.renderGrid(); } catch (e) { console.error('renderGrid hatası:', e); }
+    try { this.renderLegend(); } catch (e) { console.error('renderLegend hatası:', e); }
+    try { this.renderSelectedDayDetails(); } catch (e) { console.error('renderSelectedDayDetails hatası:', e); }
   },
 
   updateHeader() {
