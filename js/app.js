@@ -240,7 +240,15 @@ const App = {
 
     // Kapatma butonları
     const closeModal = () => {
-      if (modal && modal.open) modal.close();
+      if (modal) {
+        try {
+          if (modal.open) modal.close();
+        } catch (err) {
+          modal.removeAttribute('open');
+          modal.style.display = 'none';
+        }
+      }
+      this.activeEditingEventId = null;
     };
     if (closeBtn) closeBtn.addEventListener('click', closeModal);
     if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
@@ -346,11 +354,36 @@ const App = {
     }
 
     // Form Gönderimi (Ekle / Güncelle)
+    let isSaving = false;
+    const handleSave = (e) => {
+      if (e) e.preventDefault();
+      if (isSaving) return;
+      isSaving = true;
+      try {
+        const saved = this.saveEventFromModal();
+        if (saved !== false) {
+          closeModal();
+        }
+      } catch (err) {
+        console.error('Kaydetme hatası:', err);
+        alert('Kaydetme sırasında bir hata oluştu: ' + err.message);
+      } finally {
+        setTimeout(() => { isSaving = false; }, 300);
+      }
+    };
+
     if (form) {
-      form.addEventListener('submit', (e) => {
-        e.preventDefault();
-        this.saveEventFromModal();
-        closeModal();
+      form.addEventListener('submit', handleSave);
+    }
+
+    const saveBtn = document.getElementById('modal-btn-save');
+    if (saveBtn) {
+      saveBtn.addEventListener('click', (e) => {
+        if (form && typeof form.checkValidity === 'function' && !form.checkValidity()) {
+          form.reportValidity();
+          return;
+        }
+        handleSave(e);
       });
     }
   },
@@ -491,15 +524,19 @@ const App = {
 
   // Modal Verisini Kaydet
   saveEventFromModal() {
-    const editId = document.getElementById('event-edit-id').value;
-    const catId = document.getElementById('event-category').value;
-    const date = document.getElementById('event-date').value;
-    const time = document.getElementById('event-time').value;
-    const notes = document.getElementById('event-notes').value.trim();
+    const editId = document.getElementById('event-edit-id')?.value || '';
+    const catId = document.getElementById('event-category')?.value || 'wc';
+    const dateInput = document.getElementById('event-date');
+    const timeInput = document.getElementById('event-time');
+    const notesInput = document.getElementById('event-notes');
+
+    const date = dateInput ? dateInput.value : Calendar.formatDate(new Date());
+    const time = timeInput ? timeInput.value : '12:00';
+    const notes = notesInput ? notesInput.value.trim() : '';
 
     if (!catId || !date) {
-      alert('Lütfen zorunlu alanları doldurun.');
-      return;
+      alert('Lütfen zorunlu alanları (Kategori ve Tarih) doldurun.');
+      return false;
     }
 
     const details = {};
@@ -544,17 +581,17 @@ const App = {
       details.unit = 'dk';
     } else {
       const cat = Storage.getCategoryById(catId);
-      if (cat.hasIntensity) {
+      if (cat?.hasIntensity) {
         details.intensity = parseInt(document.getElementById('generic-intensity')?.value, 10) || 5;
       }
-      if (cat.hasQuantity) {
+      if (cat?.hasQuantity) {
         const qtyVal = document.getElementById('generic-quantity')?.value;
-        if (qtyVal !== '') details.quantity = parseFloat(qtyVal);
-        details.unit = cat.unit;
+        if (qtyVal !== '' && qtyVal !== undefined) details.quantity = parseFloat(qtyVal);
+        details.unit = cat?.unit || '';
       }
     }
 
-    const status = form.querySelector('input[name="event-status"]:checked')?.value || 'completed';
+    const status = document.querySelector('input[name="event-status"]:checked')?.value || 'completed';
 
     const eventData = {
       id: editId || undefined,
@@ -581,6 +618,7 @@ const App = {
     }
 
     this.refreshAllViews();
+    return true;
   },
 
   // ================= 5. TÜM KAYITLAR LİSTESİ =================

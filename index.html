@@ -15,7 +15,7 @@
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
   <link rel="icon" type="image/png" href="icons/icon-192.png">
 
-  <link rel="stylesheet" href="css/style.css?v=5.0">
+  <link rel="stylesheet" href="css/style.css?v=6.0">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -26,7 +26,7 @@
       if ('caches' in window) {
         caches.keys().then(function(keys) {
           keys.forEach(function(k) {
-            if (k !== 'saglik-takvim-v5') caches.delete(k);
+            if (k !== 'saglik-takvim-v6') caches.delete(k);
           });
         });
       }
@@ -591,7 +591,7 @@
           <div class="category-pills" id="modal-category-pills">
             <!-- Dinamik buton hapları -->
           </div>
-          <select id="event-category" class="form-select" style="display: none;" required>
+          <select id="event-category" class="form-select" style="display: none;">
             <!-- Dinamik doldurulacak -->
           </select>
         </div>
@@ -830,7 +830,7 @@
           <button type="button" id="modal-btn-cancel" class="btn btn-outline">
             İptal
           </button>
-          <button type="submit" class="btn btn-primary">
+          <button type="submit" id="modal-btn-save" class="btn btn-primary">
             💾 Kaydet
           </button>
         </div>
@@ -841,11 +841,11 @@
   <!-- Bildirim Toast Alanı -->
   <div id="toast-container" class="toast-container"></div>
 
-  <!-- JavaScript Dosyaları (Önbellek Kilidini Kırıcı ?v=5.0 Parametreleri ile) -->
-  <script src="js/storage.js?v=5.0"></script>
-  <script src="js/categories.js?v=5.0"></script>
-  <script src="js/calendar.js?v=5.0"></script>
-  <script src="js/reports.js?v=5.0"></script>
-  <script src="js/app.js?v=5.0"></script>
+  <!-- JavaScript Dosyaları (Önbellek Kilidini Kırıcı ?v=6.0 Parametreleri ile) -->
+  <script src="js/storage.js?v=6.0"></script>
+  <script src="js/categories.js?v=6.0"></script>
+  <script src="js/calendar.js?v=6.0"></script>
+  <script src="js/reports.js?v=6.0"></script>
+  <script src="js/app.js?v=6.0"></script>
 </body>
 </html>
