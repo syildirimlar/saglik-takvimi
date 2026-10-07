@@ -1,4 +1,4 @@
-const CACHE_NAME = 'saglik-takvim-v2';
+const CACHE_NAME = 'saglik-takvim-v3';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -24,7 +24,7 @@ self.addEventListener('install', (event) => {
   );
 });
 
-// Eski Önbellekleri Temizleme
+// Eski Önbellekleri Temizleme (v2 ve altını siler)
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) => {
@@ -35,33 +35,31 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Ağ veya Önbellekten Getirme (Cache-first with Network Fallback)
+// Ağ Öncelikli Getirme (Network-First with Cache Fallback - Güncellemeler anında yansır)
 self.addEventListener('fetch', (event) => {
+  if (event.request.method !== 'GET') return;
+
   event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      if (cachedResponse) {
-        return cachedResponse;
-      }
-      return fetch(event.request).then((networkResponse) => {
-        // Yeni istekleri önbelleğe ekle
-        if (
-          networkResponse &&
-          networkResponse.status === 200 &&
-          networkResponse.type === 'basic' &&
-          event.request.method === 'GET'
-        ) {
+    fetch(event.request)
+      .then((networkResponse) => {
+        if (networkResponse && networkResponse.status === 200) {
           const responseToCache = networkResponse.clone();
           caches.open(CACHE_NAME).then((cache) => {
             cache.put(event.request, responseToCache);
           });
         }
         return networkResponse;
-      }).catch(() => {
-        // Çevrimdışı durumunda index.html döndür
-        if (event.request.mode === 'navigate') {
-          return caches.match('./index.html');
-        }
-      });
-    })
+      })
+      .catch(() => {
+        // İnternet yoksa (Offline durumunda) önbellekten getir
+        return caches.match(event.request).then((cachedResponse) => {
+          if (cachedResponse) {
+            return cachedResponse;
+          }
+          if (event.request.mode === 'navigate') {
+            return caches.match('./index.html');
+          }
+        });
+      })
   );
 });
