@@ -289,6 +289,8 @@ const App = {
         mBadge.textContent = text;
         mBadge.className = `intensity-badge ${cls}`;
       });
+    }
+
     // Etkinlik Durumu (Tamamlandı vs Randevu) Değişimi
     const statusRadios = form.querySelectorAll('input[name="event-status"]');
     const hintBox = document.getElementById('status-hint-box');
