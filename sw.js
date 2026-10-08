@@ -1,4 +1,4 @@
-const CACHE_NAME = 'saglik-takvim-v6';
+const CACHE_NAME = 'saglik-takvim-v7';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -8,6 +8,7 @@ const ASSETS_TO_CACHE = [
   './js/categories.js',
   './js/calendar.js',
   './js/reports.js',
+  './js/sync.js',
   './js/app.js',
   './icons/icon.svg',
   './icons/icon-192.png',

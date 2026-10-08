@@ -43,6 +43,7 @@ const App = {
     try { Calendar.init(); } catch (e) { console.error('Calendar hatası:', e); }
     try { Reports.init(); } catch (e) { console.error('Reports hatası:', e); }
     try { this.setupNotificationEngine(); } catch (e) { console.error('Notification hatası:', e); }
+    try { if (window.CloudSync) CloudSync.init(); } catch (e) { console.error('CloudSync hatası:', e); }
 
     // İlk açılışta eğer hiç veri yoksa kullanıcıya ipucu ver veya demo teklifi yap
     try {
@@ -808,6 +809,72 @@ const App = {
 
   // ================= 6. YEDEKLEME & VERİ AKTARIMI =================
   setupBackupTab() {
+    // Bulut Eşitleme (CloudSync) Butonları
+    const startSyncBtn = document.getElementById('btn-start-cloud-sync');
+    if (startSyncBtn) {
+      startSyncBtn.addEventListener('click', () => {
+        if (window.CloudSync) CloudSync.startNewSync();
+      });
+    }
+
+    const toggleEnterCodeBtn = document.getElementById('btn-toggle-enter-code');
+    const inputContainer = document.getElementById('cloud-sync-input-container');
+    if (toggleEnterCodeBtn && inputContainer) {
+      toggleEnterCodeBtn.addEventListener('click', () => {
+        const isHidden = inputContainer.style.display === 'none';
+        inputContainer.style.display = isHidden ? 'block' : 'none';
+        if (isHidden) {
+          const inp = document.getElementById('input-cloud-sync-code');
+          if (inp) inp.focus();
+        }
+      });
+    }
+
+    const submitCodeBtn = document.getElementById('btn-submit-cloud-code');
+    const codeInput = document.getElementById('input-cloud-sync-code');
+    if (submitCodeBtn && codeInput) {
+      submitCodeBtn.addEventListener('click', () => {
+        const val = codeInput.value.trim();
+        if (!val) {
+          alert('Lütfen eşitleme kodunu veya bağlantı linkini yapıştırın.');
+          return;
+        }
+        if (window.CloudSync) CloudSync.connectWithCode(val);
+      });
+    }
+
+    const copyLinkBtn = document.getElementById('btn-copy-sync-link');
+    if (copyLinkBtn) {
+      copyLinkBtn.addEventListener('click', () => {
+        if (window.CloudSync) CloudSync.copyShareLink();
+      });
+    }
+
+    const manualSyncBtn = document.getElementById('btn-manual-sync-now');
+    if (manualSyncBtn) {
+      manualSyncBtn.addEventListener('click', () => {
+        if (window.CloudSync) CloudSync.pull(true);
+      });
+    }
+
+    const disconnectSyncBtn = document.getElementById('btn-disconnect-sync');
+    if (disconnectSyncBtn) {
+      disconnectSyncBtn.addEventListener('click', () => {
+        if (window.CloudSync) CloudSync.disconnect();
+      });
+    }
+
+    const headerSyncBadge = document.getElementById('header-sync-badge');
+    if (headerSyncBadge) {
+      headerSyncBadge.addEventListener('click', () => {
+        this.switchTab('backup');
+        const heroCard = document.querySelector('.cloud-sync-hero-card');
+        if (heroCard) {
+          heroCard.scrollIntoView({ behavior: 'smooth' });
+        }
+      });
+    }
+
     // JSON İndir
     const exportBtn = document.getElementById('btn-export-json');
     if (exportBtn) {

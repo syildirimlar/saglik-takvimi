@@ -15,7 +15,7 @@
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
   <link rel="icon" type="image/png" href="icons/icon-192.png">
 
-  <link rel="stylesheet" href="css/style.css?v=6.0">
+  <link rel="stylesheet" href="css/style.css?v=7.0">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -26,7 +26,7 @@
       if ('caches' in window) {
         caches.keys().then(function(keys) {
           keys.forEach(function(k) {
-            if (k !== 'saglik-takvim-v6') caches.delete(k);
+            if (k !== 'saglik-takvim-v7') caches.delete(k);
           });
         });
       }
@@ -78,6 +78,10 @@
 
       <!-- Ayarlar & Tema Düğmeleri -->
       <div class="header-tools">
+        <button id="header-sync-badge" class="header-sync-btn sync-badge status-disconnected" title="Cihazlar Arası Canlı Bulut Eşitleme">
+          <span id="header-sync-icon">📱</span>
+          <span id="header-sync-label">Yerel</span>
+        </button>
         <button id="btn-toggle-notif" class="icon-btn" title="Randevu Bildirimlerini Etkinleştir">
           <span id="notif-icon">🔔</span>
         </button>
@@ -517,6 +521,87 @@
       <section id="tab-backup" class="tab-content">
         <div class="backup-grid">
           
+          <!-- 1. BULUT EŞİTLEME (CİHAZLAR ARASI CANLI SENKRONİZASYON) -->
+          <div class="card backup-card cloud-sync-hero-card" style="grid-column: 1 / -1;">
+            <div class="cloud-sync-header">
+              <div class="card-icon">☁️</div>
+              <div>
+                <h3>Cihazlar Arası Canlı Bulut Eşitleme (Telefon & Bilgisayar)</h3>
+                <p>Bilgisayarınızda ve telefonunuzda yaptığınız kayıtları anında tek bir merkezde birleştirin. Tamamen ücretsizdir, hesap veya şifre gerektirmez.</p>
+              </div>
+            </div>
+
+            <!-- Eşitleme Yapılmamış Görünüm -->
+            <div id="cloud-sync-unlinked-view">
+              <div class="sync-actions-row">
+                <button type="button" id="btn-start-cloud-sync" class="btn btn-primary btn-lg">
+                  ☁️ Bulut Eşitlemeyi Başlat (Kod & QR Üret)
+                </button>
+                <button type="button" id="btn-toggle-enter-code" class="btn btn-outline">
+                  📱 Telefondan Bağlanıyorum (Mevcut Kodu Gir)
+                </button>
+              </div>
+
+              <!-- Manuel Kod Giriş Formu (Varsayılan gizli) -->
+              <div id="cloud-sync-input-container" style="display: none; margin-top: 16px; background: var(--bg-hover); padding: 16px; border-radius: 8px;">
+                <label for="input-cloud-sync-code"><strong>Bilgisayarda Görünen Eşitleme Kodunu veya Linkini Girin:</strong></label>
+                <div style="display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap;">
+                  <input type="text" id="input-cloud-sync-code" class="form-control" style="flex: 1; min-width: 220px;" placeholder="Örn: kod veya WhatsApp'tan gelen link...">
+                  <button type="button" id="btn-submit-cloud-code" class="btn btn-primary" style="white-space: nowrap;">
+                    ✅ Bağlan & Eşitle
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Eşitleme Aktif Görünüm -->
+            <div id="cloud-sync-linked-view" style="display: none;">
+              <div class="cloud-sync-active-banner">
+                <span class="pulse-dot"></span>
+                <strong>Bulut Eşitleme Aktif ve Canlı Bağlı!</strong>
+                <span id="cloud-sync-last-time" style="margin-left: auto; font-size: 0.85rem; color: var(--text-muted);">Son eşitleme: Az önce</span>
+              </div>
+
+              <div class="cloud-sync-details-grid">
+                <!-- QR Kod Alanı -->
+                <div class="sync-qr-box">
+                  <p><strong>📱 Telefonunuzdan Hemen Bağlanın:</strong></p>
+                  <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 8px;">Telefon kameranızı bu karekoda tutun veya aşağıdaki linke dokunun:</p>
+                  <div class="qr-image-wrapper">
+                    <img id="cloud-sync-qr-img" src="" alt="Eşitleme QR Kodu" width="160" height="160">
+                  </div>
+                </div>
+
+                <!-- Bilgi ve Link Kutusu -->
+                <div class="sync-info-box">
+                  <div class="form-group">
+                    <label><strong>Eşitleme Kodunuz:</strong></label>
+                    <div class="code-copy-box">
+                      <code id="cloud-sync-code-display" class="sync-code-text">...</code>
+                    </div>
+                  </div>
+
+                  <div class="form-group" style="margin-top: 12px;">
+                    <label><strong>Doğrudan Bağlantı Linki:</strong></label>
+                    <input type="text" id="cloud-sync-share-url" class="form-control" readonly style="font-size: 0.85rem; background: var(--bg-hover);">
+                    <div style="display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap;">
+                      <button type="button" id="btn-copy-sync-link" class="btn btn-outline btn-sm">
+                        📋 Linki Kopyala (WhatsApp'tan Gönder)
+                      </button>
+                      <button type="button" id="btn-manual-sync-now" class="btn btn-primary btn-sm">
+                        🔄 Şimdi Eşitle (Verileri Çek)
+                      </button>
+                      <button type="button" id="btn-disconnect-sync" class="btn btn-danger btn-sm" style="margin-left: auto;">
+                        ✕ Bağlantıyı Kes
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
           <div class="card backup-card">
             <div class="card-icon">💾</div>
             <h3>Verileri Yedekle (JSON İndir)</h3>
@@ -841,11 +926,12 @@
   <!-- Bildirim Toast Alanı -->
   <div id="toast-container" class="toast-container"></div>
 
-  <!-- JavaScript Dosyaları (Önbellek Kilidini Kırıcı ?v=6.0 Parametreleri ile) -->
-  <script src="js/storage.js?v=6.0"></script>
-  <script src="js/categories.js?v=6.0"></script>
-  <script src="js/calendar.js?v=6.0"></script>
-  <script src="js/reports.js?v=6.0"></script>
-  <script src="js/app.js?v=6.0"></script>
+  <!-- JavaScript Dosyaları (Önbellek Kilidini Kırıcı ?v=7.0 Parametreleri ile) -->
+  <script src="js/storage.js?v=7.0"></script>
+  <script src="js/categories.js?v=7.0"></script>
+  <script src="js/calendar.js?v=7.0"></script>
+  <script src="js/reports.js?v=7.0"></script>
+  <script src="js/sync.js?v=7.0"></script>
+  <script src="js/app.js?v=7.0"></script>
 </body>
 </html>

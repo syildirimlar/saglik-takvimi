@@ -143,8 +143,11 @@ const Storage = {
   },
 
   // Kategorileri kaydet
-  saveCategories(categories) {
+  saveCategories(categories, skipSync = false) {
     localStorage.setItem(STORAGE_KEYS.CATEGORIES, JSON.stringify(categories));
+    if (!skipSync && window.CloudSync && typeof window.CloudSync.triggerPush === 'function') {
+      window.CloudSync.triggerPush();
+    }
   },
 
   // Tek kategori ekle
@@ -198,8 +201,11 @@ const Storage = {
   },
 
   // Olayları kaydet
-  saveEvents(events) {
+  saveEvents(events, skipSync = false) {
     localStorage.setItem(STORAGE_KEYS.EVENTS, JSON.stringify(events));
+    if (!skipSync && window.CloudSync && typeof window.CloudSync.triggerPush === 'function') {
+      window.CloudSync.triggerPush();
+    }
   },
 
   // Yeni olay ekle
