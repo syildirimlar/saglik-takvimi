@@ -886,6 +886,14 @@ const App = {
       });
     }
 
+    const pushNowBtn = document.getElementById('btn-push-now');
+    if (pushNowBtn) {
+      pushNowBtn.addEventListener('click', () => {
+        const syncObj = (typeof CloudSync !== 'undefined') ? CloudSync : window.CloudSync;
+        if (syncObj && syncObj.push) syncObj.push(true);
+      });
+    }
+
     const disconnectSyncBtn = document.getElementById('btn-disconnect-sync');
     if (disconnectSyncBtn) {
       disconnectSyncBtn.addEventListener('click', () => {

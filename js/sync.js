@@ -9,14 +9,14 @@ const CloudSync = {
   STORAGE_KEY_PROVIDER: 'saglik_cloud_provider',
 
   syncId: null,
-  provider: 'jsonblob', // 'jsonblob' | 'npoint' | 'direct'
+  provider: 'npoint', // 'npoint' | 'jsonblob' | 'direct'
   isSyncing: false,
   pushTimeout: null,
   autoPullInterval: null,
 
   init() {
     this.syncId = localStorage.getItem(this.STORAGE_KEY_SYNC_ID);
-    this.provider = localStorage.getItem(this.STORAGE_KEY_PROVIDER) || 'jsonblob';
+    this.provider = localStorage.getItem(this.STORAGE_KEY_PROVIDER) || 'npoint';
 
     // 1. URL'de ?sync=... veya ?d=... parametresi var mı kontrol et (Telefonda QR/Link ile açılınca)
     const urlParams = new URLSearchParams(window.location.search);
@@ -27,7 +27,7 @@ const CloudSync = {
       this.handleIncomingUrlParams(syncParam, dataParam);
     } else if (this.syncId) {
       // Zaten bir eşitleme odasına bağlıysa arka planda ilk çekmeyi yap
-      setTimeout(() => this.pull(false), 1000);
+      setTimeout(() => this.pull(false), 800);
     }
 
     // 2. Sayfa odağa geldiğinde veya sekme değiştirildiğinde otomatik eşitle
@@ -43,13 +43,13 @@ const CloudSync = {
       }
     });
 
-    // 3. Her 45 saniyede bir sessiz arka plan kontrolü
+    // 3. Her 35 saniyede bir sessiz arka plan kontrolü
     if (this.autoPullInterval) clearInterval(this.autoPullInterval);
     this.autoPullInterval = setInterval(() => {
       if (this.hasActiveSync() && !this.isSyncing) {
         this.pull(false);
       }
-    }, 45000);
+    }, 35000);
 
     this.updateUI();
   },
@@ -73,26 +73,106 @@ const CloudSync = {
         const events = Storage.getEvents();
         const categories = Storage.getCategories();
         const payload = this.encodePayload({ events, categories });
-        if (payload && payload.length < 2500) {
+        if (payload) {
           url += `&d=${payload}`;
         }
       } catch (e) {
-        console.warn('URL veri kodlama uyarısı:', e);
+        console.warn('getShareUrl veri kodlama uyarısı:', e);
       }
     }
 
     return url;
   },
 
-  // Gelen URL parametrelerini işle
+  // =================== UTF-8 / TÜRKÇE & EMOJİ UYUMLU BASE64 ===================
+  utf8ToBase64(str) {
+    try {
+      const bytes = new TextEncoder().encode(str);
+      let binary = '';
+      const len = bytes.byteLength;
+      for (let i = 0; i < len; i++) {
+        binary += String.fromCharCode(bytes[i]);
+      }
+      return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    } catch (e) {
+      console.error('utf8ToBase64 hatası:', e);
+      return '';
+    }
+  },
+
+  base64ToUtf8(base64url) {
+    try {
+      let base64 = base64url.replace(/-/g, '+').replace(/_/g, '/');
+      while (base64.length % 4) {
+        base64 += '=';
+      }
+      const binary = atob(base64);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) {
+        bytes[i] = binary.charCodeAt(i);
+      }
+      return new TextDecoder().decode(bytes);
+    } catch (e) {
+      console.error('base64ToUtf8 hatası:', e);
+      return null;
+    }
+  },
+
+  encodePayload(data) {
+    try {
+      const minified = {
+        e: (data.events || []).map(ev => ({
+          i: ev.id,
+          c: ev.categoryId,
+          d: ev.date,
+          t: ev.time,
+          s: ev.status,
+          dt: ev.details,
+          n: ev.notes
+        })),
+        c: (data.categories || []).filter(cat => !cat.isSystem)
+      };
+      const json = JSON.stringify(minified);
+      return this.utf8ToBase64(json);
+    } catch (err) {
+      console.error('encodePayload hatası:', err);
+      return '';
+    }
+  },
+
+  decodePayload(str) {
+    try {
+      const json = this.base64ToUtf8(str);
+      if (!json) return null;
+      const parsed = JSON.parse(json);
+      const events = (parsed.e || []).map(ev => ({
+        id: ev.i || ('evt_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4)),
+        categoryId: ev.c || 'wc',
+        date: ev.d,
+        time: ev.t || '12:00',
+        status: ev.s || 'completed',
+        details: ev.dt || {},
+        notes: ev.n || '',
+        reminderSent: false,
+        checkinPrompted: false
+      }));
+      const categories = parsed.c || [];
+      return { events, categories };
+    } catch (err) {
+      console.error('decodePayload hatası:', err);
+      return null;
+    }
+  },
+
+  // =================== GELEN URL PARAMETRELERİNİ İŞLE (TELEFONDA) ===================
   async handleIncomingUrlParams(syncIdParam, dataParam) {
     let importedCount = 0;
 
-    // 1. Doğrudan veri parametresi varsa hemen içeri aktar (Sıfır bekleme)
+    // 1. Doğrudan veri parametresi varsa hemen içeri aktar (Sıfır gecikme, garantili)
     if (dataParam) {
       try {
         const decoded = this.decodePayload(dataParam);
-        if (decoded && Array.isArray(decoded.events)) {
+        if (decoded && Array.isArray(decoded.events) && decoded.events.length > 0) {
           const localEvents = Storage.getEvents();
           const localCats = Storage.getCategories();
 
@@ -112,18 +192,18 @@ const CloudSync = {
       }
     }
 
-    // 2. Eşitleme ID'si varsa kaydet ve buluta da bağlan
+    // 2. Eşitleme ID'si varsa kaydet
     if (syncIdParam) {
       const cleanId = syncIdParam.trim();
       this.syncId = cleanId;
       localStorage.setItem(this.STORAGE_KEY_SYNC_ID, cleanId);
       localStorage.setItem(this.STORAGE_KEY_LAST_SYNC, new Date().toISOString());
 
-      // Buluttan en son veriyi de çekip eşitle
+      // Buluttan veriyi de çek
       try {
         await this.pull(false);
       } catch (e) {
-        console.warn('İlk bulut çekme hatası:', e);
+        console.warn('Bulut çekme uyarısı:', e);
       }
     }
 
@@ -134,22 +214,15 @@ const CloudSync = {
     this.updateUI();
 
     if (typeof showToast === 'function') {
-      const msg = importedCount > 0 
-        ? `☁️ Bulut eşitleme bağlandı! Bilgisayarınızdaki ${importedCount} kayıt telefonunuza yüklendi.`
-        : '☁️ Bulut eşitleme başarıyla bağlandı!';
-      showToast(msg, 'success');
+      const currentCount = Storage.getEvents().length;
+      showToast(`☁️ Bulut eşitleme bağlandı! Toplam ${currentCount} kayıt takviminizde hazır.`, 'success');
     }
   },
 
   // =================== BULUT ODASI OLUŞTURMA (BİLGİSAYARDA İLK KEZ) ===================
   async startNewSync() {
     this.isSyncing = true;
-    this.setSyncStatusBadge('loading', 'Bulut odası oluşturuluyor...');
-
-    // Rastgele benzersiz bir oda ID'si üret (Örn: sync_k7x9m2p4)
-    const uniqueId = 'sync_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
-    let finalId = uniqueId;
-    let usedProvider = 'direct';
+    this.setSyncStatusBadge('loading', 'Bulut odası açılıyor...');
 
     const localData = {
       version: '1.0',
@@ -158,69 +231,69 @@ const CloudSync = {
       categories: Storage.getCategories()
     };
 
-    // UI'ı hemen ve anında güncelle (Kullanıcı tek milisaniye bile beklemesin!)
-    this.syncId = finalId;
-    this.provider = usedProvider;
-    localStorage.setItem(this.STORAGE_KEY_SYNC_ID, finalId);
-    localStorage.setItem(this.STORAGE_KEY_PROVIDER, usedProvider);
-    localStorage.setItem(this.STORAGE_KEY_LAST_SYNC, new Date().toISOString());
-    this.updateUI();
+    let realId = null;
+    let usedProvider = 'npoint';
 
-    // Arka planda jsonblob / npoint bulut odasını oluşturmayı dene
+    // 1. npoint.io ile dene
     try {
-      const res = await fetch('https://jsonblob.com/api/jsonBlob', {
+      const res = await fetch('https://api.npoint.io/', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(localData)
       });
-
       if (res.ok) {
-        const loc = res.headers.get('Location') || res.headers.get('x-jsonblob');
-        if (loc) {
-          const parts = loc.split('/');
-          finalId = parts[parts.length - 1];
-          usedProvider = 'jsonblob';
-          this.syncId = finalId;
-          this.provider = usedProvider;
-          localStorage.setItem(this.STORAGE_KEY_SYNC_ID, finalId);
-          localStorage.setItem(this.STORAGE_KEY_PROVIDER, usedProvider);
-          this.updateUI();
+        const data = await res.json();
+        if (data && data.binId) {
+          realId = data.binId;
+          usedProvider = 'npoint';
         }
       }
     } catch (e) {
-      console.warn('jsonblob oluşturma denemesi (arka plan):', e);
-      // npoint dene
+      console.warn('npoint denemesi başarısız:', e);
+    }
+
+    // 2. jsonblob.com ile dene
+    if (!realId) {
       try {
-        const res2 = await fetch('https://api.npoint.io/', {
+        const res2 = await fetch('https://jsonblob.com/api/jsonBlob', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
           body: JSON.stringify(localData)
         });
         if (res2.ok) {
-          const data2 = await res2.json();
-          if (data2 && data2.binId) {
-            finalId = data2.binId;
-            usedProvider = 'npoint';
-            this.syncId = finalId;
-            this.provider = usedProvider;
-            localStorage.setItem(this.STORAGE_KEY_SYNC_ID, finalId);
-            localStorage.setItem(this.STORAGE_KEY_PROVIDER, usedProvider);
-            this.updateUI();
+          const loc = res2.headers.get('Location') || res2.headers.get('x-jsonblob');
+          if (loc) {
+            const parts = loc.split('/');
+            realId = parts[parts.length - 1];
+            usedProvider = 'jsonblob';
           }
         }
       } catch (e2) {
-        console.warn('npoint oluşturma denemesi (arka plan):', e2);
+        console.warn('jsonblob denemesi başarısız:', e2);
       }
     }
 
+    // Yedek direkt oda
+    if (!realId) {
+      realId = 'direct_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+      usedProvider = 'direct';
+    }
+
+    this.syncId = realId;
+    this.provider = usedProvider;
+    localStorage.setItem(this.STORAGE_KEY_SYNC_ID, realId);
+    localStorage.setItem(this.STORAGE_KEY_PROVIDER, usedProvider);
+    localStorage.setItem(this.STORAGE_KEY_LAST_SYNC, new Date().toISOString());
+
     this.isSyncing = false;
+    this.updateUI();
     this.setSyncStatusBadge('connected', 'Bulut Aktif');
 
     if (typeof showToast === 'function') {
-      showToast('☁️ Eşitleme hazır! Telefon kameranızı karekoda tutun veya bağlantıyı WhatsApp ile kendinize gönderin.', 'success');
+      showToast('☁️ Eşitleme hazır! Telefon kameranızı karekoda tutun veya linki WhatsApp ile kendinize gönderin.', 'success');
     }
     return true;
   },
@@ -237,7 +310,7 @@ const CloudSync = {
     this.setSyncStatusBadge('loading', 'Bulut verileri çekiliyor...');
 
     try {
-      // Eğer bir URL yapıştırılmışsa içindeki parametreleri ayıkla
+      // Eğer bir URL yapıştırılmışsa
       if (cleanCode.includes('http://') || cleanCode.includes('https://') || cleanCode.includes('?')) {
         const urlObj = new URL(cleanCode.startsWith('http') ? cleanCode : 'https://dummy.com/' + cleanCode);
         const sParam = urlObj.searchParams.get('sync');
@@ -282,7 +355,7 @@ const CloudSync = {
         }
         return true;
       } else {
-        throw new Error('Belirtilen kodla eşleşen veri bulunamadı.');
+        throw new Error('Belirtilen kodla eşleşen bulut kaydı bulunamadı.');
       }
 
     } catch (err) {
@@ -304,7 +377,10 @@ const CloudSync = {
     try {
       const remoteData = await this.fetchRemoteData(this.syncId);
       if (!remoteData || !Array.isArray(remoteData.events)) {
-        this.setSyncStatusBadge('connected', 'Bağlı');
+        this.setSyncStatusBadge('connected', 'Bulut Aktif');
+        if (isManual && typeof showToast === 'function') {
+          showToast('Bulut kontrol edildi, mevcut kayıtlarınız korundu.', 'info');
+        }
         return;
       }
 
@@ -326,19 +402,19 @@ const CloudSync = {
         }
 
         if (isManual && typeof showToast === 'function') {
-          showToast('☁️ Veriler buluttan güncellendi!', 'success');
+          showToast(`☁️ Veriler buluttan güncellendi! Toplam ${mergedEvents.length} kayıt.`, 'success');
         }
       } else if (isManual && typeof showToast === 'function') {
         showToast('☁️ Tüm kayıtlarınız zaten güncel.', 'info');
       }
 
       localStorage.setItem(this.STORAGE_KEY_LAST_SYNC, new Date().toISOString());
-      this.setSyncStatusBadge('connected', 'Eşitlendi');
+      this.setSyncStatusBadge('connected', 'Bulut Aktif');
       this.updateLastSyncText();
 
     } catch (err) {
       console.warn('Cloud pull hatası:', err);
-      this.setSyncStatusBadge('connected', 'Bağlı');
+      this.setSyncStatusBadge('connected', 'Bulut Aktif');
     } finally {
       this.isSyncing = false;
     }
@@ -349,25 +425,28 @@ const CloudSync = {
     if (!this.syncId) return;
     if (this.pushTimeout) clearTimeout(this.pushTimeout);
     this.pushTimeout = setTimeout(() => {
-      this.push();
-    }, 800);
+      this.push(false);
+    }, 600);
   },
 
-  async push() {
+  async push(isManual = false) {
     if (!this.syncId || this.isSyncing) return;
     this.isSyncing = true;
-    this.setSyncStatusBadge('loading', 'Buluta kaydediliyor...');
+    this.setSyncStatusBadge('loading', 'Buluta yükleniyor...');
 
     try {
       const events = Storage.getEvents();
       const categories = Storage.getCategories();
       await this.pushDirect(events, categories);
       localStorage.setItem(this.STORAGE_KEY_LAST_SYNC, new Date().toISOString());
-      this.setSyncStatusBadge('connected', 'Eşitlendi');
+      this.setSyncStatusBadge('connected', 'Bulut Aktif');
       this.updateLastSyncText();
+      if (isManual && typeof showToast === 'function') {
+        showToast(`☁️ Cihazınızdaki ${events.length} kayıt buluta yüklendi!`, 'success');
+      }
     } catch (err) {
       console.warn('Cloud push hatası:', err);
-      this.setSyncStatusBadge('connected', 'Bağlı');
+      this.setSyncStatusBadge('connected', 'Bulut Aktif');
     } finally {
       this.isSyncing = false;
     }
@@ -381,24 +460,7 @@ const CloudSync = {
       categories
     };
 
-    // jsonblob denemesi
-    if (this.provider === 'jsonblob' || !this.provider) {
-      try {
-        const res = await fetch(`https://jsonblob.com/api/jsonBlob/${this.syncId}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          },
-          body: JSON.stringify(payload)
-        });
-        if (res.ok) return true;
-      } catch (e) {
-        console.warn('jsonblob push hatası:', e);
-      }
-    }
-
-    // npoint denemesi
+    // 1. npoint ile dene
     try {
       const res = await fetch(`https://api.npoint.io/${this.syncId}`, {
         method: 'POST',
@@ -406,16 +468,38 @@ const CloudSync = {
         body: JSON.stringify(payload)
       });
       if (res.ok) return true;
-    } catch (e) {
-      console.warn('npoint push hatası:', e);
-    }
+    } catch (e) {}
+
+    // 2. jsonblob ile dene
+    try {
+      const res = await fetch(`https://jsonblob.com/api/jsonBlob/${this.syncId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+      if (res.ok) return true;
+    } catch (e) {}
 
     return false;
   },
 
   // =================== VERİ OKUMA / ÇEKME ===================
   async fetchRemoteData(syncId) {
-    // 1. jsonblob üzerinden dene
+    // 1. npoint üzerinden dene
+    try {
+      const res = await fetch(`https://api.npoint.io/${syncId}`);
+      if (res.ok) {
+        const json = await res.json();
+        this.provider = 'npoint';
+        localStorage.setItem(this.STORAGE_KEY_PROVIDER, 'npoint');
+        return json;
+      }
+    } catch (e) {}
+
+    // 2. jsonblob üzerinden dene
     try {
       const res = await fetch(`https://jsonblob.com/api/jsonBlob/${syncId}`, {
         headers: { 'Accept': 'application/json' }
@@ -424,17 +508,6 @@ const CloudSync = {
         const json = await res.json();
         this.provider = 'jsonblob';
         localStorage.setItem(this.STORAGE_KEY_PROVIDER, 'jsonblob');
-        return json;
-      }
-    } catch (e) {}
-
-    // 2. npoint üzerinden dene
-    try {
-      const res = await fetch(`https://api.npoint.io/${syncId}`);
-      if (res.ok) {
-        const json = await res.json();
-        this.provider = 'npoint';
-        localStorage.setItem(this.STORAGE_KEY_PROVIDER, 'npoint');
         return json;
       }
     } catch (e) {}
@@ -483,50 +556,6 @@ const CloudSync = {
     return Array.from(map.values());
   },
 
-  // =================== PAYLOAD KODLAMA & ÇÖZME ===================
-  encodePayload(data) {
-    try {
-      const minified = {
-        e: (data.events || []).map(ev => ({
-          i: ev.id,
-          c: ev.categoryId,
-          d: ev.date,
-          t: ev.time,
-          s: ev.status,
-          dt: ev.details,
-          n: ev.notes
-        })),
-        c: (data.categories || []).filter(cat => !cat.isSystem)
-      };
-      const json = JSON.stringify(minified);
-      return encodeURIComponent(btoa(unescape(encodeURIComponent(json))));
-    } catch (err) {
-      return '';
-    }
-  },
-
-  decodePayload(str) {
-    try {
-      const json = decodeURIComponent(escape(atob(decodeURIComponent(str))));
-      const parsed = JSON.parse(json);
-      const events = (parsed.e || []).map(ev => ({
-        id: ev.i || ev.id,
-        categoryId: ev.c || ev.categoryId,
-        date: ev.d || ev.date,
-        time: ev.t || ev.time || '12:00',
-        status: ev.s || ev.status || 'completed',
-        details: ev.dt || ev.details || {},
-        notes: ev.n || ev.notes || '',
-        reminderSent: false,
-        checkinPrompted: false
-      }));
-      const categories = parsed.c || [];
-      return { events, categories };
-    } catch (err) {
-      return null;
-    }
-  },
-
   // Eşitlemeyi durdur / Bağlantıyı kes
   disconnect() {
     if (!confirm('Bulut eşitlemesini durdurmak istediğinize emin misiniz? Cihazınızdaki kayıtlar silinmez, ancak artık diğer cihazla canlı eşitlenmez.')) {
@@ -548,6 +577,12 @@ const CloudSync = {
     const codeDisplay = document.getElementById('cloud-sync-code-display');
     const qrImage = document.getElementById('cloud-sync-qr-img');
     const shareInput = document.getElementById('cloud-sync-share-url');
+    const eventCountText = document.getElementById('cloud-sync-local-count');
+
+    const localCount = (Storage.getEvents() || []).length;
+    if (eventCountText) {
+      eventCountText.textContent = `${localCount} Kayıt Mevcut`;
+    }
 
     if (this.syncId) {
       if (unlinkedCard) unlinkedCard.style.display = 'none';
@@ -560,10 +595,6 @@ const CloudSync = {
       if (qrImage) {
         // Hızlı QR kod görseli üret
         qrImage.src = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(shareUrl)}`;
-        qrImage.onerror = () => {
-          // QR servisi açılmazsa doğrudan link butonunu vurgula
-          qrImage.style.display = 'none';
-        };
       }
 
       this.setSyncStatusBadge('connected', 'Bulut Aktif');
