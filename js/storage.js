@@ -10,7 +10,20 @@ const STORAGE_KEYS = {
   THEME: 'saglik_takvim_theme_v1',
   PROFILE: 'saglik_takvim_profile_v2',
   PROFILES_LIST: 'saglik_takvim_profiles_list_v2',
-  ACTIVE_PROFILE_ID: 'saglik_takvim_active_profile_id_v2'
+  ACTIVE_PROFILE_ID: 'saglik_takvim_active_profile_id_v2',
+  USERS_LIST: 'saglik_users_list_v3',
+  CURRENT_USER: 'saglik_current_user_v3'
+};
+
+const DEFAULT_ADMIN = {
+  id: 'usr_admin',
+  username: 'admin',
+  password: '123',
+  name: 'Yönetici (Admin)',
+  gender: 'female',
+  role: 'admin',
+  avatar: '👑',
+  createdAt: '2026-01-01T00:00:00.000Z'
 };
 
 // Varsayılan Temel Kategoriler
@@ -124,112 +137,293 @@ const DEFAULT_CATEGORIES = [
 ];
 
 const Storage = {
-  // ================= KULLANICI & PROFİL YÖNETİMİ =================
-  getActiveProfileId() {
-    return localStorage.getItem(STORAGE_KEYS.ACTIVE_PROFILE_ID) || 'default';
-  },
-
-  setActiveProfileId(id) {
-    localStorage.setItem(STORAGE_KEYS.ACTIVE_PROFILE_ID, id);
-  },
-
-  getUserProfile() {
+  // ================= KULLANICI & HESAP YÖNETİMİ (AUTH & USERS) =================
+  getUsers() {
     try {
-      const activeId = this.getActiveProfileId();
-      const profiles = this.getAllProfiles();
-      const current = profiles.find(p => p.id === activeId);
-      if (current) return current;
-      // Profil listesi boşsa ama eski profil anahtarı varsa
-      const oldProf = localStorage.getItem(STORAGE_KEYS.PROFILE);
-      if (oldProf) return JSON.parse(oldProf);
-    } catch (e) {
-      console.error('Profil okunamadı:', e);
-    }
-    return null;
-  },
-
-  getAllProfiles() {
-    try {
-      const data = localStorage.getItem(STORAGE_KEYS.PROFILES_LIST);
+      const data = localStorage.getItem(STORAGE_KEYS.USERS_LIST);
       if (data) {
         const list = JSON.parse(data);
         if (Array.isArray(list) && list.length > 0) return list;
       }
     } catch (e) {}
-    return [];
-  },
 
-  saveUserProfile(profileData) {
-    const profiles = this.getAllProfiles();
-    const activeId = profileData.id || this.getActiveProfileId();
-    const index = profiles.findIndex(p => p.id === activeId);
+    // Mevcut bir profil varsa ismini admin hesabına aktar
+    let adminName = 'Yönetici';
+    let adminGender = 'female';
+    try {
+      const oldProf = localStorage.getItem(STORAGE_KEYS.PROFILE);
+      if (oldProf) {
+        const p = JSON.parse(oldProf);
+        if (p.name) adminName = p.name;
+        if (p.gender) adminGender = p.gender;
+      }
+    } catch (e) {}
 
-    const updatedProfile = {
-      id: activeId,
-      name: profileData.name || 'Kullanıcı',
-      gender: profileData.gender || 'unspecified', // 'female' | 'male' | 'unspecified'
-      avatar: profileData.avatar || (profileData.gender === 'female' ? '👩' : (profileData.gender === 'male' ? '👨' : '👤')),
-      updatedAt: new Date().toISOString()
+    const initialAdmin = {
+      ...DEFAULT_ADMIN,
+      name: adminName,
+      gender: adminGender
     };
 
-    if (index !== -1) {
-      profiles[index] = { ...profiles[index], ...updatedProfile };
-    } else {
-      profiles.push(updatedProfile);
-    }
+    const initialList = [initialAdmin];
+    localStorage.setItem(STORAGE_KEYS.USERS_LIST, JSON.stringify(initialList));
+    return initialList;
+  },
 
-    localStorage.setItem(STORAGE_KEYS.PROFILES_LIST, JSON.stringify(profiles));
-    localStorage.setItem(STORAGE_KEYS.PROFILE, JSON.stringify(updatedProfile));
-    this.setActiveProfileId(activeId);
-
+  saveUsers(users) {
+    localStorage.setItem(STORAGE_KEYS.USERS_LIST, JSON.stringify(users));
     if (window.CloudSync && typeof window.CloudSync.triggerPush === 'function') {
       window.CloudSync.triggerPush();
     }
-    return updatedProfile;
   },
 
-  createProfile(name, gender) {
-    const newId = 'prof_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 4);
-    const newProfile = {
+  getUserByUsername(username) {
+    if (!username) return null;
+    const clean = String(username).toLowerCase().trim();
+    return this.getUsers().find(u => u.username.toLowerCase().trim() === clean) || null;
+  },
+
+  getUserById(id) {
+    if (!id) return null;
+    return this.getUsers().find(u => u.id === id) || null;
+  },
+
+  // Sadece Admin çağırabilir
+  createUser({ username, password, name, gender, role = 'user' }) {
+    const cleanUser = String(username || '').toLowerCase().trim();
+    if (!cleanUser || cleanUser.length < 2) {
+      throw new Error('Kullanıcı adı en az 2 karakter olmalıdır.');
+    }
+    const cleanPass = String(password || '').trim();
+    if (!cleanPass || cleanPass.length < 3) {
+      throw new Error('Şifre en az 3 karakter olmalıdır.');
+    }
+    const existing = this.getUserByUsername(cleanUser);
+    if (existing) {
+      throw new Error(`"${cleanUser}" kullanıcı adı zaten kullanımda. Lütfen başka bir kullanıcı adı seçin.`);
+    }
+
+    const newId = 'usr_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 4);
+    const avatar = gender === 'female' ? '👩' : (gender === 'male' ? '👨' : '👤');
+
+    const newUser = {
       id: newId,
-      name: name || 'Yeni Kullanıcı',
-      gender: gender || 'unspecified',
-      avatar: gender === 'female' ? '👩' : (gender === 'male' ? '👨' : '👤'),
+      username: cleanUser,
+      password: cleanPass,
+      name: (name && name.trim()) ? name.trim() : cleanUser,
+      gender: gender || 'female',
+      role: role,
+      avatar: avatar,
       createdAt: new Date().toISOString()
     };
-    const profiles = this.getAllProfiles();
-    profiles.push(newProfile);
-    localStorage.setItem(STORAGE_KEYS.PROFILES_LIST, JSON.stringify(profiles));
-    return this.switchProfile(newId);
+
+    const users = this.getUsers();
+    users.push(newUser);
+    this.saveUsers(users);
+    return newUser;
   },
 
-  switchProfile(profileId) {
-    this.setActiveProfileId(profileId);
-    const profile = this.getUserProfile();
-    if (profile) {
-      localStorage.setItem(STORAGE_KEYS.PROFILE, JSON.stringify(profile));
+  updateUser(userId, updates) {
+    const users = this.getUsers();
+    const idx = users.findIndex(u => u.id === userId);
+    if (idx === -1) return null;
+
+    if (updates.name !== undefined) users[idx].name = String(updates.name).trim();
+    if (updates.gender !== undefined) {
+      users[idx].gender = updates.gender;
+      if (users[idx].role !== 'admin') {
+        users[idx].avatar = updates.gender === 'female' ? '👩' : (updates.gender === 'male' ? '👨' : '👤');
+      }
     }
-    return profile;
+    if (updates.password !== undefined && String(updates.password).trim()) {
+      users[idx].password = String(updates.password).trim();
+    }
+    if (updates.avatar !== undefined) users[idx].avatar = updates.avatar;
+    if (updates.lastLogin !== undefined) users[idx].lastLogin = updates.lastLogin;
+    users[idx].updatedAt = new Date().toISOString();
+
+    this.saveUsers(users);
+
+    const cur = this.getCurrentUser();
+    if (cur && cur.id === userId) {
+      this.setCurrentUser(users[idx]);
+    }
+
+    return users[idx];
   },
 
-  deleteProfile(profileId) {
-    if (profileId === 'default') return false;
-    let profiles = this.getAllProfiles();
-    profiles = profiles.filter(p => p.id !== profileId);
-    localStorage.setItem(STORAGE_KEYS.PROFILES_LIST, JSON.stringify(profiles));
-    localStorage.removeItem(`${STORAGE_KEYS.EVENTS}_${profileId}`);
-    this.setActiveProfileId('default');
+  deleteUser(userId) {
+    const user = this.getUserById(userId);
+    if (!user) return false;
+    if (user.role === 'admin' || user.username === 'admin') {
+      throw new Error('Yönetici (Admin) hesabı silinemez.');
+    }
+
+    let users = this.getUsers();
+    users = users.filter(u => u.id !== userId);
+    this.saveUsers(users);
+
+    localStorage.removeItem(`${STORAGE_KEYS.EVENTS}_${userId}`);
+
+    const cur = this.getCurrentUser();
+    if (cur && cur.id === userId) {
+      this.logout();
+    }
     return true;
   },
 
+  authenticate(username, password) {
+    if (!username || !password) return null;
+    const user = this.getUserByUsername(username);
+    if (!user) return null;
+    if (String(user.password).trim() !== String(password).trim()) return null;
+
+    user.lastLogin = new Date().toISOString();
+    this.updateUser(user.id, { lastLogin: user.lastLogin });
+    this.setCurrentUser(user);
+    return user;
+  },
+
+  getCurrentUser() {
+    try {
+      const data = localStorage.getItem(STORAGE_KEYS.CURRENT_USER);
+      if (data) {
+        const parsed = JSON.parse(data);
+        if (parsed && parsed.id) {
+          const fresh = this.getUserById(parsed.id);
+          if (fresh) return fresh;
+        }
+      }
+    } catch (e) {}
+    return null;
+  },
+
+  setCurrentUser(user) {
+    if (!user) {
+      localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
+      localStorage.removeItem(STORAGE_KEYS.PROFILE);
+    } else {
+      localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(user));
+      localStorage.setItem(STORAGE_KEYS.PROFILE, JSON.stringify(user));
+    }
+  },
+
+  logout() {
+    this.setCurrentUser(null);
+  },
+
+  isLoggedIn() {
+    return !!this.getCurrentUser();
+  },
+
+  isAdmin() {
+    const cur = this.getCurrentUser();
+    return !!(cur && cur.role === 'admin');
+  },
+
+  // Tek tıkla davet linki oluştur
+  generateInviteUrl(user) {
+    try {
+      const base = window.location.origin + window.location.pathname;
+      const payload = {
+        u: user.username,
+        p: user.password,
+        n: user.name,
+        g: user.gender,
+        r: user.role || 'user'
+      };
+      const json = JSON.stringify(payload);
+      let encoded = '';
+      if (window.CloudSync && typeof window.CloudSync.utf8ToBase64 === 'function') {
+        encoded = window.CloudSync.utf8ToBase64(json);
+      } else {
+        encoded = btoa(unescape(encodeURIComponent(json))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+      }
+      return `${base}?invite=${encoded}`;
+    } catch (e) {
+      console.error('generateInviteUrl hatası:', e);
+      return '';
+    }
+  },
+
+  // Davet linkinden otomatik kayıt ve giriş
+  importInvitePayload(payloadStr) {
+    try {
+      let json = '';
+      if (window.CloudSync && typeof window.CloudSync.base64ToUtf8 === 'function') {
+        json = window.CloudSync.base64ToUtf8(payloadStr);
+      }
+      if (!json) {
+        let b64 = payloadStr.replace(/-/g, '+').replace(/_/g, '/');
+        while (b64.length % 4) b64 += '=';
+        json = decodeURIComponent(escape(atob(b64)));
+      }
+      if (!json) return null;
+      const data = JSON.parse(json);
+      if (!data.u) return null;
+
+      let user = this.getUserByUsername(data.u);
+      if (!user) {
+        user = this.createUser({
+          username: data.u,
+          password: data.p || '123',
+          name: data.n || data.u,
+          gender: data.g || 'female',
+          role: data.r || 'user'
+        });
+      } else {
+        user = this.updateUser(user.id, {
+          password: data.p || user.password,
+          name: data.n || user.name,
+          gender: data.g || user.gender
+        });
+      }
+
+      this.setCurrentUser(user);
+      return user;
+    } catch (e) {
+      console.error('importInvitePayload hatası:', e);
+      return null;
+    }
+  },
+
+  // Geriye dönük uyumluluk köprüleri
+  getActiveProfileId() {
+    const cur = this.getCurrentUser();
+    return cur ? cur.id : 'default';
+  },
+
+  setActiveProfileId(id) {
+    const user = this.getUserById(id);
+    if (user) this.setCurrentUser(user);
+  },
+
+  getUserProfile() {
+    return this.getCurrentUser();
+  },
+
+  getAllProfiles() {
+    return this.getUsers();
+  },
+
+  saveUserProfile(profileData) {
+    const cur = this.getCurrentUser();
+    if (!cur) return null;
+    return this.updateUser(cur.id, profileData);
+  },
+
   getUserGender() {
-    const profile = this.getUserProfile();
-    return profile ? (profile.gender || 'unspecified') : 'unspecified';
+    const cur = this.getCurrentUser();
+    return cur ? (cur.gender || 'unspecified') : 'unspecified';
   },
 
   getEventsStorageKey() {
-    const activeId = this.getActiveProfileId();
-    return activeId === 'default' ? STORAGE_KEYS.EVENTS : `${STORAGE_KEYS.EVENTS}_${activeId}`;
+    const cur = this.getCurrentUser();
+    if (!cur) return STORAGE_KEYS.EVENTS;
+    if (cur.role === 'admin' || cur.id === 'usr_admin') {
+      return STORAGE_KEYS.EVENTS;
+    }
+    return `${STORAGE_KEYS.EVENTS}_${cur.id}`;
   },
 
   // Kategorileri getir

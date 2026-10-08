@@ -15,7 +15,7 @@
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
   <link rel="icon" type="image/png" href="icons/icon-192.png">
 
-  <link rel="stylesheet" href="css/style.css?v=9.0">
+  <link rel="stylesheet" href="css/style.css?v=11.0">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -26,7 +26,7 @@
       if ('caches' in window) {
         caches.keys().then(function(keys) {
           keys.forEach(function(k) {
-            if (k !== 'saglik-takvim-v9') caches.delete(k);
+            if (k !== 'saglik-takvim-v11.0') caches.delete(k);
           });
         });
       }
@@ -82,9 +82,16 @@
 
       <!-- Ayarlar & Tema Düğmeleri -->
       <div class="header-tools">
-        <button id="btn-user-profile" class="header-profile-btn" title="Kullanıcı Profili & Hesap Seçimi">
+        <button id="btn-admin-panel" class="btn btn-sm btn-admin" title="Yönetici Paneli (Yeni Kullanıcı & Hesap Yönetimi)" style="display: none;">
+          <span class="btn-icon">👑</span>
+          <span class="btn-text">Yönetici Paneli</span>
+        </button>
+        <button id="btn-user-profile" class="header-profile-btn" title="Kullanıcı Profili & Şifre Değiştir">
           <span id="header-profile-avatar">👤</span>
-          <span id="header-profile-name">Profil</span>
+          <span id="header-profile-name">Giriş Yap</span>
+        </button>
+        <button id="btn-header-logout" class="icon-btn" title="Oturumu Kapat / Çıkış Yap" style="display: none;">
+          <span>🚪</span>
         </button>
         <button id="header-sync-badge" class="header-sync-btn sync-badge status-disconnected" title="Cihazlar Arası Canlı Bulut Eşitleme">
           <span id="header-sync-icon">📱</span>
@@ -1018,82 +1025,180 @@
     </div>
   </dialog>
 
-  <!-- ================= BAŞLANGIÇ CİNSİYET & PROFİL SEÇİM MODALI (ONBOARDING) ================= -->
-  <dialog id="modal-onboarding" class="app-modal">
-    <div class="modal-content modal-welcome-content">
+  <!-- ================= 1. KULLANICI GİRİŞ MODALI (LOGIN) ================= -->
+  <dialog id="modal-login" class="app-modal">
+    <div class="modal-content modal-login-content">
       <div class="modal-header">
         <div class="modal-title-wrap">
-          <span class="modal-cat-icon">👋</span>
-          <h3>Sağlık Takvimine Hoş Geldiniz!</h3>
+          <span class="modal-cat-icon">🔐</span>
+          <h3>Sağlık Takvimi &bull; Kullanıcı Girişi</h3>
         </div>
-        <button id="modal-onboarding-btn-close" class="icon-btn close-btn" title="Kapat">✕</button>
       </div>
-      <div class="modal-body onboarding-body">
-        <p class="onboarding-desc">
-          Size özel en doğru takvim deneyimini sunabilmemiz ve ihtiyaçlarınıza uygun özellikleri etkinleştirebilmemiz için lütfen cinsiyetinizi seçin:
+      <form id="form-login" class="modal-body login-body">
+        <p class="login-desc">
+          Kişisel sağlık takviminize erişmek için lütfen kullanıcı adı ve şifrenizi giriniz:
         </p>
 
-        <div class="gender-selection-cards">
-          <label class="gender-card">
-            <input type="radio" name="onboard-gender" value="female" checked>
-            <div class="gender-card-inner">
-              <span class="gender-card-icon">👩</span>
-              <span class="gender-card-title">Kadın</span>
-              <span class="gender-card-subtitle">🩸 Adet / Regl Döngüsü takibi, sancı/kramp ve tüm genel sağlık takvimi dahil</span>
-            </div>
-          </label>
-
-          <label class="gender-card">
-            <input type="radio" name="onboard-gender" value="male">
-            <div class="gender-card-inner">
-              <span class="gender-card-icon">👨</span>
-              <span class="gender-card-title">Erkek</span>
-              <span class="gender-card-subtitle">Tuvalet, baş ağrısı, masaj, spor, uyku ve tüm genel sağlık takvimi özellikleri</span>
-            </div>
-          </label>
+        <div id="login-error-alert" class="login-error-box" style="display: none;">
+          ⚠️ <span id="login-error-text">Kullanıcı adı veya şifre hatalı!</span>
         </div>
 
-        <div class="form-group" style="margin-top: 20px;">
-          <label for="onboard-name">İsminiz veya Takma Adınız (İsteğe bağlı):</label>
-          <input type="text" id="onboard-name" class="form-control" placeholder="Örn: Ayşe veya Kullanıcı 1" value="Kullanıcı">
+        <div class="form-group">
+          <label for="login-username">Kullanıcı Adı <span class="req">*</span></label>
+          <input type="text" id="login-username" class="form-control" placeholder="Örn: admin veya zeynep" required autocomplete="username">
         </div>
 
-        <div class="onboarding-notice">
-          <small>💡 <em>Not: Bu tercihi istediğiniz an sağ üstteki <strong>👤 Profil</strong> menüsünden değiştirebilir veya başka bir aile üyesi için yeni bir profil oluşturabilirsiniz.</em></small>
+        <div class="form-group">
+          <label for="login-password">Şifre <span class="req">*</span></label>
+          <div style="position: relative;">
+            <input type="password" id="login-password" class="form-control" placeholder="Şifreniz..." required autocomplete="current-password" style="padding-right: 40px;">
+            <button type="button" id="btn-toggle-login-pass" class="pass-toggle-btn" title="Şifreyi Göster/Gizle">👁️</button>
+          </div>
         </div>
 
-        <div class="modal-actions" style="margin-top: 24px;">
-          <button type="button" id="btn-save-onboarding" class="btn btn-primary btn-block btn-lg">
-            🚀 Takvimi Başlat & Kaydet
+        <button type="submit" id="btn-login-submit" class="btn btn-primary btn-block btn-lg" style="margin-top: 18px;">
+          🚀 Giriş Yap
+        </button>
+
+        <div class="login-admin-tip">
+          <small>
+            👑 <strong>Sistem Yöneticisi Girişi:</strong> İlk kez giriş yapıyorsanız varsayılan yönetici bilgileri:
+            <br>
+            Kullanıcı Adı: <code>admin</code> &bull; Şifre: <code>123</code>
+          </small>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <!-- ================= 2. YÖNETİCİ PANELİ (ADMIN HESAP YÖNETİMİ) ================= -->
+  <dialog id="modal-admin" class="app-modal modal-lg">
+    <div class="modal-content modal-admin-content">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <span class="modal-cat-icon">👑</span>
+          <h3>Yönetici Paneli (Kullanıcı & Hesap Yönetimi)</h3>
+        </div>
+        <button id="modal-admin-btn-close" class="icon-btn close-btn" title="Kapat">✕</button>
+      </div>
+
+      <div class="modal-body admin-body">
+        
+        <!-- Üst Tab Butonları -->
+        <div class="admin-tabs-nav">
+          <button type="button" id="admin-tab-btn-users" class="admin-tab-btn active">
+            👥 Kayıtlı Kullanıcılar (<span id="admin-users-count">1</span>)
+          </button>
+          <button type="button" id="admin-tab-btn-create" class="admin-tab-btn">
+            ➕ Yeni Kullanıcı Oluştur
           </button>
         </div>
+
+        <!-- TAB 1: KULLANICI LİSTESİ -->
+        <div id="admin-tab-users" class="admin-tab-content">
+          <p style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:12px;">
+            Sisteme tanımladığınız tüm kullanıcılar aşağıda listelenmiştir. Kullanıcılara WhatsApp üzerinden gönderebileceğiniz doğrudan giriş linkini kopyalayabilir veya şifrelerini güncelleyebilirsiniz.
+          </p>
+
+          <div id="admin-users-table-wrap" class="admin-users-table-wrap">
+            <!-- Dinamik doldurulacak -->
+          </div>
+        </div>
+
+        <!-- TAB 2: YENİ KULLANICI OLUŞTURMA -->
+        <div id="admin-tab-create" class="admin-tab-content" style="display: none;">
+          <form id="form-admin-create-user">
+            <div class="form-row">
+              <div class="form-group" style="flex: 1;">
+                <label for="admin-new-username">Kullanıcı Adı (Giriş için) <span class="req">*</span></label>
+                <input type="text" id="admin-new-username" class="form-control" placeholder="Örn: zeynep, mehmet, ayse" required>
+                <small style="color:var(--text-secondary);">Boşluk içermemeli, küçük harf ve rakam.</small>
+              </div>
+
+              <div class="form-group" style="flex: 1;">
+                <label for="admin-new-name">İsim & Soyisim <span class="req">*</span></label>
+                <input type="text" id="admin-new-name" class="form-control" placeholder="Örn: Zeynep Kaya" required>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group" style="flex: 1;">
+                <label for="admin-new-gender">Cinsiyet <span class="req">*</span></label>
+                <select id="admin-new-gender" class="form-select">
+                  <option value="female">👩 Kadın (Adet / Regl Döngüsü Takibi Aktif)</option>
+                  <option value="male">👨 Erkek</option>
+                </select>
+              </div>
+
+              <div class="form-group" style="flex: 1;">
+                <label for="admin-new-password">İlk / Geçici Şifre <span class="req">*</span></label>
+                <div style="display: flex; gap: 8px;">
+                  <input type="text" id="admin-new-password" class="form-control" placeholder="Örn: 123456" required value="123456">
+                  <button type="button" id="btn-admin-gen-pass" class="btn btn-outline btn-sm" title="Rastgele Şifre Üret" style="white-space: nowrap;">
+                    🎲 Üret
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div style="margin-top: 16px;">
+              <button type="submit" id="btn-admin-submit-create" class="btn btn-primary btn-block">
+                ✅ Hesabı Oluştur ve Giriş Bilgilerini Hazırla
+              </button>
+            </div>
+          </form>
+
+          <!-- Oluşturma Sonuç Kutusu -->
+          <div id="admin-create-result-box" class="admin-result-card" style="display: none; margin-top: 20px;">
+            <h4>🎉 Kullanıcı Hesabı Başarıyla Oluşturuldu!</h4>
+            <p style="font-size: 0.9rem; margin-top: 6px;">Aşağıdaki metni kopyalayıp WhatsApp, SMS veya e-posta ile kullanıcıya gönderebilirsiniz:</p>
+            
+            <div class="invite-msg-preview" id="admin-invite-msg-preview">
+              <!-- JS ile metin gelecek -->
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap;">
+              <button type="button" id="btn-copy-invite-text" class="btn btn-primary">
+                📋 WhatsApp İçin Metni Kopyala
+              </button>
+              <button type="button" id="btn-copy-direct-url" class="btn btn-outline">
+                🔗 Sadece Giriş Linkini Kopyala
+              </button>
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
   </dialog>
 
-  <!-- ================= KULLANICI PROFİLİ & HESAP YÖNETİMİ MODALI ================= -->
+  <!-- ================= 3. KULLANICI PROFİLİ & ŞİFRE DEĞİŞTİRME MODALI ================= -->
   <dialog id="modal-profile" class="app-modal">
     <div class="modal-content modal-profile-content">
       <div class="modal-header">
         <div class="modal-title-wrap">
           <span class="modal-cat-icon">👤</span>
-          <h3>Kullanıcı Profili & Çoklu Hesap Yönetimi</h3>
+          <h3>Kişisel Profil & Hesap Güvenliği</h3>
         </div>
         <button id="modal-profile-btn-close" class="icon-btn close-btn" title="Kapat">✕</button>
       </div>
 
       <div class="modal-body profile-modal-body">
         
-        <!-- Aktif Profil Düzenleme Kartı -->
+        <!-- Bilgiler Kartı -->
         <div class="card profile-card-active">
-          <h4>🌟 Aktif Profil Bilgileri</h4>
-          <div class="form-group" style="margin-top: 12px;">
-            <label for="profile-name-input">Profil İsmi:</label>
+          <h4>🌟 Profil Bilgileriniz</h4>
+          <p style="font-size:0.85rem; color:var(--text-secondary); margin-bottom: 12px;">
+            Kullanıcı Adınız: <strong id="profile-display-username">-</strong> &bull; Rol: <strong id="profile-display-role">-</strong>
+          </p>
+
+          <div class="form-group">
+            <label for="profile-name-input">İsminiz / Takma Adınız:</label>
             <input type="text" id="profile-name-input" class="form-control" placeholder="İsminiz...">
           </div>
 
           <div class="form-group">
-            <label>Cinsiyet Seçimi:</label>
+            <label>Cinsiyet Tercihi:</label>
             <div class="radio-pill-group">
               <label class="radio-pill">
                 <input type="radio" name="profile-gender" value="female">
@@ -1104,61 +1209,48 @@
                 <span>👨 Erkek</span>
               </label>
             </div>
-            <small style="color:var(--text-secondary); display:block; margin-top:6px;">
-              * Kadın seçildiğinde menüye ve butonlara <strong>🩸 Adet / Döngü Takibi</strong> otomatik olarak eklenir. Erkek seçildiğinde gizlenir.
-            </small>
           </div>
 
-          <button type="button" id="btn-save-profile-active" class="btn btn-primary" style="margin-top: 10px;">
-            💾 Profilimi Güncelle
+          <button type="button" id="btn-save-profile-active" class="btn btn-primary" style="margin-top: 8px;">
+            💾 Profil Bilgilerimi Kaydet
           </button>
         </div>
 
-        <!-- Çoklu Kullanıcı / Aile Profilleri Bölümü -->
-        <div class="card profile-card-multiusers" style="margin-top: 20px;">
-          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
-            <h4>👥 Bu Cihazdaki Kullanıcı Profilleri</h4>
-            <button type="button" id="btn-toggle-new-profile" class="btn btn-sm btn-outline">
-              ➕ Yeni Kullanıcı Ekle
-            </button>
-          </div>
-          <p style="font-size:0.85rem; color:var(--text-secondary); margin-top:4px;">
-            Aynı telefonda veya bilgisayarda eşiniz, çocuğunuz ya da kendiniz için ayrı ayrı bağımsız takvimler tutabilirsiniz.
+        <!-- Şifre Değiştirme Kartı -->
+        <div class="card profile-card-password" style="margin-top: 20px;">
+          <h4>🔑 Şifre Değiştir</h4>
+          <p style="font-size:0.85rem; color:var(--text-secondary); margin-bottom: 10px;">
+            Hesap güvenliğiniz için şifrenizi dilediğiniz zaman buradan güncelleyebilirsiniz.
           </p>
 
-          <!-- Yeni Profil Ekleme Formu (Varsayılan Gizli) -->
-          <div id="new-profile-form-wrap" style="display: none; background:var(--bg-subtle); padding:14px; border-radius:8px; margin-top:12px; border:1px dashed var(--border-color);">
-            <h5>➕ Yeni Kullanıcı Oluştur</h5>
-            <div class="form-row" style="margin-top:8px;">
-              <div class="form-group" style="flex:1;">
-                <label for="new-profile-name">Kullanıcı Adı:</label>
-                <input type="text" id="new-profile-name" class="form-control" placeholder="Örn: Mehmet veya Zeynep">
-              </div>
-              <div class="form-group" style="flex:1;">
-                <label>Cinsiyet:</label>
-                <select id="new-profile-gender" class="form-select">
-                  <option value="female">👩 Kadın</option>
-                  <option value="male">👨 Erkek</option>
-                </select>
-              </div>
+          <form id="form-change-password">
+            <div class="form-group">
+              <label for="pass-current">Mevcut Şifreniz <span class="req">*</span></label>
+              <input type="password" id="pass-current" class="form-control" placeholder="Mevcut şifreniz..." required autocomplete="current-password">
             </div>
-            <div style="display:flex; gap:8px; margin-top:8px;">
-              <button type="button" id="btn-create-profile-submit" class="btn btn-primary btn-sm">Oluştur ve Geçiş Yap</button>
-              <button type="button" id="btn-cancel-new-profile" class="btn btn-outline btn-sm">İptal</button>
-            </div>
-          </div>
 
-          <!-- Mevcut Profiller Listesi -->
-          <div id="profiles-list-container" class="profiles-list-container" style="margin-top: 14px;">
-            <!-- JS ile dinamik doldurulacak -->
-          </div>
+            <div class="form-row">
+              <div class="form-group" style="flex:1;">
+                <label for="pass-new">Yeni Şifre <span class="req">*</span></label>
+                <input type="password" id="pass-new" class="form-control" placeholder="En az 3 karakter" required autocomplete="new-password">
+              </div>
+              <div class="form-group" style="flex:1;">
+                <label for="pass-confirm">Yeni Şifre (Tekrar) <span class="req">*</span></label>
+                <input type="password" id="pass-confirm" class="form-control" placeholder="Tekrar yazın..." required autocomplete="new-password">
+              </div>
+            </div>
+
+            <button type="submit" id="btn-submit-change-pass" class="btn btn-secondary" style="margin-top: 8px;">
+              🔒 Şifremi Güncelle
+            </button>
+          </form>
         </div>
 
-        <!-- Cihazlar Arası Bağımsız Kullanım Notu -->
-        <div class="profile-device-hint" style="margin-top: 20px; background:rgba(59, 130, 246, 0.08); border:1px solid rgba(59, 130, 246, 0.2); padding:12px 16px; border-radius:8px;">
-          <p style="font-size:0.85rem; color:var(--text-main); margin:0;">
-            📱 <strong>Farklı Cihazlar:</strong> Başka bir kişi kendi telefonundan <code>https://syildirimlar.github.io/saglik-takvimi/</code> adresine girdiğinde tamamen kendine ait, bağımsız ve gizli bir takvim kullanır. Sizin verilerinizle asla karışmaz.
-          </p>
+        <!-- Çıkış Butonu -->
+        <div style="margin-top: 24px; text-align: center;">
+          <button type="button" id="btn-modal-logout" class="btn btn-outline" style="color:var(--danger); border-color:var(--danger); width:100%;">
+            🚪 Oturumu Kapat / Çıkış Yap
+          </button>
         </div>
 
       </div>
@@ -1168,12 +1260,12 @@
   <!-- Bildirim Toast Alanı -->
   <div id="toast-container" class="toast-container"></div>
 
-  <!-- JavaScript Dosyaları (Önbellek Kilidini Kırıcı ?v=10.1 Parametreleri ile) -->
-  <script src="js/storage.js?v=10.1"></script>
-  <script src="js/categories.js?v=10.1"></script>
-  <script src="js/calendar.js?v=10.1"></script>
-  <script src="js/reports.js?v=10.1"></script>
-  <script src="js/sync.js?v=10.1"></script>
-  <script src="js/app.js?v=10.1"></script>
+  <!-- JavaScript Dosyaları (Önbellek Kilidini Kırıcı ?v=11.0 Parametreleri ile) -->
+  <script src="js/storage.js?v=11.0"></script>
+  <script src="js/categories.js?v=11.0"></script>
+  <script src="js/calendar.js?v=11.0"></script>
+  <script src="js/reports.js?v=11.0"></script>
+  <script src="js/sync.js?v=11.0"></script>
+  <script src="js/app.js?v=11.0"></script>
 </body>
 </html>

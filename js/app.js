@@ -31,7 +31,9 @@ const App = {
   activeEditingEventId: null,
 
   init() {
-    try { this.setupProfileSystem(); } catch (e) { console.error('Profile hatası:', e); }
+    try { this.setupAuthSystem(); } catch (e) { console.error('Auth hatası:', e); }
+    try { this.setupAdminDashboard(); } catch (e) { console.error('AdminDashboard hatası:', e); }
+    try { this.setupUserProfileModal(); } catch (e) { console.error('ProfileModal hatası:', e); }
     try { this.setupTheme(); } catch (e) { console.error('Theme hatası:', e); }
     try { this.setupNavigationTabs(); } catch (e) { console.error('Tabs hatası:', e); }
     try { this.setupQuickButtons(); } catch (e) { console.error('QuickButtons hatası:', e); }
@@ -46,16 +48,22 @@ const App = {
     try { this.setupNotificationEngine(); } catch (e) { console.error('Notification hatası:', e); }
     try { if (window.CloudSync) CloudSync.init(); } catch (e) { console.error('CloudSync hatası:', e); }
 
-    // İlk açılışta eğer hiç veri yoksa kullanıcıya ipucu ver veya demo teklifi yap
-    try {
-      const events = Storage.getEvents();
-      if (events.length === 0) {
-        setTimeout(() => {
-          showToast('Hoş geldiniz! Takvimi test etmek için "✨ Örnek Veri" butonuna tıklayabilirsiniz.', 'info');
-        }, 800);
-      }
-    } catch (e) {
-      console.error(e);
+    // Oturum kontrolü ve arayüz başlatma
+    if (!Storage.isLoggedIn()) {
+      this.applyProfileGenderUI();
+      setTimeout(() => {
+        this.showLoginModal();
+      }, 350);
+    } else {
+      this.applyProfileGenderUI();
+      try {
+        const events = Storage.getEvents();
+        if (events.length === 0) {
+          setTimeout(() => {
+            showToast('Hoş geldiniz! Takvimi test etmek için "✨ Örnek Veri" butonuna tıklayabilirsiniz.', 'info');
+          }, 800);
+        }
+      } catch (e) {}
     }
   },
 
@@ -70,147 +78,471 @@ const App = {
     this.updateDemoButtonState();
   },
 
-  // ================= KULLANICI PROFİLİ & HESAP YÖNETİMİ =================
-  setupProfileSystem() {
+  // ================= 1. KULLANICI GİRİŞ & OTURUM SİSTEMİ (AUTH) =================
+  setupAuthSystem() {
+    // 1. URL'de davet / hızlı giriş parametresi var mı (?invite=...)
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const invitePayload = urlParams.get('invite');
+      if (invitePayload) {
+        const importedUser = Storage.importInvitePayload(invitePayload);
+        if (importedUser) {
+          try {
+            window.history.replaceState(null, '', window.location.pathname);
+          } catch (e) {}
+          showToast(`Hoş geldiniz ${importedUser.name}! Hesabınız tanımlandı ve oturumunuz açıldı.`, 'success');
+        }
+      }
+    } catch (e) {
+      console.error('Invite kontrol hatası:', e);
+    }
+
+    const loginModal = document.getElementById('modal-login');
+    const loginForm = document.getElementById('form-login');
+    const loginUserInput = document.getElementById('login-username');
+    const loginPassInput = document.getElementById('login-password');
+    const loginErrBox = document.getElementById('login-error-alert');
+    const loginErrText = document.getElementById('login-error-text');
+    const togglePassBtn = document.getElementById('btn-toggle-login-pass');
+    const headerLogoutBtn = document.getElementById('btn-header-logout');
+
+    // Şifre göster / gizle butonu
+    if (togglePassBtn && loginPassInput) {
+      togglePassBtn.addEventListener('click', () => {
+        const isPass = loginPassInput.type === 'password';
+        loginPassInput.type = isPass ? 'text' : 'password';
+        togglePassBtn.textContent = isPass ? '🙈' : '👁️';
+      });
+    }
+
+    // Kullanıcı giriş yapana kadar ESC ile kapanmasını engelle
+    if (loginModal) {
+      loginModal.addEventListener('cancel', (e) => {
+        if (!Storage.isLoggedIn()) {
+          e.preventDefault();
+        }
+      });
+    }
+
+    // Giriş formu gönderimi
+    if (loginForm) {
+      loginForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const u = loginUserInput ? loginUserInput.value.trim() : '';
+        const p = loginPassInput ? loginPassInput.value : '';
+
+        const user = Storage.authenticate(u, p);
+        if (!user) {
+          if (loginErrBox && loginErrText) {
+            loginErrText.textContent = 'Kullanıcı adı veya şifre hatalı! Lütfen kontrol edin.';
+            loginErrBox.style.display = 'flex';
+          } else {
+            alert('Kullanıcı adı veya şifre hatalı!');
+          }
+          return;
+        }
+
+        if (loginErrBox) loginErrBox.style.display = 'none';
+        loginForm.reset();
+        this.closeLoginModal();
+        this.applyProfileGenderUI();
+        this.refreshAllViews();
+        showToast(`Hoş geldiniz, ${user.name}! Oturumunuz açıldı.`, 'success');
+      });
+    }
+
+    // Header çıkış butonu
+    if (headerLogoutBtn) {
+      headerLogoutBtn.addEventListener('click', () => this.handleLogout());
+    }
+  },
+
+  showLoginModal() {
+    const modal = document.getElementById('modal-login');
+    if (!modal) return;
+    const errBox = document.getElementById('login-error-alert');
+    if (errBox) errBox.style.display = 'none';
+    try {
+      modal.showModal();
+    } catch (e) {
+      modal.setAttribute('open', '');
+      modal.style.display = 'flex';
+    }
+  },
+
+  closeLoginModal() {
+    const modal = document.getElementById('modal-login');
+    if (!modal) return;
+    try { if (modal.open) modal.close(); } catch (e) {}
+    modal.removeAttribute('open');
+    modal.style.display = 'none';
+  },
+
+  handleLogout() {
+    if (confirm('Oturumu kapatmak istediğinize emin misiniz?')) {
+      Storage.logout();
+      this.applyProfileGenderUI();
+      this.refreshAllViews();
+      this.closeProfileModal();
+      this.closeAdminModal();
+      this.showLoginModal();
+      showToast('Oturum kapatıldı.', 'info');
+    }
+  },
+
+  // ================= 2. YÖNETİCİ PANELİ (ADMIN HESAP YÖNETİMİ) =================
+  setupAdminDashboard() {
+    const adminBtn = document.getElementById('btn-admin-panel');
+    const adminModal = document.getElementById('modal-admin');
+    const adminCloseBtn = document.getElementById('modal-admin-btn-close');
+
+    if (adminBtn) {
+      adminBtn.addEventListener('click', () => {
+        if (!Storage.isAdmin()) {
+          showToast('Bu alana sadece Sistem Yöneticisi erişebilir.', 'error');
+          return;
+        }
+        this.openAdminModal();
+      });
+    }
+
+    if (adminCloseBtn) {
+      adminCloseBtn.addEventListener('click', () => this.closeAdminModal());
+    }
+
+    // Tab geçişleri
+    const tabUsersBtn = document.getElementById('admin-tab-btn-users');
+    const tabCreateBtn = document.getElementById('admin-tab-btn-create');
+    const tabUsersContent = document.getElementById('admin-tab-users');
+    const tabCreateContent = document.getElementById('admin-tab-create');
+
+    if (tabUsersBtn && tabCreateBtn) {
+      tabUsersBtn.addEventListener('click', () => {
+        tabUsersBtn.classList.add('active');
+        tabCreateBtn.classList.remove('active');
+        if (tabUsersContent) tabUsersContent.style.display = 'block';
+        if (tabCreateContent) tabCreateContent.style.display = 'none';
+        this.renderAdminUsersList();
+      });
+
+      tabCreateBtn.addEventListener('click', () => {
+        tabCreateBtn.classList.add('active');
+        tabUsersBtn.classList.remove('active');
+        if (tabCreateContent) tabCreateContent.style.display = 'block';
+        if (tabUsersContent) tabUsersContent.style.display = 'none';
+      });
+    }
+
+    // Rastgele şifre üretme butonu
+    const genPassBtn = document.getElementById('btn-admin-gen-pass');
+    const newPassInput = document.getElementById('admin-new-password');
+    if (genPassBtn && newPassInput) {
+      genPassBtn.addEventListener('click', () => {
+        const chars = '23456789abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ';
+        let res = '';
+        for (let i = 0; i < 6; i++) {
+          res += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        newPassInput.value = res;
+        showToast(`Rastgele şifre üretildi: ${res}`, 'info');
+      });
+    }
+
+    // Yeni kullanıcı oluşturma formu
+    const createForm = document.getElementById('form-admin-create-user');
+    const resultBox = document.getElementById('admin-create-result-box');
+    const previewEl = document.getElementById('admin-invite-msg-preview');
+    const copyTextBtn = document.getElementById('btn-copy-invite-text');
+    const copyUrlBtn = document.getElementById('btn-copy-direct-url');
+    let lastInviteUrl = '';
+    let lastInviteMessage = '';
+
+    if (createForm) {
+      createForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const username = document.getElementById('admin-new-username')?.value.trim();
+        const name = document.getElementById('admin-new-name')?.value.trim();
+        const gender = document.getElementById('admin-new-gender')?.value || 'female';
+        const password = document.getElementById('admin-new-password')?.value.trim();
+
+        try {
+          const newUser = Storage.createUser({ username, password, name, gender, role: 'user' });
+          lastInviteUrl = Storage.generateInviteUrl(newUser);
+          lastInviteMessage = `Merhaba ${newUser.name},\nSağlık & Yaşam Takvimi hesabınız hazırlandı!\n\n🔗 Giriş Linki: ${lastInviteUrl}\n👤 Kullanıcı Adı: ${newUser.username}\n🔑 Şifreniz: ${newUser.password}\n\nYukarıdaki linke tıklayarak doğrudan hesabınıza giriş yapabilir ve profilinizden şifrenizi dilediğiniz zaman değiştirebilirsiniz.`;
+
+          if (previewEl) previewEl.textContent = lastInviteMessage;
+          if (resultBox) resultBox.style.display = 'block';
+
+          createForm.reset();
+          const passEl = document.getElementById('admin-new-password');
+          if (passEl) passEl.value = '123456';
+
+          this.renderAdminUsersList();
+          showToast(`"${newUser.name}" hesabı oluşturuldu! Bilgileri kopyalayabilirsiniz.`, 'success');
+        } catch (err) {
+          alert(err.message);
+        }
+      });
+    }
+
+    if (copyTextBtn) {
+      copyTextBtn.addEventListener('click', () => {
+        if (!lastInviteMessage) return;
+        navigator.clipboard.writeText(lastInviteMessage).then(() => {
+          showToast('WhatsApp davet metni kopyalandı!', 'success');
+        }).catch(() => {
+          alert(lastInviteMessage);
+        });
+      });
+    }
+
+    if (copyUrlBtn) {
+      copyUrlBtn.addEventListener('click', () => {
+        if (!lastInviteUrl) return;
+        navigator.clipboard.writeText(lastInviteUrl).then(() => {
+          showToast('Giriş linki kopyalandı!', 'success');
+        }).catch(() => {
+          alert(lastInviteUrl);
+        });
+      });
+    }
+  },
+
+  openAdminModal() {
+    const modal = document.getElementById('modal-admin');
+    if (!modal) return;
+    this.renderAdminUsersList();
+    try {
+      modal.showModal();
+    } catch (e) {
+      modal.setAttribute('open', '');
+      modal.style.display = 'flex';
+    }
+  },
+
+  closeAdminModal() {
+    const modal = document.getElementById('modal-admin');
+    if (!modal) return;
+    try { if (modal.open) modal.close(); } catch (e) {}
+    modal.removeAttribute('open');
+    modal.style.display = 'none';
+  },
+
+  renderAdminUsersList() {
+    const tableWrap = document.getElementById('admin-users-table-wrap');
+    const countBadge = document.getElementById('admin-users-count');
+    if (!tableWrap) return;
+
+    const users = Storage.getUsers();
+    if (countBadge) countBadge.textContent = users.length;
+
+    if (users.length === 0) {
+      tableWrap.innerHTML = '<p style="padding:16px; color:var(--text-secondary);">Kayıtlı kullanıcı bulunamadı.</p>';
+      return;
+    }
+
+    let html = `
+      <table class="admin-users-table">
+        <thead>
+          <tr>
+            <th>Kullanıcı</th>
+            <th>Kullanıcı Adı</th>
+            <th>Cinsiyet & Rol</th>
+            <th>Son Giriş</th>
+            <th style="text-align: right;">İşlemler</th>
+          </tr>
+        </thead>
+        <tbody>
+    `;
+
+    users.forEach(u => {
+      const isAdm = u.role === 'admin';
+      const avatar = u.avatar || (u.gender === 'female' ? '👩' : (u.gender === 'male' ? '👨' : '👤'));
+      const genderText = u.gender === 'female' ? 'Kadın (Döngü Takibi)' : (u.gender === 'male' ? 'Erkek' : 'Genel');
+      const lastLoginText = u.lastLogin ? new Date(u.lastLogin).toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : 'Henüz girmedi';
+
+      html += `
+        <tr>
+          <td>
+            <div class="admin-user-cell">
+              <div class="admin-user-avatar">${avatar}</div>
+              <div>
+                <strong>${u.name || u.username}</strong>
+              </div>
+            </div>
+          </td>
+          <td><code>@${u.username}</code></td>
+          <td>
+            <span class="admin-role-badge ${isAdm ? 'role-admin' : 'role-user'}">${isAdm ? '👑 Admin' : '👤 Kullanıcı'}</span>
+            <div style="font-size: 0.75rem; color:var(--text-secondary); margin-top:2px;">${genderText}</div>
+          </td>
+          <td><small style="color:var(--text-secondary);">${lastLoginText}</small></td>
+          <td>
+            <div class="admin-actions-cell" style="justify-content: flex-end;">
+              <button type="button" class="btn btn-sm btn-outline btn-admin-invite" data-id="${u.id}" title="WhatsApp Giriş Metnini Kopyala">
+                📋 Giriş Linki
+              </button>
+              <button type="button" class="btn btn-sm btn-outline btn-admin-reset-pass" data-id="${u.id}" title="Şifreyi Güncelle/Sıfırla">
+                🔑 Şifre
+              </button>
+              ${!isAdm ? `<button type="button" class="btn btn-sm btn-danger btn-admin-delete" data-id="${u.id}" title="Kullanıcıyı Sil">🗑️ Sil</button>` : ''}
+            </div>
+          </td>
+        </tr>
+      `;
+    });
+
+    html += '</tbody></table>';
+    tableWrap.innerHTML = html;
+
+    // İşlem butonları dinleyicileri
+    tableWrap.querySelectorAll('.btn-admin-invite').forEach(b => {
+      b.addEventListener('click', (e) => {
+        const id = e.currentTarget.dataset.id;
+        const u = Storage.getUserById(id);
+        if (!u) return;
+        const url = Storage.generateInviteUrl(u);
+        const msg = `Merhaba ${u.name},\nSağlık & Yaşam Takvimi hesabınız:\n\n🔗 Giriş Linki: ${url}\n👤 Kullanıcı Adı: ${u.username}\n🔑 Şifre: ${u.password}\n\nLinke tıklayarak doğrudan hesabınıza giriş yapabilirsiniz.`;
+        navigator.clipboard.writeText(msg).then(() => {
+          showToast(`"${u.name}" için WhatsApp giriş bilgileri kopyalandı!`, 'success');
+        }).catch(() => {
+          alert(msg);
+        });
+      });
+    });
+
+    tableWrap.querySelectorAll('.btn-admin-reset-pass').forEach(b => {
+      b.addEventListener('click', (e) => {
+        const id = e.currentTarget.dataset.id;
+        const u = Storage.getUserById(id);
+        if (!u) return;
+        const newPass = prompt(`"${u.name}" (@${u.username}) için yeni şifre belirleyin:`, u.password || '123456');
+        if (newPass && newPass.trim().length >= 3) {
+          Storage.updateUser(u.id, { password: newPass.trim() });
+          showToast(`"${u.name}" kullanıcısının şifresi güncellendi.`, 'success');
+        } else if (newPass !== null) {
+          alert('Şifre en az 3 karakter olmalıdır.');
+        }
+      });
+    });
+
+    tableWrap.querySelectorAll('.btn-admin-delete').forEach(b => {
+      b.addEventListener('click', (e) => {
+        const id = e.currentTarget.dataset.id;
+        const u = Storage.getUserById(id);
+        if (!u) return;
+        if (confirm(`"${u.name}" (@${u.username}) kullanıcısını ve bu kullanıcının tüm takvim kayıtlarını silmek istediğinize emin misiniz?`)) {
+          try {
+            Storage.deleteUser(id);
+            this.renderAdminUsersList();
+            showToast(`"${u.name}" kullanıcısı silindi.`, 'info');
+          } catch (err) {
+            alert(err.message);
+          }
+        }
+      });
+    });
+  },
+
+  // ================= 3. KİŞİSEL PROFİL & ŞİFRE DEĞİŞTİRME =================
+  setupUserProfileModal() {
     const profileBtn = document.getElementById('btn-user-profile');
     const profileModal = document.getElementById('modal-profile');
     const closeProfileBtn = document.getElementById('modal-profile-btn-close');
-    const onboardModal = document.getElementById('modal-onboarding');
-    const closeOnboardBtn = document.getElementById('modal-onboarding-btn-close');
-    const onboardSaveBtn = document.getElementById('btn-save-onboarding');
     const saveActiveBtn = document.getElementById('btn-save-profile-active');
+    const passForm = document.getElementById('form-change-password');
+    const modalLogoutBtn = document.getElementById('btn-modal-logout');
 
-    const closeOnboard = () => {
-      if (onboardModal) {
-        try { if (onboardModal.open) onboardModal.close(); } catch (err) {}
-        onboardModal.removeAttribute('open');
-        onboardModal.style.display = 'none';
-      }
-    };
-
-    // Onboarding kontrolü: Profil yoksa veya cinsiyet seçilmediyse
-    const currentProfile = Storage.getUserProfile();
-    if (!currentProfile || !currentProfile.gender || currentProfile.gender === 'unspecified') {
-      setTimeout(() => {
-        if (onboardModal) {
-          try {
-            onboardModal.showModal();
-          } catch (err) {
-            onboardModal.setAttribute('open', '');
-            onboardModal.style.display = 'flex';
-          }
-        }
-      }, 400);
-    }
-
-    if (closeOnboardBtn) {
-      closeOnboardBtn.addEventListener('click', () => {
-        if (!Storage.getUserProfile()) {
-          Storage.saveUserProfile({ name: 'Kullanıcı', gender: 'female' });
-          this.applyProfileGenderUI();
-          this.refreshAllViews();
-        }
-        closeOnboard();
-      });
-    }
-
-    // Onboarding kaydetme butonu
-    if (onboardSaveBtn) {
-      onboardSaveBtn.addEventListener('click', () => {
-        const gender = document.querySelector('input[name="onboard-gender"]:checked')?.value || 'female';
-        const nameInput = document.getElementById('onboard-name');
-        const name = (nameInput?.value || '').trim() || (gender === 'female' ? 'Kadın Kullanıcı' : 'Erkek Kullanıcı');
-
-        Storage.saveUserProfile({ name, gender });
-        closeOnboard();
-        this.applyProfileGenderUI();
-        this.refreshAllViews();
-        showToast(`Hoş geldiniz ${name}! Profiliniz ve takviminiz hazırlandı.`, 'success');
-      });
-    }
-
-    // Header Profil butonuna tıklanınca profil modalını aç
     if (profileBtn) {
       profileBtn.addEventListener('click', () => {
-        this.openProfileModal();
+        if (!Storage.isLoggedIn()) {
+          this.showLoginModal();
+        } else {
+          this.openProfileModal();
+        }
       });
     }
-
-    const closeProfileModal = () => {
-      if (profileModal) {
-        try { if (profileModal.open) profileModal.close(); } catch (err) {}
-        profileModal.removeAttribute('open');
-        profileModal.style.display = 'none';
-      }
-    };
 
     if (closeProfileBtn) {
-      closeProfileBtn.addEventListener('click', closeProfileModal);
+      closeProfileBtn.addEventListener('click', () => this.closeProfileModal());
     }
 
-    // Aktif profili güncelle butonu
+    if (modalLogoutBtn) {
+      modalLogoutBtn.addEventListener('click', () => this.handleLogout());
+    }
+
+    // Profil bilgilerini güncelle butonu
     if (saveActiveBtn) {
       saveActiveBtn.addEventListener('click', () => {
+        const cur = Storage.getCurrentUser();
+        if (!cur) return;
+
         const nameInput = document.getElementById('profile-name-input');
         const gender = document.querySelector('input[name="profile-gender"]:checked')?.value || 'female';
-        const name = (nameInput?.value || '').trim() || 'Kullanıcı';
+        const name = (nameInput?.value || '').trim() || cur.name || 'Kullanıcı';
 
-        Storage.saveUserProfile({ name, gender });
+        Storage.updateUser(cur.id, { name, gender });
         this.applyProfileGenderUI();
         this.refreshAllViews();
-        closeProfileModal();
-        showToast('Profil bilgileriniz güncellendi.', 'success');
+        this.closeProfileModal();
+        showToast('Profil bilgileriniz başarıyla güncellendi.', 'success');
       });
     }
 
-    // Yeni profil formunu aç/kapa
-    const toggleNewBtn = document.getElementById('btn-toggle-new-profile');
-    const newFormWrap = document.getElementById('new-profile-form-wrap');
-    const cancelNewBtn = document.getElementById('btn-cancel-new-profile');
-    const createNewBtn = document.getElementById('btn-create-profile-submit');
+    // Kendi şifresini değiştirme formu
+    if (passForm) {
+      passForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const cur = Storage.getCurrentUser();
+        if (!cur) return;
 
-    if (toggleNewBtn && newFormWrap) {
-      toggleNewBtn.addEventListener('click', () => {
-        newFormWrap.style.display = newFormWrap.style.display === 'none' ? 'block' : 'none';
+        const currentPass = document.getElementById('pass-current')?.value;
+        const newPass = document.getElementById('pass-new')?.value;
+        const confirmPass = document.getElementById('pass-confirm')?.value;
+
+        if (String(currentPass).trim() !== String(cur.password).trim()) {
+          alert('Mevcut şifrenizi yanlış girdiniz! Lütfen kontrol edin.');
+          return;
+        }
+
+        if (!newPass || newPass.trim().length < 3) {
+          alert('Yeni şifreniz en az 3 karakter olmalıdır.');
+          return;
+        }
+
+        if (newPass !== confirmPass) {
+          alert('Yeni şifreler birbiriyle eşleşmiyor! Lütfen iki kutucuğa da aynı şifreyi giriniz.');
+          return;
+        }
+
+        Storage.updateUser(cur.id, { password: newPass.trim() });
+        passForm.reset();
+        showToast('Şifreniz başarıyla değiştirildi!', 'success');
       });
     }
-
-    if (cancelNewBtn && newFormWrap) {
-      cancelNewBtn.addEventListener('click', () => {
-        newFormWrap.style.display = 'none';
-      });
-    }
-
-    if (createNewBtn) {
-      createNewBtn.addEventListener('click', () => {
-        const name = (document.getElementById('new-profile-name')?.value || '').trim() || 'Yeni Kullanıcı';
-        const gender = document.getElementById('new-profile-gender')?.value || 'female';
-
-        Storage.createProfile(name, gender);
-        if (newFormWrap) newFormWrap.style.display = 'none';
-        this.applyProfileGenderUI();
-        this.refreshAllViews();
-        closeProfileModal();
-        showToast(`"${name}" profiline geçildi. Yeni takvim hazır!`, 'success');
-      });
-    }
-
-    // İlk açılışta UI cinsiyet durumunu uygula
-    this.applyProfileGenderUI();
   },
 
   openProfileModal() {
     const profileModal = document.getElementById('modal-profile');
     if (!profileModal) return;
 
-    const profile = Storage.getUserProfile() || { name: 'Kullanıcı', gender: 'female' };
-    const nameInput = document.getElementById('profile-name-input');
-    if (nameInput) nameInput.value = profile.name || '';
+    const cur = Storage.getCurrentUser();
+    if (!cur) {
+      this.showLoginModal();
+      return;
+    }
 
-    const genderRadio = document.querySelector(`input[name="profile-gender"][value="${profile.gender || 'female'}"]`);
+    const dispUser = document.getElementById('profile-display-username');
+    const dispRole = document.getElementById('profile-display-role');
+    const nameInput = document.getElementById('profile-name-input');
+
+    if (dispUser) dispUser.textContent = cur.username;
+    if (dispRole) dispRole.textContent = cur.role === 'admin' ? '👑 Sistem Yöneticisi' : '👤 Kullanıcı';
+    if (nameInput) nameInput.value = cur.name || '';
+
+    const genderRadio = document.querySelector(`input[name="profile-gender"][value="${cur.gender || 'female'}"]`);
     if (genderRadio) genderRadio.checked = true;
 
-    this.renderProfilesList();
     try {
       profileModal.showModal();
     } catch (err) {
@@ -219,97 +551,55 @@ const App = {
     }
   },
 
-  renderProfilesList() {
-    const listContainer = document.getElementById('profiles-list-container');
-    if (!listContainer) return;
-
-    listContainer.innerHTML = '';
-    const profiles = Storage.getAllProfiles();
-    const activeId = Storage.getActiveProfileId();
-
-    if (profiles.length === 0) {
-      listContainer.innerHTML = '<p style="color:var(--text-secondary); font-size:0.85rem;">Kayıtlı ek profil bulunmuyor.</p>';
-      return;
-    }
-
-    profiles.forEach(p => {
-      const isActive = (p.id === activeId);
-      const row = document.createElement('div');
-      row.className = `profile-item-row ${isActive ? 'is-active' : ''}`;
-
-      const avatar = p.avatar || (p.gender === 'female' ? '👩' : (p.gender === 'male' ? '👨' : '👤'));
-      const genderLabel = p.gender === 'female' ? 'Kadın (Döngü Takibi)' : (p.gender === 'male' ? 'Erkek' : 'Genel');
-
-      row.innerHTML = `
-        <div class="profile-item-info">
-          <div class="profile-avatar-bubble">${avatar}</div>
-          <div>
-            <strong>${p.name || 'Kullanıcı'}</strong> ${isActive ? '<span class="profile-badge-active">Aktif</span>' : ''}
-            <div style="font-size:0.75rem; color:var(--text-secondary);">${genderLabel}</div>
-          </div>
-        </div>
-        <div style="display:flex; gap:6px;">
-          ${!isActive ? `<button type="button" class="btn btn-sm btn-outline btn-switch-prof" data-id="${p.id}">Geçiş Yap</button>` : ''}
-          ${!isActive && p.id !== 'default' ? `<button type="button" class="btn btn-sm btn-danger btn-del-prof" data-id="${p.id}" title="Profili Sil">Sil</button>` : ''}
-        </div>
-      `;
-
-      listContainer.appendChild(row);
-    });
-
-    // Profil geçiş ve silme buton dinleyicileri
-    listContainer.querySelectorAll('.btn-switch-prof').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const id = e.currentTarget.dataset.id;
-        Storage.switchProfile(id);
-        this.applyProfileGenderUI();
-        this.refreshAllViews();
-        const profileModal = document.getElementById('modal-profile');
-        if (profileModal) {
-          try { if (profileModal.open) profileModal.close(); } catch (err) {}
-          profileModal.removeAttribute('open');
-          profileModal.style.display = 'none';
-        }
-        showToast('Profil başarıyla değiştirildi.', 'success');
-      });
-    });
-
-    listContainer.querySelectorAll('.btn-del-prof').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const id = e.currentTarget.dataset.id;
-        if (confirm('Bu profili ve profilin tüm kayıtlarını silmek istediğinize emin misiniz?')) {
-          Storage.deleteProfile(id);
-          this.applyProfileGenderUI();
-          this.refreshAllViews();
-          this.renderProfilesList();
-          showToast('Profil silindi.', 'info');
-        }
-      });
-    });
+  closeProfileModal() {
+    const profileModal = document.getElementById('modal-profile');
+    if (!profileModal) return;
+    try { if (profileModal.open) profileModal.close(); } catch (err) {}
+    profileModal.removeAttribute('open');
+    profileModal.style.display = 'none';
   },
 
   applyProfileGenderUI() {
-    const profile = Storage.getUserProfile();
-    const gender = Storage.getUserGender();
+    const cur = Storage.getCurrentUser();
+    const isLogged = !!cur;
+    const isAdmin = isLogged && cur.role === 'admin';
+    const gender = cur ? (cur.gender || 'unspecified') : 'unspecified';
 
+    const adminBtn = document.getElementById('btn-admin-panel');
+    const logoutBtn = document.getElementById('btn-header-logout');
     const periodQuickBtn = document.getElementById('btn-quick-period');
     const headerAvatar = document.getElementById('header-profile-avatar');
     const headerName = document.getElementById('header-profile-name');
 
-    if (gender === 'female') {
-      if (periodQuickBtn) periodQuickBtn.style.display = 'inline-flex';
-      if (headerAvatar) headerAvatar.textContent = profile?.avatar || '👩';
-    } else {
-      if (periodQuickBtn) periodQuickBtn.style.display = 'none';
-      if (headerAvatar) headerAvatar.textContent = profile?.avatar || (gender === 'male' ? '👨' : '👤');
+    if (adminBtn) {
+      adminBtn.style.display = isAdmin ? 'inline-flex' : 'none';
     }
 
-    if (headerName && profile?.name) {
-      headerName.textContent = profile.name.length > 10 ? profile.name.slice(0, 8) + '...' : profile.name;
+    if (logoutBtn) {
+      logoutBtn.style.display = isLogged ? 'inline-flex' : 'none';
+    }
+
+    if (periodQuickBtn) {
+      periodQuickBtn.style.display = (gender === 'female') ? 'inline-flex' : 'none';
+    }
+
+    if (headerAvatar) {
+      headerAvatar.textContent = cur ? (cur.avatar || (gender === 'female' ? '👩' : (gender === 'male' ? '👨' : '👤'))) : '👤';
+    }
+
+    if (headerName) {
+      if (cur) {
+        const name = cur.name || cur.username;
+        headerName.textContent = name.length > 12 ? name.slice(0, 10) + '...' : name;
+      } else {
+        headerName.textContent = 'Giriş Yap';
+      }
     }
 
     // Kategorileri cinsiyet filtresine göre yeniden doldur
-    CategoryManager.populateAllCategoryDropdowns();
+    if (typeof CategoryManager !== 'undefined' && typeof CategoryManager.populateAllCategoryDropdowns === 'function') {
+      CategoryManager.populateAllCategoryDropdowns();
+    }
   },
 
   // ================= 1. TEMA YÖNETİMİ =================
