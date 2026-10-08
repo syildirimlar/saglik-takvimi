@@ -76,17 +76,42 @@ const App = {
     const profileModal = document.getElementById('modal-profile');
     const closeProfileBtn = document.getElementById('modal-profile-btn-close');
     const onboardModal = document.getElementById('modal-onboarding');
+    const closeOnboardBtn = document.getElementById('modal-onboarding-btn-close');
     const onboardSaveBtn = document.getElementById('btn-save-onboarding');
     const saveActiveBtn = document.getElementById('btn-save-profile-active');
+
+    const closeOnboard = () => {
+      if (onboardModal) {
+        try { if (onboardModal.open) onboardModal.close(); } catch (err) {}
+        onboardModal.removeAttribute('open');
+        onboardModal.style.display = 'none';
+      }
+    };
 
     // Onboarding kontrolü: Profil yoksa veya cinsiyet seçilmediyse
     const currentProfile = Storage.getUserProfile();
     if (!currentProfile || !currentProfile.gender || currentProfile.gender === 'unspecified') {
       setTimeout(() => {
-        if (onboardModal && typeof onboardModal.showModal === 'function') {
-          try { onboardModal.showModal(); } catch (err) {}
+        if (onboardModal) {
+          try {
+            onboardModal.showModal();
+          } catch (err) {
+            onboardModal.setAttribute('open', '');
+            onboardModal.style.display = 'flex';
+          }
         }
       }, 400);
+    }
+
+    if (closeOnboardBtn) {
+      closeOnboardBtn.addEventListener('click', () => {
+        if (!Storage.getUserProfile()) {
+          Storage.saveUserProfile({ name: 'Kullanıcı', gender: 'female' });
+          this.applyProfileGenderUI();
+          this.refreshAllViews();
+        }
+        closeOnboard();
+      });
     }
 
     // Onboarding kaydetme butonu
@@ -97,9 +122,7 @@ const App = {
         const name = (nameInput?.value || '').trim() || (gender === 'female' ? 'Kadın Kullanıcı' : 'Erkek Kullanıcı');
 
         Storage.saveUserProfile({ name, gender });
-        if (onboardModal && typeof onboardModal.close === 'function') {
-          try { onboardModal.close(); } catch (err) {}
-        }
+        closeOnboard();
         this.applyProfileGenderUI();
         this.refreshAllViews();
         showToast(`Hoş geldiniz ${name}! Profiliniz ve takviminiz hazırlandı.`, 'success');
@@ -113,12 +136,16 @@ const App = {
       });
     }
 
+    const closeProfileModal = () => {
+      if (profileModal) {
+        try { if (profileModal.open) profileModal.close(); } catch (err) {}
+        profileModal.removeAttribute('open');
+        profileModal.style.display = 'none';
+      }
+    };
+
     if (closeProfileBtn) {
-      closeProfileBtn.addEventListener('click', () => {
-        if (profileModal && typeof profileModal.close === 'function') {
-          profileModal.close();
-        }
-      });
+      closeProfileBtn.addEventListener('click', closeProfileModal);
     }
 
     // Aktif profili güncelle butonu
@@ -131,9 +158,7 @@ const App = {
         Storage.saveUserProfile({ name, gender });
         this.applyProfileGenderUI();
         this.refreshAllViews();
-        if (profileModal && typeof profileModal.close === 'function') {
-          profileModal.close();
-        }
+        closeProfileModal();
         showToast('Profil bilgileriniz güncellendi.', 'success');
       });
     }
@@ -165,9 +190,7 @@ const App = {
         if (newFormWrap) newFormWrap.style.display = 'none';
         this.applyProfileGenderUI();
         this.refreshAllViews();
-        if (profileModal && typeof profileModal.close === 'function') {
-          profileModal.close();
-        }
+        closeProfileModal();
         showToast(`"${name}" profiline geçildi. Yeni takvim hazır!`, 'success');
       });
     }
@@ -188,7 +211,12 @@ const App = {
     if (genderRadio) genderRadio.checked = true;
 
     this.renderProfilesList();
-    try { profileModal.showModal(); } catch (err) {}
+    try {
+      profileModal.showModal();
+    } catch (err) {
+      profileModal.setAttribute('open', '');
+      profileModal.style.display = 'flex';
+    }
   },
 
   renderProfilesList() {
@@ -237,7 +265,11 @@ const App = {
         this.applyProfileGenderUI();
         this.refreshAllViews();
         const profileModal = document.getElementById('modal-profile');
-        if (profileModal) profileModal.close();
+        if (profileModal) {
+          try { if (profileModal.open) profileModal.close(); } catch (err) {}
+          profileModal.removeAttribute('open');
+          profileModal.style.display = 'none';
+        }
         showToast('Profil başarıyla değiştirildi.', 'success');
       });
     });
@@ -825,7 +857,12 @@ const App = {
       if (hintBox) hintBox.style.display = initialStatus === 'planned' ? 'block' : 'none';
     }
 
-    modal.showModal();
+    try {
+      modal.showModal();
+    } catch (e) {
+      modal.setAttribute('open', '');
+      modal.style.display = 'flex';
+    }
   },
 
   // Modal Verisini Kaydet

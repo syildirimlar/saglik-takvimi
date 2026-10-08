@@ -124,19 +124,6 @@ const DEFAULT_CATEGORIES = [
 ];
 
 const Storage = {
-  // Tüm kategorileri getir
-  getCategories() {
-    try {
-      const data = localStorage.getItem(STORAGE_KEYS.CATEGORIES);
-      if (!data) {
-        this.saveCategories(DEFAULT_CATEGORIES);
-        return DEFAULT_CATEGORIES;
-      }
-      let parsed = JSON.parse(data);
-      if (!Array.isArray(parsed) || parsed.length === 0) {
-        this.saveCategories(DEFAULT_CATEGORIES);
-        return DEFAULT_CATEGORIES;
-      }
   // ================= KULLANICI & PROFİL YÖNETİMİ =================
   getActiveProfileId() {
     return localStorage.getItem(STORAGE_KEYS.ACTIVE_PROFILE_ID) || 'default';
