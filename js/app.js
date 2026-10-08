@@ -812,8 +812,24 @@ const App = {
     // Bulut Eşitleme (CloudSync) Butonları
     const startSyncBtn = document.getElementById('btn-start-cloud-sync');
     if (startSyncBtn) {
-      startSyncBtn.addEventListener('click', () => {
-        if (window.CloudSync) CloudSync.startNewSync();
+      startSyncBtn.addEventListener('click', async () => {
+        startSyncBtn.disabled = true;
+        const originalText = startSyncBtn.innerHTML;
+        startSyncBtn.innerHTML = '🔄 Hazırlanıyor...';
+        try {
+          const syncObj = (typeof CloudSync !== 'undefined') ? CloudSync : window.CloudSync;
+          if (syncObj && syncObj.startNewSync) {
+            await syncObj.startNewSync();
+          } else {
+            alert('Bulut modülü henüz yüklenemedi. Lütfen sayfayı bir kez yenileyin.');
+          }
+        } catch (e) {
+          console.error(e);
+          alert('Bulut eşitleme hatası: ' + e.message);
+        } finally {
+          startSyncBtn.disabled = false;
+          startSyncBtn.innerHTML = originalText;
+        }
       });
     }
 
@@ -833,34 +849,48 @@ const App = {
     const submitCodeBtn = document.getElementById('btn-submit-cloud-code');
     const codeInput = document.getElementById('input-cloud-sync-code');
     if (submitCodeBtn && codeInput) {
-      submitCodeBtn.addEventListener('click', () => {
+      submitCodeBtn.addEventListener('click', async () => {
         const val = codeInput.value.trim();
         if (!val) {
           alert('Lütfen eşitleme kodunu veya bağlantı linkini yapıştırın.');
           return;
         }
-        if (window.CloudSync) CloudSync.connectWithCode(val);
+        submitCodeBtn.disabled = true;
+        const orig = submitCodeBtn.innerHTML;
+        submitCodeBtn.innerHTML = '🔄 Bağlanıyor...';
+        try {
+          const syncObj = (typeof CloudSync !== 'undefined') ? CloudSync : window.CloudSync;
+          if (syncObj && syncObj.connectWithCode) {
+            await syncObj.connectWithCode(val);
+          }
+        } finally {
+          submitCodeBtn.disabled = false;
+          submitCodeBtn.innerHTML = orig;
+        }
       });
     }
 
     const copyLinkBtn = document.getElementById('btn-copy-sync-link');
     if (copyLinkBtn) {
       copyLinkBtn.addEventListener('click', () => {
-        if (window.CloudSync) CloudSync.copyShareLink();
+        const syncObj = (typeof CloudSync !== 'undefined') ? CloudSync : window.CloudSync;
+        if (syncObj && syncObj.copyShareLink) syncObj.copyShareLink();
       });
     }
 
     const manualSyncBtn = document.getElementById('btn-manual-sync-now');
     if (manualSyncBtn) {
       manualSyncBtn.addEventListener('click', () => {
-        if (window.CloudSync) CloudSync.pull(true);
+        const syncObj = (typeof CloudSync !== 'undefined') ? CloudSync : window.CloudSync;
+        if (syncObj && syncObj.pull) syncObj.pull(true);
       });
     }
 
     const disconnectSyncBtn = document.getElementById('btn-disconnect-sync');
     if (disconnectSyncBtn) {
       disconnectSyncBtn.addEventListener('click', () => {
-        if (window.CloudSync) CloudSync.disconnect();
+        const syncObj = (typeof CloudSync !== 'undefined') ? CloudSync : window.CloudSync;
+        if (syncObj && syncObj.disconnect) syncObj.disconnect();
       });
     }
 
