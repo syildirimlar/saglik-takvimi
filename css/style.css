@@ -250,6 +250,12 @@ body {
 }
 .btn-massage:hover { background: #db2777; }
 
+.btn-period {
+  background: #e11d48;
+  color: #ffffff;
+}
+.btn-period:hover { background: #be123c; }
+
 .icon-btn {
   display: inline-flex;
   align-items: center;
@@ -1664,6 +1670,201 @@ body.dark-mode .cloud-sync-active-banner {
   word-break: break-all;
   display: inline-block;
   font-family: monospace;
+}
+
+/* ================= KULLANICI PROFİLİ & ONBOARDING & DÖNGÜ STİLLERİ ================= */
+.header-profile-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: 99px;
+  padding: 6px 12px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-main);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  box-shadow: var(--shadow-sm);
+}
+
+.header-profile-btn:hover {
+  background: var(--bg-hover);
+  border-color: var(--primary);
+  transform: translateY(-1px);
+}
+
+/* Semptom Etiket Bulutu */
+.symptom-tag-cloud {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.symptom-tag {
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  font-size: 0.825rem;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 99px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.symptom-tag:hover {
+  background: var(--bg-hover);
+  color: var(--text-main);
+}
+
+.symptom-tag.active {
+  background: #f43f5e;
+  border-color: #e11d48;
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(225, 29, 72, 0.25);
+}
+
+/* Cinsiyet Seçim Kartları (Onboarding) */
+.gender-selection-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+@media (max-width: 540px) {
+  .gender-selection-cards {
+    grid-template-columns: 1fr;
+  }
+}
+
+.gender-card {
+  cursor: pointer;
+  display: block;
+  position: relative;
+}
+
+.gender-card input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.gender-card-inner {
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 20px 16px;
+  text-align: center;
+  background: var(--bg-surface);
+  transition: all var(--transition-fast);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+}
+
+.gender-card:hover .gender-card-inner {
+  border-color: var(--primary);
+  background: var(--bg-hover);
+  transform: translateY(-2px);
+}
+
+.gender-card input[type="radio"]:checked + .gender-card-inner {
+  border-color: var(--primary);
+  background: rgba(37, 99, 235, 0.05);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+body.dark-mode .gender-card input[type="radio"]:checked + .gender-card-inner {
+  background: rgba(37, 99, 235, 0.15);
+}
+
+.gender-card-icon {
+  font-size: 2.8rem;
+  margin-bottom: 8px;
+  line-height: 1;
+}
+
+.gender-card-title {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--text-main);
+  margin-bottom: 6px;
+}
+
+.gender-card-subtitle {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.onboarding-desc {
+  font-size: 0.95rem;
+  color: var(--text-main);
+  line-height: 1.5;
+  margin-bottom: 12px;
+}
+
+.onboarding-notice {
+  margin-top: 16px;
+  padding: 10px 14px;
+  background: var(--bg-subtle);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+}
+
+/* Profil Yönetimi Modal Elemanları */
+.profiles-list-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.profile-item-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  gap: 12px;
+}
+
+.profile-item-row.is-active {
+  border-color: var(--primary);
+  background: rgba(37, 99, 235, 0.04);
+}
+
+.profile-item-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.profile-avatar-bubble {
+  font-size: 1.4rem;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-subtle);
+  border-radius: 50%;
+  border: 1px solid var(--border-color);
+}
+
+.profile-badge-active {
+  background: #10b981;
+  color: #ffffff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 99px;
+  margin-left: 6px;
 }
 
 /* ================= YAZDIRMA (PRINT) STİLLERİ ================= */

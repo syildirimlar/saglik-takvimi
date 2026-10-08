@@ -120,6 +120,7 @@ const CategoryManager = {
     const fieldsHeadache = document.getElementById('fields-headache');
     const fieldsSport = document.getElementById('fields-sport');
     const fieldsMassage = document.getElementById('fields-massage');
+    const fieldsPeriod = document.getElementById('fields-period');
     const fieldsGenIntensity = document.getElementById('fields-generic-intensity');
     const fieldsGenQuantity = document.getElementById('fields-generic-quantity');
 
@@ -127,6 +128,7 @@ const CategoryManager = {
     if (fieldsHeadache) fieldsHeadache.style.display = 'none';
     if (fieldsSport) fieldsSport.style.display = 'none';
     if (fieldsMassage) fieldsMassage.style.display = 'none';
+    if (fieldsPeriod) fieldsPeriod.style.display = 'none';
     if (fieldsGenIntensity) fieldsGenIntensity.style.display = 'none';
     if (fieldsGenQuantity) fieldsGenQuantity.style.display = 'none';
 
@@ -138,6 +140,8 @@ const CategoryManager = {
       if (fieldsSport) fieldsSport.style.display = 'block';
     } else if (catId === 'massage') {
       if (fieldsMassage) fieldsMassage.style.display = 'block';
+    } else if (catId === 'period') {
+      if (fieldsPeriod) fieldsPeriod.style.display = 'block';
     } else {
       // Özel veya diğer kategoriler
       if (category.hasIntensity && fieldsGenIntensity) {

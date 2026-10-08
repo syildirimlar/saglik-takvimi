@@ -1,4 +1,4 @@
-const CACHE_NAME = 'saglik-takvim-v9';
+const CACHE_NAME = 'saglik-takvim-v10';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',

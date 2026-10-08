@@ -383,6 +383,17 @@ const Calendar = {
         detailsHtml += `
           <strong>${mArea}</strong> &bull; <span>${mDur} dk</span> &bull; <span class="intensity-badge level-7">Rahatlama: ${relief}/10</span>
         `;
+      } else if (event.categoryId === 'period') {
+        const pFlow = event.details?.flow || 'Orta (Medium)';
+        const pCramps = event.details?.cramps || event.details?.intensity || 3;
+        const pPhase = event.details?.phase || 'Döngü';
+        const pSymptoms = event.details?.symptoms || [];
+        let bClass = pCramps <= 3 ? 'level-1' : (pCramps <= 6 ? 'level-5' : 'level-10');
+        detailsHtml += `
+          <strong>🩸 ${pFlow}</strong> &bull; <span>${pPhase}</span> &bull; <span class="intensity-badge ${bClass}">Sancı: ${pCramps}/10</span>
+          ${pSymptoms.length > 0 ? `<br><small style="color:var(--text-secondary); font-weight:500;">&bull; Semptomlar: ${pSymptoms.join(', ')}</small>` : ''}
+          ${event.details?.medTaken ? `<br><small style="color:var(--success);">&bull; İlaç: ${event.details?.medName || 'Alındı'}</small>` : ''}
+        `;
       } else {
         // Genel kategoriler
         if (event.details?.intensity) {

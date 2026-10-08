@@ -70,6 +70,10 @@
           <span class="btn-icon">💆</span>
           <span class="btn-text">Masaj</span>
         </button>
+        <button id="btn-quick-period" class="btn btn-quick btn-period" title="Şimdi Adet / Döngü Kaydet" style="display: none;">
+          <span class="btn-icon">🩸</span>
+          <span class="btn-text">Döngü</span>
+        </button>
         <button id="btn-open-add-modal" class="btn btn-primary" title="Detaylı veya Özel Olay Ekle">
           <span class="btn-icon">➕</span>
           <span>Yeni Olay</span>
@@ -78,6 +82,10 @@
 
       <!-- Ayarlar & Tema Düğmeleri -->
       <div class="header-tools">
+        <button id="btn-user-profile" class="header-profile-btn" title="Kullanıcı Profili & Hesap Seçimi">
+          <span id="header-profile-avatar">👤</span>
+          <span id="header-profile-name">Profil</span>
+        </button>
         <button id="header-sync-badge" class="header-sync-btn sync-badge status-disconnected" title="Cihazlar Arası Canlı Bulut Eşitleme">
           <span id="header-sync-icon">📱</span>
           <span id="header-sync-label">Yerel</span>
@@ -887,7 +895,90 @@
           </div>
         </div>
 
-        <!-- 3. GENEL ŞİDDET SKALASI (Özel kategoriler için) -->
+        <!-- 5. ADET / DÖNGÜ ALANLARI (KADINLAR İÇİN) -->
+        <div id="fields-period" class="dynamic-category-fields" style="display: none;">
+          <div class="form-group">
+            <label>Kanama / Akıntı Yoğunluğu</label>
+            <div class="radio-pill-group period-flow-group">
+              <label class="radio-pill">
+                <input type="radio" name="period-flow" value="Lekelenme (Spotting)">
+                <span>💧 Lekelenme</span>
+              </label>
+              <label class="radio-pill">
+                <input type="radio" name="period-flow" value="Hafif (Light)">
+                <span>🌸 Hafif</span>
+              </label>
+              <label class="radio-pill">
+                <input type="radio" name="period-flow" value="Orta (Medium)" checked>
+                <span>🩸 Orta</span>
+              </label>
+              <label class="radio-pill">
+                <input type="radio" name="period-flow" value="Yoğun (Heavy)">
+                <span>🌊 Yoğun</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <div class="slider-label-wrap">
+              <label for="period-cramps">Sancı / Kramp Şiddeti (1 - 10)</label>
+              <span id="period-cramps-badge" class="intensity-badge level-3">3 / 10 - Hafif</span>
+            </div>
+            <input type="range" id="period-cramps" class="form-range" min="1" max="10" value="3">
+            <div class="range-scale">
+              <span>1 (Hafif Sızı)</span>
+              <span>5 (Orta Kramp)</span>
+              <span>10 (Şiddetli Ağrı)</span>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="period-phase">Döngü Evresi (Opsiyonel)</label>
+              <select id="period-phase" class="form-select">
+                <option value="Regl (Adet Günü)">🩸 Regl (Adet Günü)</option>
+                <option value="Regl Öncesi (PMS)">⚡ Regl Öncesi (PMS)</option>
+                <option value="Yumurtlama (Ovulasyon)">🥚 Yumurtlama (Ovulasyon)</option>
+                <option value="Döngü Arası / Normal">🌱 Döngü Arası / Normal</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="period-protection">Kullanılan Koruyucu Ürün</label>
+              <select id="period-protection" class="form-select">
+                <option value="Hijyenik Ped">Hijyenik Ped</option>
+                <option value="Tampon">Tampon</option>
+                <option value="Menstrüel Kap">Menstrüel Kap</option>
+                <option value="Günlük Ped">Günlük Ped</option>
+                <option value="Yok / Diğer">Yok / Diğer</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Yaşanan Semptomlar & Ruh Hali (Çoklu Seçilebilir)</label>
+            <div class="symptom-tag-cloud" id="period-symptoms-cloud">
+              <button type="button" class="symptom-tag" data-val="Bel Ağrısı">Bel Ağrısı</button>
+              <button type="button" class="symptom-tag" data-val="Şişkinlik">Şişkinlik</button>
+              <button type="button" class="symptom-tag" data-val="Baş Ağrısı">Baş Ağrısı</button>
+              <button type="button" class="symptom-tag" data-val="Duygusallık / PMS">Duygusallık / PMS</button>
+              <button type="button" class="symptom-tag" data-val="Yorgunluk">Yorgunluk</button>
+              <button type="button" class="symptom-tag" data-val="Göğüs Hassasiyeti">Göğüs Hassasiyeti</button>
+              <button type="button" class="symptom-tag" data-val="Tatlı Krizleri">Tatlı Krizleri</button>
+              <button type="button" class="symptom-tag" data-val="Mide Bulantısı">Mide Bulantısı</button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="checkbox-label">
+              <input type="checkbox" id="period-med-taken">
+              <span>Ağrı kesici / İlaç alındı mı?</span>
+            </label>
+            <input type="text" id="period-med-name" class="form-control" placeholder="Hangi ilaç alındı? (Örn: Majezik, Buscopan...)" style="margin-top: 8px; display: none;">
+          </div>
+        </div>
+
+        <!-- 6. GENEL ŞİDDET SKALASI (Özel kategoriler için) -->
         <div id="fields-generic-intensity" class="dynamic-category-fields" style="display: none;">
           <div class="form-group">
             <div class="slider-label-wrap">
@@ -927,15 +1018,161 @@
     </div>
   </dialog>
 
+  <!-- ================= BAŞLANGIÇ CİNSİYET & PROFİL SEÇİM MODALI (ONBOARDING) ================= -->
+  <dialog id="modal-onboarding" class="app-modal">
+    <div class="modal-content modal-welcome-content">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <span class="modal-cat-icon">👋</span>
+          <h3>Sağlık Takvimine Hoş Geldiniz!</h3>
+        </div>
+      </div>
+      <div class="modal-body onboarding-body">
+        <p class="onboarding-desc">
+          Size özel en doğru takvim deneyimini sunabilmemiz ve ihtiyaçlarınıza uygun özellikleri etkinleştirebilmemiz için lütfen cinsiyetinizi seçin:
+        </p>
+
+        <div class="gender-selection-cards">
+          <label class="gender-card">
+            <input type="radio" name="onboard-gender" value="female" checked>
+            <div class="gender-card-inner">
+              <span class="gender-card-icon">👩</span>
+              <span class="gender-card-title">Kadın</span>
+              <span class="gender-card-subtitle">🩸 Adet / Regl Döngüsü takibi, sancı/kramp ve tüm genel sağlık takvimi dahil</span>
+            </div>
+          </label>
+
+          <label class="gender-card">
+            <input type="radio" name="onboard-gender" value="male">
+            <div class="gender-card-inner">
+              <span class="gender-card-icon">👨</span>
+              <span class="gender-card-title">Erkek</span>
+              <span class="gender-card-subtitle">Tuvalet, baş ağrısı, masaj, spor, uyku ve tüm genel sağlık takvimi özellikleri</span>
+            </div>
+          </label>
+        </div>
+
+        <div class="form-group" style="margin-top: 20px;">
+          <label for="onboard-name">İsminiz veya Takma Adınız (İsteğe bağlı):</label>
+          <input type="text" id="onboard-name" class="form-control" placeholder="Örn: Ayşe veya Kullanıcı 1" value="Kullanıcı">
+        </div>
+
+        <div class="onboarding-notice">
+          <small>💡 <em>Not: Bu tercihi istediğiniz an sağ üstteki <strong>👤 Profil</strong> menüsünden değiştirebilir veya başka bir aile üyesi için yeni bir profil oluşturabilirsiniz.</em></small>
+        </div>
+
+        <div class="modal-actions" style="margin-top: 24px;">
+          <button type="button" id="btn-save-onboarding" class="btn btn-primary btn-block btn-lg">
+            🚀 Takvimi Başlat & Kaydet
+          </button>
+        </div>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- ================= KULLANICI PROFİLİ & HESAP YÖNETİMİ MODALI ================= -->
+  <dialog id="modal-profile" class="app-modal">
+    <div class="modal-content modal-profile-content">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <span class="modal-cat-icon">👤</span>
+          <h3>Kullanıcı Profili & Çoklu Hesap Yönetimi</h3>
+        </div>
+        <button id="modal-profile-btn-close" class="icon-btn close-btn" title="Kapat">✕</button>
+      </div>
+
+      <div class="modal-body profile-modal-body">
+        
+        <!-- Aktif Profil Düzenleme Kartı -->
+        <div class="card profile-card-active">
+          <h4>🌟 Aktif Profil Bilgileri</h4>
+          <div class="form-group" style="margin-top: 12px;">
+            <label for="profile-name-input">Profil İsmi:</label>
+            <input type="text" id="profile-name-input" class="form-control" placeholder="İsminiz...">
+          </div>
+
+          <div class="form-group">
+            <label>Cinsiyet Seçimi:</label>
+            <div class="radio-pill-group">
+              <label class="radio-pill">
+                <input type="radio" name="profile-gender" value="female">
+                <span>👩 Kadın (Döngü Takibi Aktif)</span>
+              </label>
+              <label class="radio-pill">
+                <input type="radio" name="profile-gender" value="male">
+                <span>👨 Erkek</span>
+              </label>
+            </div>
+            <small style="color:var(--text-secondary); display:block; margin-top:6px;">
+              * Kadın seçildiğinde menüye ve butonlara <strong>🩸 Adet / Döngü Takibi</strong> otomatik olarak eklenir. Erkek seçildiğinde gizlenir.
+            </small>
+          </div>
+
+          <button type="button" id="btn-save-profile-active" class="btn btn-primary" style="margin-top: 10px;">
+            💾 Profilimi Güncelle
+          </button>
+        </div>
+
+        <!-- Çoklu Kullanıcı / Aile Profilleri Bölümü -->
+        <div class="card profile-card-multiusers" style="margin-top: 20px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+            <h4>👥 Bu Cihazdaki Kullanıcı Profilleri</h4>
+            <button type="button" id="btn-toggle-new-profile" class="btn btn-sm btn-outline">
+              ➕ Yeni Kullanıcı Ekle
+            </button>
+          </div>
+          <p style="font-size:0.85rem; color:var(--text-secondary); margin-top:4px;">
+            Aynı telefonda veya bilgisayarda eşiniz, çocuğunuz ya da kendiniz için ayrı ayrı bağımsız takvimler tutabilirsiniz.
+          </p>
+
+          <!-- Yeni Profil Ekleme Formu (Varsayılan Gizli) -->
+          <div id="new-profile-form-wrap" style="display: none; background:var(--bg-subtle); padding:14px; border-radius:8px; margin-top:12px; border:1px dashed var(--border-color);">
+            <h5>➕ Yeni Kullanıcı Oluştur</h5>
+            <div class="form-row" style="margin-top:8px;">
+              <div class="form-group" style="flex:1;">
+                <label for="new-profile-name">Kullanıcı Adı:</label>
+                <input type="text" id="new-profile-name" class="form-control" placeholder="Örn: Mehmet veya Zeynep">
+              </div>
+              <div class="form-group" style="flex:1;">
+                <label>Cinsiyet:</label>
+                <select id="new-profile-gender" class="form-select">
+                  <option value="female">👩 Kadın</option>
+                  <option value="male">👨 Erkek</option>
+                </select>
+              </div>
+            </div>
+            <div style="display:flex; gap:8px; margin-top:8px;">
+              <button type="button" id="btn-create-profile-submit" class="btn btn-primary btn-sm">Oluştur ve Geçiş Yap</button>
+              <button type="button" id="btn-cancel-new-profile" class="btn btn-outline btn-sm">İptal</button>
+            </div>
+          </div>
+
+          <!-- Mevcut Profiller Listesi -->
+          <div id="profiles-list-container" class="profiles-list-container" style="margin-top: 14px;">
+            <!-- JS ile dinamik doldurulacak -->
+          </div>
+        </div>
+
+        <!-- Cihazlar Arası Bağımsız Kullanım Notu -->
+        <div class="profile-device-hint" style="margin-top: 20px; background:rgba(59, 130, 246, 0.08); border:1px solid rgba(59, 130, 246, 0.2); padding:12px 16px; border-radius:8px;">
+          <p style="font-size:0.85rem; color:var(--text-main); margin:0;">
+            📱 <strong>Farklı Cihazlar:</strong> Başka bir kişi kendi telefonundan <code>https://syildirimlar.github.io/saglik-takvimi/</code> adresine girdiğinde tamamen kendine ait, bağımsız ve gizli bir takvim kullanır. Sizin verilerinizle asla karışmaz.
+          </p>
+        </div>
+
+      </div>
+    </div>
+  </dialog>
+
   <!-- Bildirim Toast Alanı -->
   <div id="toast-container" class="toast-container"></div>
 
-  <!-- JavaScript Dosyaları (Önbellek Kilidini Kırıcı ?v=9.0 Parametreleri ile) -->
-  <script src="js/storage.js?v=9.0"></script>
-  <script src="js/categories.js?v=9.0"></script>
-  <script src="js/calendar.js?v=9.0"></script>
-  <script src="js/reports.js?v=9.0"></script>
-  <script src="js/sync.js?v=9.0"></script>
-  <script src="js/app.js?v=9.0"></script>
+  <!-- JavaScript Dosyaları (Önbellek Kilidini Kırıcı ?v=10.0 Parametreleri ile) -->
+  <script src="js/storage.js?v=10.0"></script>
+  <script src="js/categories.js?v=10.0"></script>
+  <script src="js/calendar.js?v=10.0"></script>
+  <script src="js/reports.js?v=10.0"></script>
+  <script src="js/sync.js?v=10.0"></script>
+  <script src="js/app.js?v=10.0"></script>
 </body>
 </html>

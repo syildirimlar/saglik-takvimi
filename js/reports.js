@@ -304,6 +304,18 @@ const Reports = {
       });
     }
 
+    // Adet / Döngü Analizi (Kadınlar için)
+    const periodEvents = events.filter(e => e.categoryId === 'period');
+    if (periodEvents.length > 0) {
+      const sumCramps = periodEvents.reduce((acc, cur) => acc + (Number(cur.details?.cramps) || Number(cur.details?.intensity) || 3), 0);
+      const avgCramps = (sumCramps / periodEvents.length).toFixed(1);
+      insights.push({
+        icon: '🩸',
+        title: 'Adet / Regl Döngüsü Takibi',
+        text: `Bu dönemde <strong>${periodEvents.length}</strong> gün döngü kaydı yapıldı. Ortalama kramp/sancı şiddeti <strong>${avgCramps} / 10</strong> olarak izlendi.`
+      });
+    }
+
     // Zaman Dilimi İçgörüsü
     const afternoonEvents = events.filter(e => {
       const h = parseInt((e.time || '00:00').split(':')[0], 10);
@@ -742,6 +754,11 @@ const Reports = {
         intensity = e.details?.reliefScore || e.details?.intensity || '';
         quantity = `${e.details?.duration || e.details?.quantity || ''} dk`;
         triggerOrLoc = e.details?.provider ? `Uygulayan: ${e.details.provider}` : '';
+      } else if (e.categoryId === 'period') {
+        subType = `${e.details?.flow || 'Orta'} (${e.details?.phase || 'Döngü'})`;
+        intensity = e.details?.cramps || e.details?.intensity || '';
+        triggerOrLoc = e.details?.symptoms ? e.details.symptoms.join(', ') : '';
+        med = e.details?.medTaken ? `Evet (${e.details?.medName || ''})` : 'Hayır';
       } else {
         if (e.details?.intensity) intensity = e.details.intensity;
         if (e.details?.quantity !== undefined && e.details?.quantity !== null) {

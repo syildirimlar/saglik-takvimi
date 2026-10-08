@@ -7,7 +7,10 @@ const STORAGE_KEYS = {
   EVENTS: 'saglik_takvim_events_v1',
   PREV_EVENTS: 'saglik_takvim_prev_events_backup',
   CATEGORIES: 'saglik_takvim_categories_v1',
-  THEME: 'saglik_takvim_theme_v1'
+  THEME: 'saglik_takvim_theme_v1',
+  PROFILE: 'saglik_takvim_profile_v2',
+  PROFILES_LIST: 'saglik_takvim_profiles_list_v2',
+  ACTIVE_PROFILE_ID: 'saglik_takvim_active_profile_id_v2'
 };
 
 // Varsayılan Temel Kategoriler
@@ -53,6 +56,17 @@ const DEFAULT_CATEGORIES = [
     hasQuantity: true,
     unit: 'dk',
     description: 'Boyun, sırt, baş veya tüm vücut masaj seansları'
+  },
+  {
+    id: 'period',
+    name: 'Adet / Döngü',
+    icon: '🩸',
+    color: '#e11d48',
+    isSystem: true,
+    genderSpecific: 'female',
+    hasIntensity: true,
+    hasQuantity: false,
+    description: 'Adet döngüsü, kanama yoğunluğu, kramp ve semptom takibi'
   },
   {
     id: 'water',
@@ -123,18 +137,151 @@ const Storage = {
         this.saveCategories(DEFAULT_CATEGORIES);
         return DEFAULT_CATEGORIES;
       }
-      // Otomatik senkronizasyon: Eksik varsayılan kategorileri ekle
-      const existingIds = new Set(parsed.map(c => c.id));
-      let updated = false;
-      DEFAULT_CATEGORIES.forEach(dc => {
-        if (!existingIds.has(dc.id)) {
-          parsed.push(dc);
-          updated = true;
-        }
-      });
-      if (updated) {
-        this.saveCategories(parsed);
+  // ================= KULLANICI & PROFİL YÖNETİMİ =================
+  getActiveProfileId() {
+    return localStorage.getItem(STORAGE_KEYS.ACTIVE_PROFILE_ID) || 'default';
+  },
+
+  setActiveProfileId(id) {
+    localStorage.setItem(STORAGE_KEYS.ACTIVE_PROFILE_ID, id);
+  },
+
+  getUserProfile() {
+    try {
+      const activeId = this.getActiveProfileId();
+      const profiles = this.getAllProfiles();
+      const current = profiles.find(p => p.id === activeId);
+      if (current) return current;
+      // Profil listesi boşsa ama eski profil anahtarı varsa
+      const oldProf = localStorage.getItem(STORAGE_KEYS.PROFILE);
+      if (oldProf) return JSON.parse(oldProf);
+    } catch (e) {
+      console.error('Profil okunamadı:', e);
+    }
+    return null;
+  },
+
+  getAllProfiles() {
+    try {
+      const data = localStorage.getItem(STORAGE_KEYS.PROFILES_LIST);
+      if (data) {
+        const list = JSON.parse(data);
+        if (Array.isArray(list) && list.length > 0) return list;
       }
+    } catch (e) {}
+    return [];
+  },
+
+  saveUserProfile(profileData) {
+    const profiles = this.getAllProfiles();
+    const activeId = profileData.id || this.getActiveProfileId();
+    const index = profiles.findIndex(p => p.id === activeId);
+
+    const updatedProfile = {
+      id: activeId,
+      name: profileData.name || 'Kullanıcı',
+      gender: profileData.gender || 'unspecified', // 'female' | 'male' | 'unspecified'
+      avatar: profileData.avatar || (profileData.gender === 'female' ? '👩' : (profileData.gender === 'male' ? '👨' : '👤')),
+      updatedAt: new Date().toISOString()
+    };
+
+    if (index !== -1) {
+      profiles[index] = { ...profiles[index], ...updatedProfile };
+    } else {
+      profiles.push(updatedProfile);
+    }
+
+    localStorage.setItem(STORAGE_KEYS.PROFILES_LIST, JSON.stringify(profiles));
+    localStorage.setItem(STORAGE_KEYS.PROFILE, JSON.stringify(updatedProfile));
+    this.setActiveProfileId(activeId);
+
+    if (window.CloudSync && typeof window.CloudSync.triggerPush === 'function') {
+      window.CloudSync.triggerPush();
+    }
+    return updatedProfile;
+  },
+
+  createProfile(name, gender) {
+    const newId = 'prof_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 4);
+    const newProfile = {
+      id: newId,
+      name: name || 'Yeni Kullanıcı',
+      gender: gender || 'unspecified',
+      avatar: gender === 'female' ? '👩' : (gender === 'male' ? '👨' : '👤'),
+      createdAt: new Date().toISOString()
+    };
+    const profiles = this.getAllProfiles();
+    profiles.push(newProfile);
+    localStorage.setItem(STORAGE_KEYS.PROFILES_LIST, JSON.stringify(profiles));
+    return this.switchProfile(newId);
+  },
+
+  switchProfile(profileId) {
+    this.setActiveProfileId(profileId);
+    const profile = this.getUserProfile();
+    if (profile) {
+      localStorage.setItem(STORAGE_KEYS.PROFILE, JSON.stringify(profile));
+    }
+    return profile;
+  },
+
+  deleteProfile(profileId) {
+    if (profileId === 'default') return false;
+    let profiles = this.getAllProfiles();
+    profiles = profiles.filter(p => p.id !== profileId);
+    localStorage.setItem(STORAGE_KEYS.PROFILES_LIST, JSON.stringify(profiles));
+    localStorage.removeItem(`${STORAGE_KEYS.EVENTS}_${profileId}`);
+    this.setActiveProfileId('default');
+    return true;
+  },
+
+  getUserGender() {
+    const profile = this.getUserProfile();
+    return profile ? (profile.gender || 'unspecified') : 'unspecified';
+  },
+
+  getEventsStorageKey() {
+    const activeId = this.getActiveProfileId();
+    return activeId === 'default' ? STORAGE_KEYS.EVENTS : `${STORAGE_KEYS.EVENTS}_${activeId}`;
+  },
+
+  // Kategorileri getir
+  getCategories(filterByGender = true) {
+    try {
+      const data = localStorage.getItem(STORAGE_KEYS.CATEGORIES);
+      let parsed;
+      if (!data) {
+        this.saveCategories(DEFAULT_CATEGORIES);
+        parsed = [...DEFAULT_CATEGORIES];
+      } else {
+        parsed = JSON.parse(data);
+        if (!Array.isArray(parsed) || parsed.length === 0) {
+          this.saveCategories(DEFAULT_CATEGORIES);
+          parsed = [...DEFAULT_CATEGORIES];
+        } else {
+          // Otomatik senkronizasyon: Eksik varsayılan kategorileri ekle
+          const existingIds = new Set(parsed.map(c => c.id));
+          let updated = false;
+          DEFAULT_CATEGORIES.forEach(dc => {
+            if (!existingIds.has(dc.id)) {
+              parsed.push(dc);
+              updated = true;
+            }
+          });
+          if (updated) {
+            this.saveCategories(parsed);
+          }
+        }
+      }
+
+      // Cinsiyete göre filtrele (Erkek seçildiyse 'female' kategorileri gizle)
+      if (filterByGender) {
+        const gender = this.getUserGender();
+        if (gender === 'male') {
+          return parsed.filter(c => c.genderSpecific !== 'female');
+        }
+      }
+
       return parsed;
     } catch (e) {
       console.error('Kategoriler okunamadı:', e);
@@ -152,7 +299,7 @@ const Storage = {
 
   // Tek kategori ekle
   addCategory(category) {
-    const list = this.getCategories();
+    const list = this.getCategories(false);
     // Benzersiz ID
     if (!category.id) {
       category.id = 'cat_' + Date.now();
@@ -164,14 +311,14 @@ const Storage = {
 
   // Kategori sil (Sistem kategorileri hariç)
   deleteCategory(catId) {
-    let list = this.getCategories();
+    let list = this.getCategories(false);
     list = list.filter(c => c.id !== catId || c.isSystem);
     this.saveCategories(list);
   },
 
-  // ID'ye göre kategori bul
+  // ID'ye göre kategori bul (Cinsiyet filtresi olmaksızın arar)
   getCategoryById(id) {
-    const list = this.getCategories();
+    const list = this.getCategories(false);
     return list.find(c => c.id === id) || {
       id: id,
       name: 'Diğer',
@@ -183,7 +330,8 @@ const Storage = {
   // Tüm olayları getir (tarihe göre sıralı)
   getEvents() {
     try {
-      const data = localStorage.getItem(STORAGE_KEYS.EVENTS);
+      const storageKey = this.getEventsStorageKey();
+      const data = localStorage.getItem(storageKey);
       if (!data) return [];
       const parsed = JSON.parse(data);
       if (!Array.isArray(parsed)) return [];
@@ -202,7 +350,8 @@ const Storage = {
 
   // Olayları kaydet
   saveEvents(events, skipSync = false) {
-    localStorage.setItem(STORAGE_KEYS.EVENTS, JSON.stringify(events));
+    const storageKey = this.getEventsStorageKey();
+    localStorage.setItem(storageKey, JSON.stringify(events));
     if (!skipSync && window.CloudSync && typeof window.CloudSync.triggerPush === 'function') {
       window.CloudSync.triggerPush();
     }

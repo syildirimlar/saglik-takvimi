@@ -31,6 +31,7 @@ const App = {
   activeEditingEventId: null,
 
   init() {
+    try { this.setupProfileSystem(); } catch (e) { console.error('Profile hatası:', e); }
     try { this.setupTheme(); } catch (e) { console.error('Theme hatası:', e); }
     try { this.setupNavigationTabs(); } catch (e) { console.error('Tabs hatası:', e); }
     try { this.setupQuickButtons(); } catch (e) { console.error('QuickButtons hatası:', e); }
@@ -67,6 +68,216 @@ const App = {
     this.renderAllEventsList();
     this.checkScheduledAppointments();
     this.updateDemoButtonState();
+  },
+
+  // ================= KULLANICI PROFİLİ & HESAP YÖNETİMİ =================
+  setupProfileSystem() {
+    const profileBtn = document.getElementById('btn-user-profile');
+    const profileModal = document.getElementById('modal-profile');
+    const closeProfileBtn = document.getElementById('modal-profile-btn-close');
+    const onboardModal = document.getElementById('modal-onboarding');
+    const onboardSaveBtn = document.getElementById('btn-save-onboarding');
+    const saveActiveBtn = document.getElementById('btn-save-profile-active');
+
+    // Onboarding kontrolü: Profil yoksa veya cinsiyet seçilmediyse
+    const currentProfile = Storage.getUserProfile();
+    if (!currentProfile || !currentProfile.gender || currentProfile.gender === 'unspecified') {
+      setTimeout(() => {
+        if (onboardModal && typeof onboardModal.showModal === 'function') {
+          try { onboardModal.showModal(); } catch (err) {}
+        }
+      }, 400);
+    }
+
+    // Onboarding kaydetme butonu
+    if (onboardSaveBtn) {
+      onboardSaveBtn.addEventListener('click', () => {
+        const gender = document.querySelector('input[name="onboard-gender"]:checked')?.value || 'female';
+        const nameInput = document.getElementById('onboard-name');
+        const name = (nameInput?.value || '').trim() || (gender === 'female' ? 'Kadın Kullanıcı' : 'Erkek Kullanıcı');
+
+        Storage.saveUserProfile({ name, gender });
+        if (onboardModal && typeof onboardModal.close === 'function') {
+          try { onboardModal.close(); } catch (err) {}
+        }
+        this.applyProfileGenderUI();
+        this.refreshAllViews();
+        showToast(`Hoş geldiniz ${name}! Profiliniz ve takviminiz hazırlandı.`, 'success');
+      });
+    }
+
+    // Header Profil butonuna tıklanınca profil modalını aç
+    if (profileBtn) {
+      profileBtn.addEventListener('click', () => {
+        this.openProfileModal();
+      });
+    }
+
+    if (closeProfileBtn) {
+      closeProfileBtn.addEventListener('click', () => {
+        if (profileModal && typeof profileModal.close === 'function') {
+          profileModal.close();
+        }
+      });
+    }
+
+    // Aktif profili güncelle butonu
+    if (saveActiveBtn) {
+      saveActiveBtn.addEventListener('click', () => {
+        const nameInput = document.getElementById('profile-name-input');
+        const gender = document.querySelector('input[name="profile-gender"]:checked')?.value || 'female';
+        const name = (nameInput?.value || '').trim() || 'Kullanıcı';
+
+        Storage.saveUserProfile({ name, gender });
+        this.applyProfileGenderUI();
+        this.refreshAllViews();
+        if (profileModal && typeof profileModal.close === 'function') {
+          profileModal.close();
+        }
+        showToast('Profil bilgileriniz güncellendi.', 'success');
+      });
+    }
+
+    // Yeni profil formunu aç/kapa
+    const toggleNewBtn = document.getElementById('btn-toggle-new-profile');
+    const newFormWrap = document.getElementById('new-profile-form-wrap');
+    const cancelNewBtn = document.getElementById('btn-cancel-new-profile');
+    const createNewBtn = document.getElementById('btn-create-profile-submit');
+
+    if (toggleNewBtn && newFormWrap) {
+      toggleNewBtn.addEventListener('click', () => {
+        newFormWrap.style.display = newFormWrap.style.display === 'none' ? 'block' : 'none';
+      });
+    }
+
+    if (cancelNewBtn && newFormWrap) {
+      cancelNewBtn.addEventListener('click', () => {
+        newFormWrap.style.display = 'none';
+      });
+    }
+
+    if (createNewBtn) {
+      createNewBtn.addEventListener('click', () => {
+        const name = (document.getElementById('new-profile-name')?.value || '').trim() || 'Yeni Kullanıcı';
+        const gender = document.getElementById('new-profile-gender')?.value || 'female';
+
+        Storage.createProfile(name, gender);
+        if (newFormWrap) newFormWrap.style.display = 'none';
+        this.applyProfileGenderUI();
+        this.refreshAllViews();
+        if (profileModal && typeof profileModal.close === 'function') {
+          profileModal.close();
+        }
+        showToast(`"${name}" profiline geçildi. Yeni takvim hazır!`, 'success');
+      });
+    }
+
+    // İlk açılışta UI cinsiyet durumunu uygula
+    this.applyProfileGenderUI();
+  },
+
+  openProfileModal() {
+    const profileModal = document.getElementById('modal-profile');
+    if (!profileModal) return;
+
+    const profile = Storage.getUserProfile() || { name: 'Kullanıcı', gender: 'female' };
+    const nameInput = document.getElementById('profile-name-input');
+    if (nameInput) nameInput.value = profile.name || '';
+
+    const genderRadio = document.querySelector(`input[name="profile-gender"][value="${profile.gender || 'female'}"]`);
+    if (genderRadio) genderRadio.checked = true;
+
+    this.renderProfilesList();
+    try { profileModal.showModal(); } catch (err) {}
+  },
+
+  renderProfilesList() {
+    const listContainer = document.getElementById('profiles-list-container');
+    if (!listContainer) return;
+
+    listContainer.innerHTML = '';
+    const profiles = Storage.getAllProfiles();
+    const activeId = Storage.getActiveProfileId();
+
+    if (profiles.length === 0) {
+      listContainer.innerHTML = '<p style="color:var(--text-secondary); font-size:0.85rem;">Kayıtlı ek profil bulunmuyor.</p>';
+      return;
+    }
+
+    profiles.forEach(p => {
+      const isActive = (p.id === activeId);
+      const row = document.createElement('div');
+      row.className = `profile-item-row ${isActive ? 'is-active' : ''}`;
+
+      const avatar = p.avatar || (p.gender === 'female' ? '👩' : (p.gender === 'male' ? '👨' : '👤'));
+      const genderLabel = p.gender === 'female' ? 'Kadın (Döngü Takibi)' : (p.gender === 'male' ? 'Erkek' : 'Genel');
+
+      row.innerHTML = `
+        <div class="profile-item-info">
+          <div class="profile-avatar-bubble">${avatar}</div>
+          <div>
+            <strong>${p.name || 'Kullanıcı'}</strong> ${isActive ? '<span class="profile-badge-active">Aktif</span>' : ''}
+            <div style="font-size:0.75rem; color:var(--text-secondary);">${genderLabel}</div>
+          </div>
+        </div>
+        <div style="display:flex; gap:6px;">
+          ${!isActive ? `<button type="button" class="btn btn-sm btn-outline btn-switch-prof" data-id="${p.id}">Geçiş Yap</button>` : ''}
+          ${!isActive && p.id !== 'default' ? `<button type="button" class="btn btn-sm btn-danger btn-del-prof" data-id="${p.id}" title="Profili Sil">Sil</button>` : ''}
+        </div>
+      `;
+
+      listContainer.appendChild(row);
+    });
+
+    // Profil geçiş ve silme buton dinleyicileri
+    listContainer.querySelectorAll('.btn-switch-prof').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const id = e.currentTarget.dataset.id;
+        Storage.switchProfile(id);
+        this.applyProfileGenderUI();
+        this.refreshAllViews();
+        const profileModal = document.getElementById('modal-profile');
+        if (profileModal) profileModal.close();
+        showToast('Profil başarıyla değiştirildi.', 'success');
+      });
+    });
+
+    listContainer.querySelectorAll('.btn-del-prof').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const id = e.currentTarget.dataset.id;
+        if (confirm('Bu profili ve profilin tüm kayıtlarını silmek istediğinize emin misiniz?')) {
+          Storage.deleteProfile(id);
+          this.applyProfileGenderUI();
+          this.refreshAllViews();
+          this.renderProfilesList();
+          showToast('Profil silindi.', 'info');
+        }
+      });
+    });
+  },
+
+  applyProfileGenderUI() {
+    const profile = Storage.getUserProfile();
+    const gender = Storage.getUserGender();
+
+    const periodQuickBtn = document.getElementById('btn-quick-period');
+    const headerAvatar = document.getElementById('header-profile-avatar');
+    const headerName = document.getElementById('header-profile-name');
+
+    if (gender === 'female') {
+      if (periodQuickBtn) periodQuickBtn.style.display = 'inline-flex';
+      if (headerAvatar) headerAvatar.textContent = profile?.avatar || '👩';
+    } else {
+      if (periodQuickBtn) periodQuickBtn.style.display = 'none';
+      if (headerAvatar) headerAvatar.textContent = profile?.avatar || (gender === 'male' ? '👨' : '👤');
+    }
+
+    if (headerName && profile?.name) {
+      headerName.textContent = profile.name.length > 10 ? profile.name.slice(0, 8) + '...' : profile.name;
+    }
+
+    // Kategorileri cinsiyet filtresine göre yeniden doldur
+    CategoryManager.populateAllCategoryDropdowns();
   },
 
   // ================= 1. TEMA YÖNETİMİ =================
@@ -165,6 +376,14 @@ const App = {
     if (massageBtn) {
       massageBtn.addEventListener('click', () => {
         this.openEventModal(null, null, 'massage');
+      });
+    }
+
+    // Üst Çubuk: Adet / Döngü Butonu (Kadınlar için)
+    const periodBtn = document.getElementById('btn-quick-period');
+    if (periodBtn) {
+      periodBtn.addEventListener('click', () => {
+        this.openEventModal(null, null, 'period');
       });
     }
 
@@ -310,6 +529,44 @@ const App = {
         mBadge.className = `intensity-badge ${cls}`;
       });
     }
+
+    // Adet / Sancı Şiddet Slider'ı
+    const pSlider = document.getElementById('period-cramps');
+    const pBadge = document.getElementById('period-cramps-badge');
+    if (pSlider && pBadge) {
+      pSlider.addEventListener('input', () => {
+        const val = parseInt(pSlider.value, 10);
+        let text = `${val} / 10 - Orta Kramp`;
+        let cls = 'level-5';
+
+        if (val <= 2) { text = `${val} / 10 - Çok Hafif Sızı`; cls = 'level-1'; }
+        else if (val <= 4) { text = `${val} / 10 - Hafif Kramp`; cls = 'level-3'; }
+        else if (val <= 6) { text = `${val} / 10 - Orta Sancı`; cls = 'level-5'; }
+        else if (val <= 8) { text = `${val} / 10 - Şiddetli Ağrı`; cls = 'level-7'; }
+        else { text = `${val} / 10 - Çok Şiddetli / Dinlenme Gerekli`; cls = 'level-10'; }
+
+        pBadge.textContent = text;
+        pBadge.className = `intensity-badge ${cls}`;
+      });
+    }
+
+    // Adet İlaç Checkbox'ı
+    const pMedCheckbox = document.getElementById('period-med-taken');
+    const pMedNameInput = document.getElementById('period-med-name');
+    if (pMedCheckbox && pMedNameInput) {
+      pMedCheckbox.addEventListener('change', () => {
+        pMedNameInput.style.display = pMedCheckbox.checked ? 'block' : 'none';
+        if (pMedCheckbox.checked) pMedNameInput.focus();
+      });
+    }
+
+    // Adet Semptom Etiketleri (Cloud Tag Toggle)
+    const symptomTags = document.querySelectorAll('#period-symptoms-cloud .symptom-tag');
+    symptomTags.forEach(btn => {
+      btn.addEventListener('click', () => {
+        btn.classList.toggle('active');
+      });
+    });
 
     // Etkinlik Durumu (Tamamlandı vs Randevu) Değişimi
     const statusRadios = form.querySelectorAll('input[name="event-status"]');
@@ -463,6 +720,38 @@ const App = {
         }
         const mProv = document.getElementById('massage-provider');
         if (mProv) mProv.value = eventToEdit.details?.provider || 'Kendim';
+      } else if (eventToEdit.categoryId === 'period') {
+        const pFlow = form.querySelector(`input[name="period-flow"][value="${eventToEdit.details?.flow || 'Orta (Medium)'}"]`);
+        if (pFlow) pFlow.checked = true;
+
+        const pCramps = document.getElementById('period-cramps');
+        if (pCramps) {
+          pCramps.value = eventToEdit.details?.cramps || eventToEdit.details?.intensity || 3;
+          pCramps.dispatchEvent(new Event('input'));
+        }
+
+        const pPhase = document.getElementById('period-phase');
+        if (pPhase) pPhase.value = eventToEdit.details?.phase || 'Regl (Adet Günü)';
+
+        const pProtection = document.getElementById('period-protection');
+        if (pProtection) pProtection.value = eventToEdit.details?.protection || 'Hijyenik Ped';
+
+        const savedSymptoms = new Set(eventToEdit.details?.symptoms || []);
+        document.querySelectorAll('#period-symptoms-cloud .symptom-tag').forEach(tag => {
+          if (savedSymptoms.has(tag.dataset.val)) {
+            tag.classList.add('active');
+          } else {
+            tag.classList.remove('active');
+          }
+        });
+
+        const pMedTaken = document.getElementById('period-med-taken');
+        if (pMedTaken) {
+          pMedTaken.checked = !!eventToEdit.details?.medTaken;
+          pMedTaken.dispatchEvent(new Event('change'));
+        }
+        const pMedName = document.getElementById('period-med-name');
+        if (pMedName) pMedName.value = eventToEdit.details?.medName || '';
       } else {
         if (eventToEdit.details?.intensity) {
           const gSlider = document.getElementById('generic-intensity');
@@ -510,6 +799,22 @@ const App = {
         mSlider.value = 8;
         mSlider.dispatchEvent(new Event('input'));
       }
+      // Adet döngüsü varsayılanları sıfırla
+      const defFlow = form.querySelector('input[name="period-flow"][value="Orta (Medium)"]');
+      if (defFlow) defFlow.checked = true;
+      const pCramps = document.getElementById('period-cramps');
+      if (pCramps) {
+        pCramps.value = 3;
+        pCramps.dispatchEvent(new Event('input'));
+      }
+      document.querySelectorAll('#period-symptoms-cloud .symptom-tag').forEach(tag => tag.classList.remove('active'));
+      const pMedTaken = document.getElementById('period-med-taken');
+      if (pMedTaken) {
+        pMedTaken.checked = false;
+        pMedTaken.dispatchEvent(new Event('change'));
+      }
+      const pMedName = document.getElementById('period-med-name');
+      if (pMedName) pMedName.value = '';
 
       // Başlangıç durumunu ayarla (Gelecek gün seçildiyse varsayılan Randevu)
       const isFutureDate = (dateInput.value > todayStr) || (dateInput.value === todayStr && timeInput.value > currentTimeStr);
@@ -580,6 +885,23 @@ const App = {
       details.intensity = mRelief;
       details.quantity = mDur;
       details.unit = 'dk';
+    } else if (catId === 'period') {
+      const flow = document.querySelector('input[name="period-flow"]:checked')?.value || 'Orta (Medium)';
+      const cramps = parseInt(document.getElementById('period-cramps')?.value, 10) || 3;
+      const phase = document.getElementById('period-phase')?.value || 'Regl (Adet Günü)';
+      const protection = document.getElementById('period-protection')?.value || 'Hijyenik Ped';
+      const symptoms = Array.from(document.querySelectorAll('#period-symptoms-cloud .symptom-tag.active')).map(b => b.dataset.val);
+      const medTaken = document.getElementById('period-med-taken')?.checked || false;
+      const medName = document.getElementById('period-med-name')?.value.trim() || '';
+
+      details.flow = flow;
+      details.cramps = cramps;
+      details.intensity = cramps;
+      details.phase = phase;
+      details.protection = protection;
+      details.symptoms = symptoms;
+      details.medTaken = medTaken;
+      if (medTaken) details.medName = medName;
     } else {
       const cat = Storage.getCategoryById(catId);
       if (cat?.hasIntensity) {
@@ -720,6 +1042,17 @@ const App = {
         valueStr = `<span class="intensity-badge level-7">Rahatlama: ${rScore}/10</span>`;
         if (e.details?.provider) {
           noteAndTrigger = `<strong>Uygulayan:</strong> ${e.details.provider} ${e.notes ? ` &bull; ${e.notes}` : ''}`;
+        }
+      } else if (e.categoryId === 'period') {
+        subDetail = `${e.details?.flow || 'Orta'} (${e.details?.phase || 'Döngü'})`;
+        const cScore = e.details?.cramps || e.details?.intensity || 3;
+        let bClass = cScore >= 7 ? 'level-10' : (cScore >= 4 ? 'level-5' : 'level-1');
+        valueStr = `<span class="intensity-badge ${bClass}">Sancı: ${cScore}/10</span>`;
+        if (e.details?.symptoms && e.details.symptoms.length > 0) {
+          noteAndTrigger = `<strong>Semptomlar:</strong> ${e.details.symptoms.join(', ')} ${e.notes ? ` &bull; ${e.notes}` : ''}`;
+        }
+        if (e.details?.medTaken) {
+          valueStr += `<br><small style="color:var(--success);">İlaç: ${e.details?.medName || 'Alındı'}</small>`;
         }
       } else {
         if (e.details?.intensity) {
