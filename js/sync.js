@@ -100,7 +100,8 @@ const CloudSync = {
       try {
         const events = Storage.getEvents();
         const categories = Storage.getCategories();
-        const payload = this.encodePayload({ events, categories });
+        const users = Storage.getUsers();
+        const payload = this.encodePayload({ events, categories, users });
         if (payload) {
           url += `&d=${payload}`;
         }
@@ -110,6 +111,15 @@ const CloudSync = {
     }
 
     return url;
+  },
+
+  // Telefon eşleştirme için özel Master Link (Hem Kullanıcı Girişini Hem Bulut Odasını tek tıkla bağlar)
+  getDevicePairingUrl(currentUser = null) {
+    const user = currentUser || Storage.getCurrentUser();
+    if (user) {
+      return Storage.generateInviteUrl(user, this.syncId);
+    }
+    return this.getShareUrl(true);
   },
 
   // =================== UTF-8 / TÜRKÇE & EMOJİ UYUMLU BASE64 ===================
@@ -160,6 +170,17 @@ const CloudSync = {
         })),
         c: (data.categories || []).filter(cat => !cat.isSystem)
       };
+      if (Array.isArray(data.users) && data.users.length > 0) {
+        minified.u = data.users.map(u => ({
+          i: u.id,
+          u: u.username,
+          p: u.password,
+          n: u.name,
+          g: u.gender,
+          r: u.role,
+          ua: u.updatedAt
+        }));
+      }
       const json = JSON.stringify(minified);
       return this.utf8ToBase64(json);
     } catch (err) {
@@ -185,7 +206,16 @@ const CloudSync = {
         checkinPrompted: false
       }));
       const categories = parsed.c || [];
-      return { events, categories };
+      const users = (parsed.u || []).map(u => ({
+        id: u.i,
+        username: u.u,
+        password: u.p,
+        name: u.n,
+        gender: u.g,
+        role: u.r || 'user',
+        updatedAt: u.ua || new Date().toISOString()
+      }));
+      return { events, categories, users };
     } catch (err) {
       console.error('decodePayload hatası:', err);
       return null;
@@ -200,19 +230,24 @@ const CloudSync = {
     if (dataParam) {
       try {
         const decoded = this.decodePayload(dataParam);
-        if (decoded && Array.isArray(decoded.events) && decoded.events.length > 0) {
-          const localEvents = Storage.getEvents();
-          const localCats = Storage.getCategories();
+        if (decoded) {
+          if (Array.isArray(decoded.users) && decoded.users.length > 0) {
+            Storage.mergeUsers(decoded.users);
+          }
+          if (Array.isArray(decoded.events) && decoded.events.length > 0) {
+            const localEvents = Storage.getEvents();
+            const localCats = Storage.getCategories();
 
-          const mergedEvents = this.mergeEvents(localEvents, decoded.events);
-          const mergedCats = this.mergeCategories(localCats, decoded.categories || []);
+            const mergedEvents = this.mergeEvents(localEvents, decoded.events);
+            const mergedCats = this.mergeCategories(localCats, decoded.categories || []);
 
-          Storage.saveEvents(mergedEvents, true);
-          Storage.saveCategories(mergedCats, true);
-          importedCount = mergedEvents.length;
+            Storage.saveEvents(mergedEvents, true);
+            Storage.saveCategories(mergedCats, true);
+            importedCount = mergedEvents.length;
 
-          if (window.App && typeof window.App.refreshAllViews === 'function') {
-            window.App.refreshAllViews();
+            if (window.App && typeof window.App.refreshAllViews === 'function') {
+              window.App.refreshAllViews();
+            }
           }
         }
       } catch (err) {
@@ -256,7 +291,8 @@ const CloudSync = {
       version: '1.0',
       lastUpdated: Date.now(),
       events: Storage.getEvents(),
-      categories: Storage.getCategories()
+      categories: Storage.getCategories(),
+      users: Storage.getUsers()
     };
 
     let realId = null;
@@ -343,6 +379,12 @@ const CloudSync = {
         const urlObj = new URL(cleanCode.startsWith('http') ? cleanCode : 'https://dummy.com/' + cleanCode);
         const sParam = urlObj.searchParams.get('sync');
         const dParam = urlObj.searchParams.get('d');
+        const inviteParam = urlObj.searchParams.get('invite');
+
+        if (inviteParam) {
+          Storage.importInvitePayload(inviteParam);
+        }
+
         if (sParam || dParam) {
           await this.handleIncomingUrlParams(sParam, dParam);
           return true;
@@ -356,12 +398,18 @@ const CloudSync = {
 
       // Buluttan veriyi çekmeyi dene
       const remoteData = await this.fetchRemoteData(cleanCode);
-      if (remoteData && Array.isArray(remoteData.events)) {
+      if (remoteData && (Array.isArray(remoteData.events) || Array.isArray(remoteData.users))) {
+        if (Array.isArray(remoteData.users) && remoteData.users.length > 0) {
+          Storage.mergeUsers(remoteData.users);
+        }
+
         const localEvents = Storage.getEvents();
         const localCats = Storage.getCategories();
+        const remoteEvents = remoteData.events || [];
+        const remoteCats = remoteData.categories || [];
 
-        const mergedEvents = this.mergeEvents(localEvents, remoteData.events);
-        const mergedCats = this.mergeCategories(localCats, remoteData.categories || []);
+        const mergedEvents = this.mergeEvents(localEvents, remoteEvents);
+        const mergedCats = this.mergeCategories(localCats, remoteCats);
 
         Storage.saveEvents(mergedEvents, true);
         Storage.saveCategories(mergedCats, true);
@@ -371,7 +419,7 @@ const CloudSync = {
         localStorage.setItem(this.STORAGE_KEY_LAST_SYNC, new Date().toISOString());
 
         // Buluta da güncel halini yaz
-        await this.pushDirect(mergedEvents, mergedCats);
+        await this.pushDirect(mergedEvents, mergedCats, Storage.getUsers());
 
         if (window.App && typeof window.App.refreshAllViews === 'function') {
           window.App.refreshAllViews();
@@ -379,7 +427,7 @@ const CloudSync = {
 
         this.updateUI();
         if (typeof showToast === 'function') {
-          showToast(`☁️ Başarıyla bağlandı! Toplam ${mergedEvents.length} kayıt eşitlendi.`, 'success');
+          showToast(`☁️ Başarıyla bağlandı! Toplam ${mergedEvents.length} kayıt ve hesap bilgileri eşitlendi.`, 'success');
         }
         return true;
       } else {
@@ -412,6 +460,10 @@ const CloudSync = {
     try {
       // 1. Buluttan en son veriyi çek
       const remoteData = await this.fetchRemoteData(this.syncId);
+      if (remoteData && Array.isArray(remoteData.users) && remoteData.users.length > 0) {
+        Storage.mergeUsers(remoteData.users);
+      }
+
       const localEvents = Storage.getEvents();
       const localCats = Storage.getCategories();
 
@@ -426,7 +478,7 @@ const CloudSync = {
       }
 
       // 2. Birleştirilmiş güncel verileri buluta yükle
-      await this.pushDirect(mergedEvents, mergedCats);
+      await this.pushDirect(mergedEvents, mergedCats, Storage.getUsers());
 
       // 3. Ekrandaki takvim ve rapor görünümlerini yenile
       if (window.App && typeof window.App.refreshAllViews === 'function') {
@@ -439,7 +491,7 @@ const CloudSync = {
       this.updateUI();
 
       if (isManual && typeof showToast === 'function') {
-        showToast(`☁️ Eşitleme tamamlandı! Toplam ${mergedEvents.length} kayıt senkronize edildi.`, 'success');
+        showToast(`☁️ Eşitleme tamamlandı! Toplam ${mergedEvents.length} kayıt ve hesaplar senkronize edildi.`, 'success');
       }
       return true;
     } catch (err) {
@@ -463,10 +515,27 @@ const CloudSync = {
 
     try {
       const remoteData = await this.fetchRemoteData(this.syncId);
-      if (!remoteData || !Array.isArray(remoteData.events)) {
+      if (!remoteData) {
         this.setSyncStatusBadge('connected', 'Eşitle');
         if (isManual && typeof showToast === 'function') {
           showToast('Bulut kontrol edildi, mevcut kayıtlarınız korundu.', 'info');
+        }
+        return;
+      }
+
+      let usersChanged = false;
+      if (Array.isArray(remoteData.users) && remoteData.users.length > 0) {
+        const prevUsers = JSON.stringify(Storage.getUsers());
+        const mergedUsers = Storage.mergeUsers(remoteData.users);
+        if (JSON.stringify(mergedUsers) !== prevUsers) {
+          usersChanged = true;
+        }
+      }
+
+      if (!Array.isArray(remoteData.events)) {
+        this.setSyncStatusBadge('connected', 'Eşitle');
+        if (isManual && typeof showToast === 'function') {
+          showToast('Bulut kontrol edildi, hesaplar güncellendi.', 'info');
         }
         return;
       }
@@ -480,7 +549,7 @@ const CloudSync = {
       const eventsChanged = JSON.stringify(localEvents) !== JSON.stringify(mergedEvents);
       const catsChanged = JSON.stringify(localCats) !== JSON.stringify(mergedCats);
 
-      if (eventsChanged || catsChanged) {
+      if (eventsChanged || catsChanged || usersChanged) {
         Storage.saveEvents(mergedEvents, true);
         Storage.saveCategories(mergedCats, true);
 
@@ -492,7 +561,7 @@ const CloudSync = {
           showToast(`☁️ Veriler buluttan güncellendi! Toplam ${mergedEvents.length} kayıt.`, 'success');
         }
       } else if (isManual && typeof showToast === 'function') {
-        showToast('☁️ Tüm kayıtlarınız zaten güncel.', 'info');
+        showToast('☁️ Tüm kayıtlarınız ve hesaplarınız zaten güncel.', 'info');
       }
 
       localStorage.setItem(this.STORAGE_KEY_LAST_SYNC, new Date().toISOString());
@@ -526,12 +595,13 @@ const CloudSync = {
     try {
       const events = Storage.getEvents();
       const categories = Storage.getCategories();
-      await this.pushDirect(events, categories);
+      const users = Storage.getUsers();
+      await this.pushDirect(events, categories, users);
       localStorage.setItem(this.STORAGE_KEY_LAST_SYNC, new Date().toISOString());
       this.setSyncStatusBadge('connected', 'Bulut Aktif');
       this.updateLastSyncText();
       if (isManual && typeof showToast === 'function') {
-        showToast(`☁️ Cihazınızdaki ${events.length} kayıt buluta yüklendi!`, 'success');
+        showToast(`☁️ Cihazınızdaki ${events.length} kayıt ve hesaplar buluta yüklendi!`, 'success');
       }
     } catch (err) {
       console.warn('Cloud push hatası:', err);
@@ -541,12 +611,13 @@ const CloudSync = {
     }
   },
 
-  async pushDirect(events, categories) {
+  async pushDirect(events, categories, users = null) {
     const payload = {
       version: '1.0',
       lastUpdated: Date.now(),
       events,
-      categories
+      categories,
+      users: users || Storage.getUsers()
     };
 
     // 1. npoint ile dene

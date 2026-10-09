@@ -34,6 +34,7 @@ const App = {
     try { this.setupAuthSystem(); } catch (e) { console.error('Auth hatası:', e); }
     try { this.setupAdminDashboard(); } catch (e) { console.error('AdminDashboard hatası:', e); }
     try { this.setupUserProfileModal(); } catch (e) { console.error('ProfileModal hatası:', e); }
+    try { this.setupLinkPhoneModal(); } catch (e) { console.error('LinkPhoneModal hatası:', e); }
     try { this.setupTheme(); } catch (e) { console.error('Theme hatası:', e); }
     try { this.setupNavigationTabs(); } catch (e) { console.error('Tabs hatası:', e); }
     try { this.setupQuickButtons(); } catch (e) { console.error('QuickButtons hatası:', e); }
@@ -84,17 +85,29 @@ const App = {
     try {
       const urlParams = new URLSearchParams(window.location.search);
       const invitePayload = urlParams.get('invite');
+      const syncParam = urlParams.get('sync');
+      const dataParam = urlParams.get('d');
+
       if (invitePayload) {
         const importedUser = Storage.importInvitePayload(invitePayload);
         if (importedUser) {
-          try {
-            window.history.replaceState(null, '', window.location.pathname);
-          } catch (e) {}
           showToast(`Hoş geldiniz ${importedUser.name}! Hesabınız tanımlandı ve oturumunuz açıldı.`, 'success');
         }
       }
+
+      // Eğer URL'de sync veya d parametresi de varsa CloudSync'i hemen bağla
+      if ((syncParam || dataParam) && window.CloudSync) {
+        CloudSync.handleIncomingUrlParams(syncParam, dataParam);
+      }
+
+      // İşlem bitince URL'yi temizle
+      if (invitePayload || syncParam || dataParam) {
+        try {
+          window.history.replaceState(null, '', window.location.pathname);
+        } catch (e) {}
+      }
     } catch (e) {
-      console.error('Invite kontrol hatası:', e);
+      console.error('Invite ve sync kontrol hatası:', e);
     }
 
     const loginModal = document.getElementById('modal-login');
@@ -126,12 +139,25 @@ const App = {
 
     // Giriş formu gönderimi
     if (loginForm) {
-      loginForm.addEventListener('submit', (e) => {
+      loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const u = loginUserInput ? loginUserInput.value.trim() : '';
         const p = loginPassInput ? loginPassInput.value : '';
 
-        const user = Storage.authenticate(u, p);
+        let user = Storage.authenticate(u, p);
+
+        // Eğer yerel şifre tutmadıysa ve bir bulut odasına bağlıysak, bilgisayarda şifre değişmiş olabilir!
+        if (!user && window.CloudSync && CloudSync.hasActiveSync()) {
+          try {
+            if (loginErrText) loginErrText.textContent = 'Buluttaki güncel hesap bilgileri kontrol ediliyor...';
+            if (loginErrBox) loginErrBox.style.display = 'flex';
+            await CloudSync.pull(false);
+            user = Storage.authenticate(u, p);
+          } catch (syncErr) {
+            console.warn('Giriş anında bulut kontrolü uyarısı:', syncErr);
+          }
+        }
+
         if (!user) {
           if (loginErrBox && loginErrText) {
             loginErrText.textContent = 'Kullanıcı adı veya şifre hatalı! Lütfen kontrol edin.';
@@ -148,6 +174,83 @@ const App = {
         this.applyProfileGenderUI();
         this.refreshAllViews();
         showToast(`Hoş geldiniz, ${user.name}! Oturumunuz açıldı.`, 'success');
+      });
+    }
+
+    // Giriş ekranından doğrudan eşitleme koduna bağlanma
+    const toggleConnectBtn = document.getElementById('btn-login-toggle-connect');
+    const connectFields = document.getElementById('login-connect-fields');
+    const connectInput = document.getElementById('login-sync-code-input');
+    const connectSubmitBtn = document.getElementById('btn-login-submit-connect');
+
+    if (toggleConnectBtn && connectFields) {
+      toggleConnectBtn.addEventListener('click', () => {
+        const isShown = connectFields.style.display !== 'none';
+        connectFields.style.display = isShown ? 'none' : 'block';
+        if (!isShown && connectInput) {
+          connectInput.focus();
+        }
+      });
+    }
+
+    if (connectSubmitBtn && connectInput) {
+      connectSubmitBtn.addEventListener('click', async () => {
+        const val = connectInput.value.trim();
+        if (!val) {
+          alert('Lütfen bilgisayardaki eşitleme kodunu veya bağlantısını girin.');
+          return;
+        }
+
+        connectSubmitBtn.disabled = true;
+        const originalText = connectSubmitBtn.textContent;
+        connectSubmitBtn.textContent = '⏳ Bağlanıyor...';
+
+        try {
+          // 1. Eğer doğrudan davet / eşitleme linki yapıştırılmışsa
+          if (val.includes('invite=')) {
+            const urlObj = new URL(val.startsWith('http') ? val : 'https://dummy.com/' + val);
+            const inv = urlObj.searchParams.get('invite');
+            const syn = urlObj.searchParams.get('sync');
+            if (inv) {
+              const imported = Storage.importInvitePayload(inv);
+              if (syn && window.CloudSync) {
+                await CloudSync.connectWithCode(syn);
+              }
+              if (imported) {
+                this.closeLoginModal();
+                this.applyProfileGenderUI();
+                this.refreshAllViews();
+                showToast(`🎉 Hoş geldiniz ${imported.name}! Bilgisayarınızdaki hesap bağlandı.`, 'success');
+                return;
+              }
+            }
+          }
+
+          // 2. Normal kod veya sync URL
+          if (window.CloudSync) {
+            const ok = await CloudSync.connectWithCode(val);
+            if (ok) {
+              const users = Storage.getUsers();
+              const curUser = Storage.getCurrentUser() || (users.length > 0 ? users[0] : null);
+              if (curUser) {
+                Storage.setCurrentUser(curUser);
+                this.closeLoginModal();
+                this.applyProfileGenderUI();
+                this.refreshAllViews();
+                showToast(`🎉 Başarıyla bağlandı! ${curUser.name} hesabıyla oturum açıldı.`, 'success');
+              } else {
+                showToast('🎉 Eşitleme bağlandı! Şimdi güncel şifrenizle giriş yapabilirsiniz.', 'success');
+              }
+              return;
+            }
+          }
+        } catch (err) {
+          console.error('Giriş ekranı eşitleme hatası:', err);
+          alert('Eşitleme bağlantısı kurulamadı: ' + err.message);
+        } finally {
+          connectSubmitBtn.disabled = false;
+          connectSubmitBtn.textContent = originalText;
+        }
       });
     }
 
@@ -278,6 +381,9 @@ const App = {
           if (passEl) passEl.value = '123456';
 
           this.renderAdminUsersList();
+          if (window.CloudSync && CloudSync.hasActiveSync()) {
+            CloudSync.push(false);
+          }
           showToast(`"${newUser.name}" hesabı oluşturuldu! Bilgileri kopyalayabilirsiniz.`, 'success');
         } catch (err) {
           alert(err.message);
@@ -419,6 +525,9 @@ const App = {
         const newPass = prompt(`"${u.name}" (@${u.username}) için yeni şifre belirleyin:`, u.password || '123456');
         if (newPass && newPass.trim().length >= 3) {
           Storage.updateUser(u.id, { password: newPass.trim() });
+          if (window.CloudSync && CloudSync.hasActiveSync()) {
+            CloudSync.push(false);
+          }
           showToast(`"${u.name}" kullanıcısının şifresi güncellendi.`, 'success');
         } else if (newPass !== null) {
           alert('Şifre en az 3 karakter olmalıdır.');
@@ -516,8 +625,11 @@ const App = {
         }
 
         Storage.updateUser(cur.id, { password: newPass.trim() });
+        if (window.CloudSync && CloudSync.hasActiveSync()) {
+          CloudSync.push(false);
+        }
         passForm.reset();
-        showToast('Şifreniz başarıyla değiştirildi!', 'success');
+        showToast('Şifreniz başarıyla değiştirildi! Yeni şifreniz buluta da aktarıldı.', 'success');
       });
     }
   },
@@ -557,6 +669,116 @@ const App = {
     try { if (profileModal.open) profileModal.close(); } catch (err) {}
     profileModal.removeAttribute('open');
     profileModal.style.display = 'none';
+  },
+
+  // ================= 4. TELEFON BAĞLAMA & KAREKOD SİSTEMİ =================
+  setupLinkPhoneModal() {
+    const modal = document.getElementById('modal-link-phone');
+    const closeBtn = document.getElementById('modal-link-phone-btn-close');
+    const headerBtn = document.getElementById('btn-header-link-phone');
+    const profileBtn = document.getElementById('btn-profile-open-link-phone');
+    const adminBtn = document.getElementById('admin-btn-open-link-phone');
+    const copyUrlBtn = document.getElementById('btn-link-phone-copy-url');
+
+    if (closeBtn) {
+      closeBtn.addEventListener('click', () => this.closeLinkPhoneModal());
+    }
+
+    if (headerBtn) {
+      headerBtn.addEventListener('click', () => this.openLinkPhoneModal());
+    }
+
+    if (profileBtn) {
+      profileBtn.addEventListener('click', () => {
+        this.closeProfileModal();
+        this.openLinkPhoneModal();
+      });
+    }
+
+    if (adminBtn) {
+      adminBtn.addEventListener('click', () => {
+        this.closeAdminModal();
+        this.openLinkPhoneModal();
+      });
+    }
+
+    if (modal) {
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) this.closeLinkPhoneModal();
+      });
+    }
+
+    if (copyUrlBtn) {
+      copyUrlBtn.addEventListener('click', () => {
+        const urlInput = document.getElementById('link-phone-url-input');
+        if (!urlInput || !urlInput.value) return;
+        const val = urlInput.value;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(val).then(() => {
+            showToast('📋 Bağlantı kopyalandı! WhatsApp veya tarayıcınızda açabilirsiniz.', 'success');
+          }).catch(() => {
+            urlInput.select();
+            document.execCommand('copy');
+            showToast('📋 Bağlantı kopyalandı!', 'success');
+          });
+        } else {
+          urlInput.select();
+          document.execCommand('copy');
+          showToast('📋 Bağlantı kopyalandı!', 'success');
+        }
+      });
+    }
+  },
+
+  async openLinkPhoneModal() {
+    const modal = document.getElementById('modal-link-phone');
+    if (!modal) return;
+
+    // Eğer henüz bir syncId yoksa arka planda oluştur
+    if (window.CloudSync && !CloudSync.hasActiveSync()) {
+      await CloudSync.startNewSync();
+    }
+
+    const curUser = Storage.getCurrentUser();
+    const syncId = window.CloudSync ? CloudSync.getSyncId() : null;
+    let pairingUrl = '';
+    if (window.CloudSync && typeof CloudSync.getDevicePairingUrl === 'function') {
+      pairingUrl = CloudSync.getDevicePairingUrl(curUser);
+    } else {
+      pairingUrl = Storage.generateInviteUrl(curUser, syncId);
+    }
+
+    const qrImg = document.getElementById('link-phone-qr-img');
+    const syncCodeEl = document.getElementById('link-phone-sync-code');
+    const urlInput = document.getElementById('link-phone-url-input');
+    const whatsappBtn = document.getElementById('btn-link-phone-whatsapp');
+
+    if (syncCodeEl) syncCodeEl.textContent = syncId || 'Oluşturuluyor...';
+    if (urlInput) urlInput.value = pairingUrl;
+    if (qrImg) {
+      qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(pairingUrl)}`;
+    }
+
+    if (whatsappBtn) {
+      const uName = curUser ? curUser.name : 'Hesabım';
+      const msg = `📱 Sağlık Takvimi - Cihaz Eşitleme ve Giriş Bağlantısı:\n\nHesap: ${uName}\nBu linke tıklayarak telefonunuzda şifrenizle anında oturum açabilir ve tüm kayıtlarınızı senkronize edebilirsiniz:\n\n${pairingUrl}`;
+      whatsappBtn.href = `https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`;
+    }
+
+    try {
+      modal.showModal();
+    } catch (err) {
+      modal.setAttribute('open', '');
+      modal.style.display = 'flex';
+    }
+  },
+
+  closeLinkPhoneModal() {
+    const modal = document.getElementById('modal-link-phone');
+    if (!modal) return;
+    try { if (modal.open) modal.close(); } catch (err) {}
+    modal.removeAttribute('open');
+    modal.style.display = 'none';
   },
 
   applyProfileGenderUI() {

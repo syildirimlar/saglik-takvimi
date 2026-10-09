@@ -15,7 +15,7 @@
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
   <link rel="icon" type="image/png" href="icons/icon-192.png">
 
-  <link rel="stylesheet" href="css/style.css?v=12.0">
+  <link rel="stylesheet" href="css/style.css?v=13.0">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -26,7 +26,7 @@
       if ('caches' in window) {
         caches.keys().then(function(keys) {
           keys.forEach(function(k) {
-            if (k !== 'saglik-takvim-v12.0') caches.delete(k);
+            if (k !== 'saglik-takvim-v13.0') caches.delete(k);
           });
         });
       }
@@ -82,6 +82,10 @@
 
       <!-- Ayarlar & Tema Düğmeleri -->
       <div class="header-tools">
+        <button id="btn-header-link-phone" class="btn btn-sm btn-outline" style="border-color: var(--primary); color: var(--primary); font-weight: 700;" title="Telefonu Bağla (Karekod & WhatsApp)">
+          <span class="btn-icon">📱</span>
+          <span class="btn-text">Telefonu Bağla</span>
+        </button>
         <button id="btn-admin-panel" class="btn btn-sm btn-admin" title="Yönetici Paneli (Yeni Kullanıcı & Hesap Yönetimi)" style="display: none;">
           <span class="btn-icon">👑</span>
           <span class="btn-text">Yönetici Paneli</span>
@@ -1082,6 +1086,30 @@
           🚀 Giriş Yap
         </button>
 
+        <!-- Bilgisayardaki Hesaba / Eşitlemeye Bağlanma -->
+        <div class="login-sync-divider" style="display: flex; align-items: center; margin: 18px 0 12px 0; text-align: center; color: var(--text-muted); font-size: 0.8rem;">
+          <span style="flex: 1; height: 1px; background: var(--border-color);"></span>
+          <span style="padding: 0 10px; font-weight: 600;">VEYA</span>
+          <span style="flex: 1; height: 1px; background: var(--border-color);"></span>
+        </div>
+
+        <div class="login-connect-box" style="background: rgba(37, 99, 235, 0.05); border: 1.5px dashed var(--primary); border-radius: 8px; padding: 12px; text-align: center;">
+          <button type="button" id="btn-login-toggle-connect" class="btn btn-outline btn-block btn-sm" style="font-weight: 700; color: var(--primary); border-color: var(--primary);">
+            📱 Bilgisayardaki Hesabıma Bağlan (Eşitleme Kodu / Linki)
+          </button>
+          <div id="login-connect-fields" style="display: none; margin-top: 10px; text-align: left;">
+            <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 6px; line-height: 1.4;">
+              Bilgisayarınızda <strong>"📱 Telefonu Bağla"</strong> butonuna basıp gördüğünüz eşitleme kodunu veya bağlantıyı buraya yapıştırın:
+            </p>
+            <div style="display: flex; gap: 8px;">
+              <input type="text" id="login-sync-code-input" class="form-control form-control-sm" placeholder="Örn: Eşitleme Kodu veya Link">
+              <button type="button" id="btn-login-submit-connect" class="btn btn-primary btn-sm" style="white-space: nowrap;">
+                🔄 Bağlan & Giriş Yap
+              </button>
+            </div>
+          </div>
+        </div>
+
         <div class="login-admin-tip">
           <small>
             👑 <strong>Sistem Yöneticisi Girişi:</strong> İlk kez giriş yapıyorsanız varsayılan yönetici bilgileri:
@@ -1107,12 +1135,15 @@
       <div class="modal-body admin-body">
         
         <!-- Üst Tab Butonları -->
-        <div class="admin-tabs-nav">
+        <div class="admin-tabs-nav" style="display: flex; align-items: center; flex-wrap: wrap; gap: 8px;">
           <button type="button" id="admin-tab-btn-users" class="admin-tab-btn active">
             👥 Kayıtlı Kullanıcılar (<span id="admin-users-count">1</span>)
           </button>
           <button type="button" id="admin-tab-btn-create" class="admin-tab-btn">
             ➕ Yeni Kullanıcı Oluştur
+          </button>
+          <button type="button" id="admin-btn-open-link-phone" class="btn btn-sm btn-outline" style="margin-left: auto; border-color: var(--primary); color: var(--primary); font-weight: 700;">
+            📱 Telefonu Bağla (Karekod)
           </button>
         </div>
 
@@ -1268,6 +1299,21 @@
           </form>
         </div>
 
+        <!-- Telefona Aktar & Bağla Kartı -->
+        <div class="card" style="margin-top: 20px; background: rgba(37, 99, 235, 0.05); border: 1.5px dashed var(--primary); padding: 16px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+            <div style="flex: 1; min-width: 220px;">
+              <strong style="font-size: 0.95rem; color: var(--primary);">📱 Bu Hesabı Telefonda Aç & Eşitle</strong>
+              <p style="font-size: 0.82rem; color: var(--text-secondary); margin: 4px 0 0 0; line-height: 1.4;">
+                Yeni şifreniz ve takviminizle telefonunuzda tek tıkla oturum açmak için karekod oluşturun.
+              </p>
+            </div>
+            <button type="button" id="btn-profile-open-link-phone" class="btn btn-primary btn-sm" style="white-space: nowrap;">
+              📱 Karekod Göster
+            </button>
+          </div>
+        </div>
+
         <!-- Çıkış Butonu -->
         <div style="margin-top: 24px; text-align: center;">
           <button type="button" id="btn-modal-logout" class="btn btn-outline" style="color:var(--danger); border-color:var(--danger); width:100%;">
@@ -1279,15 +1325,66 @@
     </div>
   </dialog>
 
+  <!-- ================= 4. TELEFON BAĞLAMA & KAREKOD MODALI ================= -->
+  <dialog id="modal-link-phone" class="app-modal">
+    <div class="modal-content" style="max-width: 460px;">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <span class="modal-cat-icon">📱</span>
+          <h3>Telefonu Hesabınıza Bağlayın</h3>
+        </div>
+        <button id="modal-link-phone-btn-close" class="icon-btn close-btn" title="Kapat">✕</button>
+      </div>
+
+      <div class="modal-body" style="text-align: center; padding: 20px;">
+        <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 16px; line-height: 1.45;">
+          Telefonunuzun kamerasını aşağıdaki karekoda tutun veya bağlantıyı WhatsApp ile kendinize gönderin.
+          <strong>Şifreniz ve tüm takvim kayıtlarınız</strong> telefonunuzda anında açılacaktır!
+        </p>
+
+        <!-- Karekod Görseli -->
+        <div style="display: inline-block; padding: 12px; background: #fff; border-radius: 12px; box-shadow: 0 4px 14px rgba(0,0,0,0.08); margin-bottom: 14px;">
+          <img id="link-phone-qr-img" src="" alt="Telefon Bağlantı Karekodu" width="180" height="180" style="display: block; border-radius: 6px; margin: 0 auto;">
+        </div>
+
+        <!-- Eşitleme Kodu -->
+        <div style="background: var(--bg-hover); padding: 10px 16px; border-radius: 8px; margin-bottom: 16px; display: inline-flex; align-items: center; gap: 8px;">
+          <span style="font-size: 0.85rem; color: var(--text-secondary);">Eşitleme Kodu:</span>
+          <code id="link-phone-sync-code" style="font-size: 1.15rem; font-weight: bold; color: var(--primary); letter-spacing: 1px;">-</code>
+        </div>
+
+        <!-- Doğrudan Link Kutusu -->
+        <div class="form-group" style="text-align: left; margin-bottom: 14px;">
+          <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary);">Doğrudan Giriş ve Eşitleme Bağlantısı:</label>
+          <input type="text" id="link-phone-url-input" class="form-control form-control-sm" readonly style="font-size: 0.82rem; background: var(--bg-hover);">
+        </div>
+
+        <!-- İşlem Butonları -->
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <a id="btn-link-phone-whatsapp" href="#" target="_blank" class="btn btn-primary btn-block" style="background: #25d366; border-color: #25d366; text-decoration: none; font-weight: 700;">
+            💬 WhatsApp ile Kendime Gönder
+          </a>
+          <button type="button" id="btn-link-phone-copy-url" class="btn btn-outline btn-block" style="font-weight: 600;">
+            📋 Bağlantı Linkini Kopyala
+          </button>
+        </div>
+
+        <div style="margin-top: 14px; font-size: 0.8rem; color: var(--text-muted); line-height: 1.45;">
+          ✨ <em>Telefonunuzda bu linki açtığınızda şifre girmenize gerek kalmadan otomatik oturum açılır ve tüm kayıtlarınız anında eşitlenir.</em>
+        </div>
+      </div>
+    </div>
+  </dialog>
+
   <!-- Bildirim Toast Alanı -->
   <div id="toast-container" class="toast-container"></div>
 
-  <!-- JavaScript Dosyaları (Önbellek Kilidini Kırıcı ?v=12.0 Parametreleri ile) -->
-  <script src="js/storage.js?v=12.0"></script>
-  <script src="js/categories.js?v=12.0"></script>
-  <script src="js/calendar.js?v=12.0"></script>
-  <script src="js/reports.js?v=12.0"></script>
-  <script src="js/sync.js?v=12.0"></script>
-  <script src="js/app.js?v=12.0"></script>
+  <!-- JavaScript Dosyaları (Önbellek Kilidini Kırıcı ?v=13.0 Parametreleri ile) -->
+  <script src="js/storage.js?v=13.0"></script>
+  <script src="js/categories.js?v=13.0"></script>
+  <script src="js/calendar.js?v=13.0"></script>
+  <script src="js/reports.js?v=13.0"></script>
+  <script src="js/sync.js?v=13.0"></script>
+  <script src="js/app.js?v=13.0"></script>
 </body>
 </html>

@@ -321,10 +321,56 @@ const Storage = {
     return !!(cur && cur.role === 'admin');
   },
 
-  // Tek tıkla davet linki oluştur
-  generateInviteUrl(user) {
+  // Kullanıcıları birleştir (Bulut senkronizasyonu için)
+  mergeUsers(remoteUsers = []) {
+    if (!Array.isArray(remoteUsers) || remoteUsers.length === 0) return this.getUsers();
+
+    const localUsers = this.getUsers();
+    let hasChanges = false;
+
+    remoteUsers.forEach(ru => {
+      if (!ru || !ru.username) return;
+
+      const idx = localUsers.findIndex(lu => 
+        (ru.id && lu.id === ru.id) || 
+        (lu.username.toLowerCase().trim() === ru.username.toLowerCase().trim())
+      );
+
+      if (idx === -1) {
+        // Yeni kullanıcıyı ekle
+        localUsers.push(ru);
+        hasChanges = true;
+      } else {
+        const lu = localUsers[idx];
+        const remoteTime = ru.updatedAt ? new Date(ru.updatedAt).getTime() : 0;
+        const localTime = lu.updatedAt ? new Date(lu.updatedAt).getTime() : 0;
+
+        // Özel durum: Eğer yerel kullanıcı varsayılan '123' şifresine sahipse ve uzak kullanıcı farklıysa, uzak kazanır!
+        const localIsDefaultAdmin = (lu.role === 'admin' && lu.password === '123' && ru.password !== '123');
+
+        if (remoteTime > localTime || localIsDefaultAdmin) {
+          localUsers[idx] = { ...lu, ...ru };
+          hasChanges = true;
+
+          const cur = this.getCurrentUser();
+          if (cur && cur.id === lu.id) {
+            this.setCurrentUser(localUsers[idx]);
+          }
+        }
+      }
+    });
+
+    if (hasChanges) {
+      localStorage.setItem(STORAGE_KEYS.USERS_LIST, JSON.stringify(localUsers));
+    }
+    return localUsers;
+  },
+
+  // Tek tıkla davet ve cihaz bağlama linki oluştur
+  generateInviteUrl(user, syncId = null) {
     try {
       const base = window.location.origin + window.location.pathname;
+      const sId = syncId || (window.CloudSync && typeof window.CloudSync.getSyncId === 'function' ? window.CloudSync.getSyncId() : null);
       const payload = {
         u: user.username,
         p: user.password,
@@ -332,6 +378,9 @@ const Storage = {
         g: user.gender,
         r: user.role || 'user'
       };
+      if (sId) {
+        payload.s = sId;
+      }
       const json = JSON.stringify(payload);
       let encoded = '';
       if (window.CloudSync && typeof window.CloudSync.utf8ToBase64 === 'function') {
@@ -339,14 +388,18 @@ const Storage = {
       } else {
         encoded = btoa(unescape(encodeURIComponent(json))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
       }
-      return `${base}?invite=${encoded}`;
+      let url = `${base}?invite=${encoded}`;
+      if (sId) {
+        url += `&sync=${encodeURIComponent(sId)}`;
+      }
+      return url;
     } catch (e) {
       console.error('generateInviteUrl hatası:', e);
       return '';
     }
   },
 
-  // Davet linkinden otomatik kayıt ve giriş
+  // Davet linkinden otomatik kayıt, giriş ve bulut odasına bağlanma
   importInvitePayload(payloadStr) {
     try {
       let json = '';
@@ -380,6 +433,18 @@ const Storage = {
       }
 
       this.setCurrentUser(user);
+
+      // Eğer eşitleme ID'si varsa CloudSync'i de anında bağla!
+      if (data.s && window.CloudSync) {
+        localStorage.setItem(CloudSync.STORAGE_KEY_SYNC_ID, data.s);
+        CloudSync.syncId = data.s;
+        setTimeout(() => {
+          if (typeof CloudSync.pull === 'function') {
+            CloudSync.pull(false);
+          }
+        }, 300);
+      }
+
       return user;
     } catch (e) {
       console.error('importInvitePayload hatası:', e);
