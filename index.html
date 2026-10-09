@@ -15,7 +15,7 @@
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
   <link rel="icon" type="image/png" href="icons/icon-192.png">
 
-  <link rel="stylesheet" href="css/style.css?v=11.0">
+  <link rel="stylesheet" href="css/style.css?v=12.0">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -26,7 +26,7 @@
       if ('caches' in window) {
         caches.keys().then(function(keys) {
           keys.forEach(function(k) {
-            if (k !== 'saglik-takvim-v11.0') caches.delete(k);
+            if (k !== 'saglik-takvim-v12.0') caches.delete(k);
           });
         });
       }
@@ -573,9 +573,31 @@
             <div id="cloud-sync-linked-view" style="display: none;">
               <div class="cloud-sync-active-banner">
                 <span class="pulse-dot"></span>
-                <strong>Bulut Eşitleme Aktif ve Canlı Bağlı!</strong>
+                <strong>Bulut Eşitleme Bağlantısı Aktif</strong>
                 <span id="cloud-sync-local-count" class="badge" style="background:var(--primary); color:#fff; padding:3px 10px; border-radius:12px; font-size:0.8rem; margin-left: 8px;">0 Kayıt</span>
                 <span id="cloud-sync-last-time" style="margin-left: auto; font-size: 0.85rem; color: var(--text-muted);">Son eşitleme: Az önce</span>
+              </div>
+
+              <!-- Batarya Tasarrufu Modu (Şarj Koruma & İsteğe Bağlı Eşitleme) -->
+              <div class="sync-battery-card" style="margin-bottom: 16px; background: rgba(16, 185, 129, 0.08); border: 1.5px solid rgba(16, 185, 129, 0.35); border-radius: 8px; padding: 14px 16px;">
+                <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+                  <div style="flex: 1; min-width: 250px;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                      <span style="font-size: 1.3rem;">🔋</span>
+                      <strong style="color: #065f46; font-size: 0.95rem;">Batarya Tasarrufu Modu (İsteğe Bağlı Manuel Eşitleme)</strong>
+                      <span class="badge" style="background: #10b981; color: #fff; font-size: 0.72rem; padding: 2px 8px; border-radius: 99px;">Şarj Dostu</span>
+                    </div>
+                    <p style="font-size: 0.84rem; color: var(--text-secondary); margin: 6px 0 0 0; line-height: 1.45;">
+                      Telefonunuzun şarjının hızlı bitmemesi için arka planda sürekli veri kontrolü yapılması durduruldu. İstediğiniz zaman üst bardaki <strong>"🔄 Eşitle"</strong> butonuna veya aşağıdaki butona dokunarak verilerinizi anında eşitleyebilirsiniz.
+                    </p>
+                  </div>
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <label style="display: flex; align-items: center; gap: 8px; font-size: 0.85rem; color: var(--text-main); cursor: pointer; user-select: none;">
+                      <input type="checkbox" id="toggle-auto-sync" style="width: 16px; height: 16px; cursor: pointer;">
+                      <span>Arka Planda Sürekli Eşitle (Daha Fazla Şarj Tüketir)</span>
+                    </label>
+                  </div>
+                </div>
               </div>
 
               <div class="cloud-sync-details-grid">
@@ -601,14 +623,14 @@
                     <label><strong>Doğrudan Bağlantı Linki:</strong></label>
                     <input type="text" id="cloud-sync-share-url" class="form-control" readonly style="font-size: 0.85rem; background: var(--bg-hover);">
                     <div style="display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap;">
+                      <button type="button" id="btn-manual-sync-now" class="btn btn-primary" title="Bulut ile çift yönlü anlık eşitleme yap">
+                        🔄 Şimdi Eşitle (Çift Yönlü)
+                      </button>
                       <button type="button" id="btn-copy-sync-link" class="btn btn-outline btn-sm">
-                        📋 Linki Kopyala (WhatsApp ile Gönder)
+                        📋 Linki Kopyala
                       </button>
-                      <button type="button" id="btn-push-now" class="btn btn-secondary btn-sm" title="Bu cihazdaki kayıtları buluta yükle">
+                      <button type="button" id="btn-push-now" class="btn btn-secondary btn-sm" title="Bu cihazdaki kayıtları buluta zorla yükle">
                         📤 Buluta Yükle
-                      </button>
-                      <button type="button" id="btn-manual-sync-now" class="btn btn-primary btn-sm" title="Buluttaki güncel kayıtları bu cihaza çek">
-                        📥 Verileri Çek / Eşitle
                       </button>
                       <button type="button" id="btn-disconnect-sync" class="btn btn-danger btn-sm" style="margin-left: auto;">
                         ✕ Bağlantıyı Kes
@@ -1260,12 +1282,12 @@
   <!-- Bildirim Toast Alanı -->
   <div id="toast-container" class="toast-container"></div>
 
-  <!-- JavaScript Dosyaları (Önbellek Kilidini Kırıcı ?v=11.0 Parametreleri ile) -->
-  <script src="js/storage.js?v=11.0"></script>
-  <script src="js/categories.js?v=11.0"></script>
-  <script src="js/calendar.js?v=11.0"></script>
-  <script src="js/reports.js?v=11.0"></script>
-  <script src="js/sync.js?v=11.0"></script>
-  <script src="js/app.js?v=11.0"></script>
+  <!-- JavaScript Dosyaları (Önbellek Kilidini Kırıcı ?v=12.0 Parametreleri ile) -->
+  <script src="js/storage.js?v=12.0"></script>
+  <script src="js/categories.js?v=12.0"></script>
+  <script src="js/calendar.js?v=12.0"></script>
+  <script src="js/reports.js?v=12.0"></script>
+  <script src="js/sync.js?v=12.0"></script>
+  <script src="js/app.js?v=12.0"></script>
 </body>
 </html>

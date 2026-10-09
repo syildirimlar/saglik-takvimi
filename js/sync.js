@@ -7,12 +7,47 @@ const CloudSync = {
   STORAGE_KEY_SYNC_ID: 'saglik_cloud_sync_id',
   STORAGE_KEY_LAST_SYNC: 'saglik_cloud_last_sync',
   STORAGE_KEY_PROVIDER: 'saglik_cloud_provider',
+  STORAGE_KEY_AUTO_SYNC: 'saglik_cloud_auto_sync_enabled',
 
   syncId: null,
   provider: 'npoint', // 'npoint' | 'jsonblob' | 'direct'
   isSyncing: false,
   pushTimeout: null,
   autoPullInterval: null,
+
+  // Batarya Tasarrufu Modu: Varsayılan olarak kapalıdır (Telefonun şarjını tüketmez)
+  isAutoSyncEnabled() {
+    return localStorage.getItem(this.STORAGE_KEY_AUTO_SYNC) === 'true';
+  },
+
+  setAutoSyncEnabled(enabled) {
+    if (enabled) {
+      localStorage.setItem(this.STORAGE_KEY_AUTO_SYNC, 'true');
+      this.startAutoSyncInterval();
+    } else {
+      localStorage.setItem(this.STORAGE_KEY_AUTO_SYNC, 'false');
+      this.stopAutoSyncInterval();
+    }
+    this.updateUI();
+  },
+
+  startAutoSyncInterval() {
+    this.stopAutoSyncInterval();
+    if (!this.hasActiveSync()) return;
+    // Kullanıcı özellikle açık tutmak istediyse nazikçe 60 saniyede bir kontrol etsin
+    this.autoPullInterval = setInterval(() => {
+      if (this.hasActiveSync() && !this.isSyncing && this.isAutoSyncEnabled()) {
+        this.pull(false);
+      }
+    }, 60000);
+  },
+
+  stopAutoSyncInterval() {
+    if (this.autoPullInterval) {
+      clearInterval(this.autoPullInterval);
+      this.autoPullInterval = null;
+    }
+  },
 
   init() {
     this.syncId = localStorage.getItem(this.STORAGE_KEY_SYNC_ID);
@@ -25,31 +60,24 @@ const CloudSync = {
 
     if (syncParam || dataParam) {
       this.handleIncomingUrlParams(syncParam, dataParam);
-    } else if (this.syncId) {
-      // Zaten bir eşitleme odasına bağlıysa arka planda ilk çekmeyi yap
+    } else if (this.syncId && this.isAutoSyncEnabled()) {
+      // Sadece kullanıcı otomatik eşitlemeyi açık tuttuysa ilk açılışta çek
       setTimeout(() => this.pull(false), 800);
     }
 
-    // 2. Sayfa odağa geldiğinde veya sekme değiştirildiğinde otomatik eşitle
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible' && this.hasActiveSync()) {
-        this.pull(false);
-      }
-    });
+    // 2. Batarya Koruma Kontrolü:
+    // Varsayılan olarak arka plan döngüleri KAPALIDIR. Sadece kullanıcı ayarı açarsa başlar.
+    if (this.isAutoSyncEnabled()) {
+      this.startAutoSyncInterval();
 
-    window.addEventListener('focus', () => {
-      if (this.hasActiveSync()) {
-        this.pull(false);
-      }
-    });
-
-    // 3. Her 35 saniyede bir sessiz arka plan kontrolü
-    if (this.autoPullInterval) clearInterval(this.autoPullInterval);
-    this.autoPullInterval = setInterval(() => {
-      if (this.hasActiveSync() && !this.isSyncing) {
-        this.pull(false);
-      }
-    }, 35000);
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible' && this.hasActiveSync() && this.isAutoSyncEnabled()) {
+          this.pull(false);
+        }
+      });
+    } else {
+      this.stopAutoSyncInterval();
+    }
 
     this.updateUI();
   },
@@ -368,6 +396,65 @@ const CloudSync = {
     }
   },
 
+  // =================== ÇİFT YÖNLÜ ANLIK EŞİTLEME (SYNC NOW - KULLANICI TUŞA BASINCA) ===================
+  async syncNow(isManual = true) {
+    if (!this.syncId) {
+      if (isManual && typeof showToast === 'function') {
+        showToast('Henüz bir bulut odasına bağlı değilsiniz. Lütfen Yedekleme sekmesinden bağlanın.', 'info');
+      }
+      return false;
+    }
+    if (this.isSyncing) return false;
+
+    this.isSyncing = true;
+    this.setSyncStatusBadge('loading', 'Eşitleniyor...');
+
+    try {
+      // 1. Buluttan en son veriyi çek
+      const remoteData = await this.fetchRemoteData(this.syncId);
+      const localEvents = Storage.getEvents();
+      const localCats = Storage.getCategories();
+
+      let mergedEvents = localEvents;
+      let mergedCats = localCats;
+
+      if (remoteData && Array.isArray(remoteData.events)) {
+        mergedEvents = this.mergeEvents(localEvents, remoteData.events);
+        mergedCats = this.mergeCategories(localCats, remoteData.categories || []);
+        Storage.saveEvents(mergedEvents, true);
+        Storage.saveCategories(mergedCats, true);
+      }
+
+      // 2. Birleştirilmiş güncel verileri buluta yükle
+      await this.pushDirect(mergedEvents, mergedCats);
+
+      // 3. Ekrandaki takvim ve rapor görünümlerini yenile
+      if (window.App && typeof window.App.refreshAllViews === 'function') {
+        window.App.refreshAllViews();
+      }
+
+      localStorage.setItem(this.STORAGE_KEY_LAST_SYNC, new Date().toISOString());
+      this.setSyncStatusBadge('connected', 'Eşitle');
+      this.updateLastSyncText();
+      this.updateUI();
+
+      if (isManual && typeof showToast === 'function') {
+        showToast(`☁️ Eşitleme tamamlandı! Toplam ${mergedEvents.length} kayıt senkronize edildi.`, 'success');
+      }
+      return true;
+    } catch (err) {
+      console.error('syncNow hatası:', err);
+      this.setSyncStatusBadge('connected', 'Eşitle');
+      if (isManual && typeof showToast === 'function') {
+        showToast('Eşitleme sırasında internet hatası oluştu. Lütfen bağlantınızı kontrol edin.', 'error');
+      }
+      return false;
+    } finally {
+      this.isSyncing = false;
+      this.setSyncStatusBadge(this.syncId ? 'connected' : 'disconnected', this.syncId ? 'Eşitle' : 'Yerel');
+    }
+  },
+
   // =================== BULUTTAN VERİ ÇEKME (PULL) ===================
   async pull(isManual = false) {
     if (!this.syncId || this.isSyncing) return;
@@ -377,7 +464,7 @@ const CloudSync = {
     try {
       const remoteData = await this.fetchRemoteData(this.syncId);
       if (!remoteData || !Array.isArray(remoteData.events)) {
-        this.setSyncStatusBadge('connected', 'Bulut Aktif');
+        this.setSyncStatusBadge('connected', 'Eşitle');
         if (isManual && typeof showToast === 'function') {
           showToast('Bulut kontrol edildi, mevcut kayıtlarınız korundu.', 'info');
         }
@@ -409,12 +496,12 @@ const CloudSync = {
       }
 
       localStorage.setItem(this.STORAGE_KEY_LAST_SYNC, new Date().toISOString());
-      this.setSyncStatusBadge('connected', 'Bulut Aktif');
+      this.setSyncStatusBadge('connected', 'Eşitle');
       this.updateLastSyncText();
 
     } catch (err) {
       console.warn('Cloud pull hatası:', err);
-      this.setSyncStatusBadge('connected', 'Bulut Aktif');
+      this.setSyncStatusBadge('connected', 'Eşitle');
     } finally {
       this.isSyncing = false;
     }
@@ -423,10 +510,12 @@ const CloudSync = {
   // =================== BULUTA VERİ GÖNDERME (PUSH) ===================
   triggerPush() {
     if (!this.syncId) return;
+    // Batarya Tasarrufu Modu: Otomatik arka plan kontrolü kapalıysa sessiz push yapmayıp şarjı koru
+    if (!this.isAutoSyncEnabled()) return;
     if (this.pushTimeout) clearTimeout(this.pushTimeout);
     this.pushTimeout = setTimeout(() => {
       this.push(false);
-    }, 600);
+    }, 1000);
   },
 
   async push(isManual = false) {
@@ -562,6 +651,7 @@ const CloudSync = {
       return;
     }
     this.syncId = null;
+    this.stopAutoSyncInterval();
     localStorage.removeItem(this.STORAGE_KEY_SYNC_ID);
     localStorage.removeItem(this.STORAGE_KEY_LAST_SYNC);
     this.updateUI();
@@ -578,10 +668,15 @@ const CloudSync = {
     const qrImage = document.getElementById('cloud-sync-qr-img');
     const shareInput = document.getElementById('cloud-sync-share-url');
     const eventCountText = document.getElementById('cloud-sync-local-count');
+    const autoSyncToggle = document.getElementById('toggle-auto-sync');
 
     const localCount = (Storage.getEvents() || []).length;
     if (eventCountText) {
       eventCountText.textContent = `${localCount} Kayıt Mevcut`;
+    }
+
+    if (autoSyncToggle) {
+      autoSyncToggle.checked = this.isAutoSyncEnabled();
     }
 
     if (this.syncId) {
@@ -597,7 +692,7 @@ const CloudSync = {
         qrImage.src = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(shareUrl)}`;
       }
 
-      this.setSyncStatusBadge('connected', 'Bulut Aktif');
+      this.setSyncStatusBadge('connected', 'Eşitle');
       this.updateLastSyncText();
     } else {
       if (unlinkedCard) unlinkedCard.style.display = 'block';
@@ -614,13 +709,35 @@ const CloudSync = {
     if (!badge) return;
 
     badge.className = `header-sync-btn sync-badge status-${status}`;
-    if (label) label.textContent = text;
 
-    if (icon) {
-      if (status === 'connected') icon.textContent = '☁️';
-      else if (status === 'loading') icon.textContent = '🔄';
-      else if (status === 'error') icon.textContent = '⚠️';
-      else icon.textContent = '📱';
+    if (status === 'connected') {
+      if (icon) {
+        icon.textContent = '🔄';
+        icon.classList.remove('spin-animation');
+      }
+      if (label) label.textContent = 'Eşitle';
+      badge.title = 'Bulut Verilerini Şimdi Eşitle (Dokununca çift yönlü anında senkronize eder)';
+    } else if (status === 'loading') {
+      if (icon) {
+        icon.textContent = '🔄';
+        icon.classList.add('spin-animation');
+      }
+      if (label) label.textContent = text || 'Eşitleniyor...';
+      badge.title = 'Veriler eşitleniyor...';
+    } else if (status === 'error') {
+      if (icon) {
+        icon.textContent = '⚠️';
+        icon.classList.remove('spin-animation');
+      }
+      if (label) label.textContent = 'Hata';
+      badge.title = 'Eşitleme hatası. Tekrar denemek için dokunun.';
+    } else {
+      if (icon) {
+        icon.textContent = '📱';
+        icon.classList.remove('spin-animation');
+      }
+      if (label) label.textContent = 'Yerel';
+      badge.title = 'Bulut Eşitlemeyi Başlat';
     }
   },
 

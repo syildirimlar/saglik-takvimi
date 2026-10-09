@@ -1542,7 +1542,11 @@ const App = {
     if (manualSyncBtn) {
       manualSyncBtn.addEventListener('click', () => {
         const syncObj = (typeof CloudSync !== 'undefined') ? CloudSync : window.CloudSync;
-        if (syncObj && syncObj.pull) syncObj.pull(true);
+        if (syncObj && syncObj.syncNow) {
+          syncObj.syncNow(true);
+        } else if (syncObj && syncObj.pull) {
+          syncObj.pull(true);
+        }
       });
     }
 
@@ -1552,6 +1556,22 @@ const App = {
         const syncObj = (typeof CloudSync !== 'undefined') ? CloudSync : window.CloudSync;
         if (syncObj && syncObj.push) syncObj.push(true);
       });
+    }
+
+    const autoSyncToggle = document.getElementById('toggle-auto-sync');
+    if (autoSyncToggle) {
+      const syncObj = (typeof CloudSync !== 'undefined') ? CloudSync : window.CloudSync;
+      if (syncObj) {
+        autoSyncToggle.checked = syncObj.isAutoSyncEnabled();
+        autoSyncToggle.addEventListener('change', (e) => {
+          syncObj.setAutoSyncEnabled(e.target.checked);
+          if (e.target.checked) {
+            showToast('Arka planda otomatik eşitleme açıldı (Daha fazla şarj tüketebilir).', 'info');
+          } else {
+            showToast('🔋 Batarya Tasarrufu Modu aktif: Veriler sadece tuşa basınca eşitlenecektir.', 'success');
+          }
+        });
+      }
     }
 
     const disconnectSyncBtn = document.getElementById('btn-disconnect-sync');
@@ -1565,10 +1585,15 @@ const App = {
     const headerSyncBadge = document.getElementById('header-sync-badge');
     if (headerSyncBadge) {
       headerSyncBadge.addEventListener('click', () => {
-        this.switchTab('backup');
-        const heroCard = document.querySelector('.cloud-sync-hero-card');
-        if (heroCard) {
-          heroCard.scrollIntoView({ behavior: 'smooth' });
+        const syncObj = (typeof CloudSync !== 'undefined') ? CloudSync : window.CloudSync;
+        if (syncObj && syncObj.hasActiveSync()) {
+          syncObj.syncNow(true);
+        } else {
+          this.switchTab('backup');
+          const heroCard = document.querySelector('.cloud-sync-hero-card');
+          if (heroCard) {
+            heroCard.scrollIntoView({ behavior: 'smooth' });
+          }
         }
       });
     }
@@ -1701,20 +1726,24 @@ const App = {
       });
     }
 
-    // Periyodik kontrol: Her 25 saniyede bir randevu saatlerini denetle
+    // Batarya Dostu Kontrol: Uygulama açılışında randevuları denetle
     this.checkScheduledAppointments();
-    if (!this._notifInterval) {
-      this._notifInterval = setInterval(() => {
-        this.checkScheduledAppointments();
-      }, 25000);
-    }
 
-    // Sekme tekrar odaklandığında anında denetle
+    // Sekme tekrar odaklandığında veya ekrana gelindiğinde anında denetle
     document.addEventListener('visibilitychange', () => {
       if (!document.hidden) {
         this.checkScheduledAppointments();
       }
     });
+
+    // Nazik kontrol: Sadece sekme AÇIK ve GÖRÜNÜR durumdayken 5 dakikada bir kontrol (25 saniyelik agresif döngü kaldırıldı)
+    if (!this._notifInterval) {
+      this._notifInterval = setInterval(() => {
+        if (!document.hidden) {
+          this.checkScheduledAppointments();
+        }
+      }, 300000); // 5 dakika (25 saniye değil)
+    }
   },
 
   // Randevu ve Onay Kontrol Motoru
