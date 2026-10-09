@@ -51,7 +51,7 @@ const CloudSync = {
 
   init() {
     this.syncId = localStorage.getItem(this.STORAGE_KEY_SYNC_ID);
-    this.provider = localStorage.getItem(this.STORAGE_KEY_PROVIDER) || 'npoint';
+    this.provider = localStorage.getItem(this.STORAGE_KEY_PROVIDER) || 'restful-api';
 
     // 1. URL'de ?sync=... veya ?d=... parametresi var mı kontrol et (Telefonda QR/Link ile açılınca)
     const urlParams = new URLSearchParams(window.location.search);
@@ -113,13 +113,43 @@ const CloudSync = {
     return url;
   },
 
-  // Telefon eşleştirme için özel Master Link (Hem Kullanıcı Girişini Hem Bulut Odasını tek tıkla bağlar)
+  // Telefon eşleştirme için özel Master Link (Hem Kullanıcı Girişini Hem Bulut Odasını Hem Takvim ve Aboneleri tek tıkla aktarır)
   getDevicePairingUrl(currentUser = null) {
     const user = currentUser || Storage.getCurrentUser();
-    if (user) {
-      return Storage.generateInviteUrl(user, this.syncId);
+    const base = window.location.origin + window.location.pathname;
+    const syncId = this.syncId;
+
+    const allUsers = Storage.getUsers();
+    const allEvents = Storage.getEvents();
+    const allCategories = Storage.getCategories();
+
+    // 1. Giriş yapacak kullanıcı + tüm kullanıcılar + sync id
+    const invitePayload = {
+      u: user ? user.username : 'admin',
+      p: user ? user.password : '123',
+      n: user ? user.name : 'Yönetici',
+      g: user ? user.gender : 'female',
+      r: user ? (user.role || 'admin') : 'admin',
+      users: allUsers,
+      s: syncId
+    };
+    const encInvite = this.utf8ToBase64(JSON.stringify(invitePayload));
+
+    // 2. Takvim etkinlikleri + kategoriler + tüm kullanıcılar
+    const dataPayload = this.encodePayload({
+      events: allEvents,
+      categories: allCategories,
+      users: allUsers
+    });
+
+    let url = `${base}?invite=${encInvite}`;
+    if (syncId) {
+      url += `&sync=${encodeURIComponent(syncId)}`;
     }
-    return this.getShareUrl(true);
+    if (dataPayload) {
+      url += `&d=${dataPayload}`;
+    }
+    return url;
   },
 
   // =================== UTF-8 / TÜRKÇE & EMOJİ UYUMLU BASE64 ===================
@@ -294,55 +324,41 @@ const CloudSync = {
       categories: Storage.getCategories(),
       users: Storage.getUsers()
     };
+    const payloadStr = this.encodePayload(localData);
 
     let realId = null;
-    let usedProvider = 'npoint';
+    let usedProvider = 'restful-api';
 
-    // 1. npoint.io ile dene
+    // 1. restful-api.dev ile oluştur (Yüksek hızlı, CORS destekli, stabil)
     try {
-      const res = await fetch('https://api.npoint.io/', {
+      const res = await fetch('https://api.restful-api.dev/objects', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(localData)
+        body: JSON.stringify({
+          name: 'SaglikTakvim_Room',
+          data: {
+            payload: payloadStr,
+            version: '1.0',
+            lastUpdated: Date.now(),
+            eventsCount: (localData.events || []).length,
+            usersCount: (localData.users || []).length
+          }
+        })
       });
       if (res.ok) {
         const data = await res.json();
-        if (data && data.binId) {
-          realId = data.binId;
-          usedProvider = 'npoint';
+        if (data && data.id) {
+          realId = data.id;
+          usedProvider = 'restful-api';
         }
       }
     } catch (e) {
-      console.warn('npoint denemesi başarısız:', e);
-    }
-
-    // 2. jsonblob.com ile dene
-    if (!realId) {
-      try {
-        const res2 = await fetch('https://jsonblob.com/api/jsonBlob', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          },
-          body: JSON.stringify(localData)
-        });
-        if (res2.ok) {
-          const loc = res2.headers.get('Location') || res2.headers.get('x-jsonblob');
-          if (loc) {
-            const parts = loc.split('/');
-            realId = parts[parts.length - 1];
-            usedProvider = 'jsonblob';
-          }
-        }
-      } catch (e2) {
-        console.warn('jsonblob denemesi başarısız:', e2);
-      }
+      console.warn('restful-api oluşturma hatası:', e);
     }
 
     // Yedek direkt oda
     if (!realId) {
-      realId = 'direct_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+      realId = 'st_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
       usedProvider = 'direct';
     }
 
@@ -612,65 +628,73 @@ const CloudSync = {
   },
 
   async pushDirect(events, categories, users = null) {
-    const payload = {
-      version: '1.0',
-      lastUpdated: Date.now(),
+    if (!this.syncId) return false;
+    const allUsers = users || Storage.getUsers();
+    const payloadStr = this.encodePayload({
       events,
       categories,
-      users: users || Storage.getUsers()
+      users: allUsers
+    });
+
+    const bodyObj = {
+      name: 'SaglikTakvim_Room',
+      data: {
+        payload: payloadStr,
+        version: '1.0',
+        lastUpdated: Date.now(),
+        eventsCount: (events || []).length,
+        usersCount: (allUsers || []).length
+      }
     };
 
-    // 1. npoint ile dene
+    // 1. restful-api.dev ile güncelle (PUT)
     try {
-      const res = await fetch(`https://api.npoint.io/${this.syncId}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      if (res.ok) return true;
-    } catch (e) {}
-
-    // 2. jsonblob ile dene
-    try {
-      const res = await fetch(`https://jsonblob.com/api/jsonBlob/${this.syncId}`, {
+      const res = await fetch(`https://api.restful-api.dev/objects/${this.syncId}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        body: JSON.stringify(payload)
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(bodyObj)
       });
       if (res.ok) return true;
-    } catch (e) {}
+    } catch (e) {
+      console.warn('pushDirect restful-api hatası:', e);
+    }
 
     return false;
   },
 
   // =================== VERİ OKUMA / ÇEKME ===================
   async fetchRemoteData(syncId) {
-    // 1. npoint üzerinden dene
-    try {
-      const res = await fetch(`https://api.npoint.io/${syncId}`);
-      if (res.ok) {
-        const json = await res.json();
-        this.provider = 'npoint';
-        localStorage.setItem(this.STORAGE_KEY_PROVIDER, 'npoint');
-        return json;
-      }
-    } catch (e) {}
+    if (!syncId) return null;
+    const cleanId = syncId.trim();
 
-    // 2. jsonblob üzerinden dene
+    // 1. restful-api.dev üzerinden oku (GET)
     try {
-      const res = await fetch(`https://jsonblob.com/api/jsonBlob/${syncId}`, {
-        headers: { 'Accept': 'application/json' }
-      });
+      const res = await fetch(`https://api.restful-api.dev/objects/${cleanId}`);
       if (res.ok) {
         const json = await res.json();
-        this.provider = 'jsonblob';
-        localStorage.setItem(this.STORAGE_KEY_PROVIDER, 'jsonblob');
-        return json;
+        if (json && json.data) {
+          this.provider = 'restful-api';
+          localStorage.setItem(this.STORAGE_KEY_PROVIDER, 'restful-api');
+
+          // Eğer payload string olarak saklandıysa çöz
+          if (json.data.payload) {
+            const decoded = this.decodePayload(json.data.payload);
+            if (decoded) return decoded;
+          }
+
+          // Direkt JSON olarak saklandıysa
+          if (json.data.events || json.data.users) {
+            return {
+              events: json.data.events || [],
+              categories: json.data.categories || [],
+              users: json.data.users || []
+            };
+          }
+        }
       }
-    } catch (e) {}
+    } catch (e) {
+      console.warn('restful-api fetch hatası:', e);
+    }
 
     return null;
   },

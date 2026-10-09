@@ -214,7 +214,8 @@ const Storage = {
       gender: gender || 'female',
       role: role,
       avatar: avatar,
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     };
 
     const users = this.getUsers();
@@ -342,13 +343,13 @@ const Storage = {
         hasChanges = true;
       } else {
         const lu = localUsers[idx];
-        const remoteTime = ru.updatedAt ? new Date(ru.updatedAt).getTime() : 0;
-        const localTime = lu.updatedAt ? new Date(lu.updatedAt).getTime() : 0;
+        const remoteTime = (ru.updatedAt || ru.createdAt) ? new Date(ru.updatedAt || ru.createdAt).getTime() : 0;
+        const localTime = (lu.updatedAt || lu.createdAt) ? new Date(lu.updatedAt || lu.createdAt).getTime() : 0;
 
         // Özel durum: Eğer yerel kullanıcı varsayılan '123' şifresine sahipse ve uzak kullanıcı farklıysa, uzak kazanır!
         const localIsDefaultAdmin = (lu.role === 'admin' && lu.password === '123' && ru.password !== '123');
 
-        if (remoteTime > localTime || localIsDefaultAdmin) {
+        if (remoteTime >= localTime || localIsDefaultAdmin) {
           localUsers[idx] = { ...lu, ...ru };
           hasChanges = true;
 
@@ -376,7 +377,8 @@ const Storage = {
         p: user.password,
         n: user.name,
         g: user.gender,
-        r: user.role || 'user'
+        r: user.role || 'user',
+        users: this.getUsers()
       };
       if (sId) {
         payload.s = sId;
@@ -414,6 +416,11 @@ const Storage = {
       if (!json) return null;
       const data = JSON.parse(json);
       if (!data.u) return null;
+
+      // Eğer tüm aboneler/kullanıcılar listesi geldiyse yerel veritabanına birleştir
+      if (Array.isArray(data.users) && data.users.length > 0) {
+        this.mergeUsers(data.users);
+      }
 
       let user = this.getUserByUsername(data.u);
       if (!user) {
