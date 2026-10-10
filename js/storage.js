@@ -170,9 +170,9 @@ const Storage = {
     return initialList;
   },
 
-  saveUsers(users) {
+  saveUsers(users, skipSync = false) {
     localStorage.setItem(STORAGE_KEYS.USERS_LIST, JSON.stringify(users));
-    if (window.CloudSync && typeof window.CloudSync.triggerPush === 'function') {
+    if (!skipSync && window.CloudSync && typeof window.CloudSync.triggerPush === 'function') {
       window.CloudSync.triggerPush();
     }
   },
@@ -189,7 +189,7 @@ const Storage = {
   },
 
   // Sadece Admin çağırabilir
-  createUser({ username, password, name, gender, role = 'user' }) {
+  createUser({ id, username, password, name, gender, role = 'user' }, skipSync = false) {
     const cleanUser = String(username || '').toLowerCase().trim();
     if (!cleanUser || cleanUser.length < 2) {
       throw new Error('Kullanıcı adı en az 2 karakter olmalıdır.');
@@ -203,8 +203,8 @@ const Storage = {
       throw new Error(`"${cleanUser}" kullanıcı adı zaten kullanımda. Lütfen başka bir kullanıcı adı seçin.`);
     }
 
-    const newId = 'usr_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 4);
-    const avatar = gender === 'female' ? '👩' : (gender === 'male' ? '👨' : '👤');
+    const newId = id || ('usr_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 4));
+    const avatar = role === 'admin' ? '👑' : (gender === 'female' ? '👩' : (gender === 'male' ? '👨' : '👤'));
 
     const newUser = {
       id: newId,
@@ -220,33 +220,47 @@ const Storage = {
 
     const users = this.getUsers();
     users.push(newUser);
-    this.saveUsers(users);
+    this.saveUsers(users, skipSync);
     return newUser;
   },
 
-  updateUser(userId, updates) {
+  updateUser(userId, updates, skipSync = false) {
     const users = this.getUsers();
     const idx = users.findIndex(u => u.id === userId);
     if (idx === -1) return null;
 
-    if (updates.name !== undefined) users[idx].name = String(updates.name).trim();
-    if (updates.gender !== undefined) {
+    let profileModified = false;
+    if (updates.name !== undefined && updates.name !== users[idx].name) {
+      users[idx].name = String(updates.name).trim();
+      profileModified = true;
+    }
+    if (updates.gender !== undefined && updates.gender !== users[idx].gender) {
       users[idx].gender = updates.gender;
       if (users[idx].role !== 'admin') {
         users[idx].avatar = updates.gender === 'female' ? '👩' : (updates.gender === 'male' ? '👨' : '👤');
       }
+      profileModified = true;
     }
-    if (updates.password !== undefined && String(updates.password).trim()) {
+    if (updates.password !== undefined && String(updates.password).trim() && String(updates.password).trim() !== users[idx].password) {
       users[idx].password = String(updates.password).trim();
+      profileModified = true;
+    }
+    if (updates.role !== undefined && updates.role !== users[idx].role) {
+      users[idx].role = updates.role;
+      profileModified = true;
     }
     if (updates.avatar !== undefined) users[idx].avatar = updates.avatar;
     if (updates.lastLogin !== undefined) users[idx].lastLogin = updates.lastLogin;
-    users[idx].updatedAt = new Date().toISOString();
 
-    this.saveUsers(users);
+    // Sadece gerçek profil/şifre değişikliğinde updatedAt güncelle (salt girişte zaman damgasını ezme)
+    if (profileModified || !users[idx].updatedAt) {
+      users[idx].updatedAt = new Date().toISOString();
+    }
+
+    this.saveUsers(users, skipSync);
 
     const cur = this.getCurrentUser();
-    if (cur && cur.id === userId) {
+    if (cur && (cur.id === userId || cur.username === users[idx].username)) {
       this.setCurrentUser(users[idx]);
     }
 
@@ -280,7 +294,8 @@ const Storage = {
     if (String(user.password).trim() !== String(password).trim()) return null;
 
     user.lastLogin = new Date().toISOString();
-    this.updateUser(user.id, { lastLogin: user.lastLogin });
+    // Giriş yaparken bulutu boş verilerle ezmemek için skipSync = true
+    this.updateUser(user.id, { lastLogin: user.lastLogin }, true);
     this.setCurrentUser(user);
     return user;
   },
@@ -290,8 +305,8 @@ const Storage = {
       const data = localStorage.getItem(STORAGE_KEYS.CURRENT_USER);
       if (data) {
         const parsed = JSON.parse(data);
-        if (parsed && parsed.id) {
-          const fresh = this.getUserById(parsed.id);
+        if (parsed) {
+          const fresh = (parsed.id && this.getUserById(parsed.id)) || (parsed.username && this.getUserByUsername(parsed.username));
           if (fresh) return fresh;
         }
       }
@@ -323,7 +338,7 @@ const Storage = {
   },
 
   // Kullanıcıları birleştir (Bulut senkronizasyonu için)
-  mergeUsers(remoteUsers = []) {
+  mergeUsers(remoteUsers = [], preferRemote = false) {
     if (!Array.isArray(remoteUsers) || remoteUsers.length === 0) return this.getUsers();
 
     const localUsers = this.getUsers();
@@ -338,8 +353,13 @@ const Storage = {
       );
 
       if (idx === -1) {
-        // Yeni kullanıcıyı ekle
-        localUsers.push(ru);
+        // Yeni aboneyi ekle
+        localUsers.push({
+          ...ru,
+          avatar: ru.avatar || (ru.role === 'admin' ? '👑' : (ru.gender === 'female' ? '👩' : (ru.gender === 'male' ? '👨' : '👤'))),
+          createdAt: ru.createdAt || ru.updatedAt || new Date().toISOString(),
+          updatedAt: ru.updatedAt || ru.createdAt || new Date().toISOString()
+        });
         hasChanges = true;
       } else {
         const lu = localUsers[idx];
@@ -349,12 +369,17 @@ const Storage = {
         // Özel durum: Eğer yerel kullanıcı varsayılan '123' şifresine sahipse ve uzak kullanıcı farklıysa, uzak kazanır!
         const localIsDefaultAdmin = (lu.role === 'admin' && lu.password === '123' && ru.password !== '123');
 
-        if (remoteTime >= localTime || localIsDefaultAdmin) {
-          localUsers[idx] = { ...lu, ...ru };
+        if (preferRemote || remoteTime >= localTime || localIsDefaultAdmin) {
+          localUsers[idx] = {
+            ...lu,
+            ...ru,
+            id: ru.id || lu.id,
+            avatar: ru.avatar || lu.avatar || (ru.role === 'admin' ? '👑' : (ru.gender === 'female' ? '👩' : '👨'))
+          };
           hasChanges = true;
 
           const cur = this.getCurrentUser();
-          if (cur && cur.id === lu.id) {
+          if (cur && (cur.id === lu.id || cur.username.toLowerCase() === lu.username.toLowerCase())) {
             this.setCurrentUser(localUsers[idx]);
           }
         }
@@ -367,22 +392,23 @@ const Storage = {
     return localUsers;
   },
 
-  // Tek tıkla davet ve cihaz bağlama linki oluştur
+  // Tek tıkla davet ve cihaz bağlama linki oluştur (Kısa & QR/WhatsApp Dostu)
   generateInviteUrl(user, syncId = null) {
     try {
       const base = window.location.origin + window.location.pathname;
       const sId = syncId || (window.CloudSync && typeof window.CloudSync.getSyncId === 'function' ? window.CloudSync.getSyncId() : null);
+      const binId = (window.CloudSync && window.CloudSync.lastBinId) ? window.CloudSync.lastBinId : null;
       const payload = {
+        i: user.id,
         u: user.username,
         p: user.password,
         n: user.name,
         g: user.gender,
-        r: user.role || 'user',
-        users: this.getUsers()
+        r: user.role || 'user'
       };
-      if (sId) {
-        payload.s = sId;
-      }
+      if (sId) payload.s = sId;
+      if (binId) payload.b = binId;
+
       const json = JSON.stringify(payload);
       let encoded = '';
       if (window.CloudSync && typeof window.CloudSync.utf8ToBase64 === 'function') {
@@ -391,6 +417,9 @@ const Storage = {
         encoded = btoa(unescape(encodeURIComponent(json))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
       }
       let url = `${base}?invite=${encoded}`;
+      if (binId) {
+        url += `&bin=${encodeURIComponent(binId)}`;
+      }
       if (sId) {
         url += `&sync=${encodeURIComponent(sId)}`;
       }
@@ -419,37 +448,38 @@ const Storage = {
 
       // Eğer tüm aboneler/kullanıcılar listesi geldiyse yerel veritabanına birleştir
       if (Array.isArray(data.users) && data.users.length > 0) {
-        this.mergeUsers(data.users);
+        this.mergeUsers(data.users, true);
       }
 
       let user = this.getUserByUsername(data.u);
       if (!user) {
         user = this.createUser({
+          id: data.i,
           username: data.u,
           password: data.p || '123',
           name: data.n || data.u,
           gender: data.g || 'female',
           role: data.r || 'user'
-        });
+        }, true);
       } else {
         user = this.updateUser(user.id, {
           password: data.p || user.password,
           name: data.n || user.name,
-          gender: data.g || user.gender
-        });
+          gender: data.g || user.gender,
+          role: data.r || user.role
+        }, true);
       }
 
       this.setCurrentUser(user);
 
-      // Eğer eşitleme ID'si varsa CloudSync'i de anında bağla!
+      // Eğer eşitleme ID'si varsa kaydet (çekme işlemini CloudSync.handleIncomingUrlParams yapacak)
       if (data.s && window.CloudSync) {
         localStorage.setItem(CloudSync.STORAGE_KEY_SYNC_ID, data.s);
         CloudSync.syncId = data.s;
-        setTimeout(() => {
-          if (typeof CloudSync.pull === 'function') {
-            CloudSync.pull(false);
-          }
-        }, 300);
+      }
+      if (data.b && window.CloudSync) {
+        localStorage.setItem('saglik_takvim_cloud_bin_id_v1', data.b);
+        CloudSync.lastBinId = data.b;
       }
 
       return user;
@@ -504,12 +534,12 @@ const Storage = {
       const data = localStorage.getItem(STORAGE_KEYS.CATEGORIES);
       let parsed;
       if (!data) {
-        this.saveCategories(DEFAULT_CATEGORIES);
+        this.saveCategories(DEFAULT_CATEGORIES, true);
         parsed = [...DEFAULT_CATEGORIES];
       } else {
         parsed = JSON.parse(data);
         if (!Array.isArray(parsed) || parsed.length === 0) {
-          this.saveCategories(DEFAULT_CATEGORIES);
+          this.saveCategories(DEFAULT_CATEGORIES, true);
           parsed = [...DEFAULT_CATEGORIES];
         } else {
           // Otomatik senkronizasyon: Eksik varsayılan kategorileri ekle
@@ -522,7 +552,7 @@ const Storage = {
             }
           });
           if (updated) {
-            this.saveCategories(parsed);
+            this.saveCategories(parsed, true);
           }
         }
       }
@@ -578,6 +608,72 @@ const Storage = {
       icon: '📌',
       color: '#64748b'
     };
+  },
+
+  // Tüm kullanıcıların kendi takvim kayıtlarını harita olarak getir (Bulut senkronizasyonu için)
+  getAllUserEventsMap() {
+    const map = {};
+    try {
+      const mainEvents = localStorage.getItem(STORAGE_KEYS.EVENTS);
+      if (mainEvents) {
+        const parsed = JSON.parse(mainEvents);
+        if (Array.isArray(parsed)) map['__admin__'] = parsed;
+      }
+      const users = this.getUsers();
+      users.forEach(u => {
+        if (u && u.id && u.role !== 'admin' && u.id !== 'usr_admin') {
+          const uEvents = localStorage.getItem(`${STORAGE_KEYS.EVENTS}_${u.id}`);
+          if (uEvents) {
+            const parsed = JSON.parse(uEvents);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              map[u.username.toLowerCase()] = parsed;
+            }
+          }
+        }
+      });
+    } catch (e) {}
+    return map;
+  },
+
+  // Buluttan gelen kullanıcı bazlı takvim kayıtlarını kaydet
+  saveAllUserEventsMap(userEventsMap, replace = false) {
+    if (!userEventsMap || typeof userEventsMap !== 'object') return;
+    try {
+      const users = this.getUsers();
+      Object.keys(userEventsMap).forEach(key => {
+        const remoteList = userEventsMap[key];
+        if (!Array.isArray(remoteList)) return;
+
+        let targetStorageKey = null;
+        if (key === '__admin__') {
+          targetStorageKey = STORAGE_KEYS.EVENTS;
+        } else {
+          const matchedUser = users.find(u => u.username.toLowerCase() === key.toLowerCase() || u.id === key);
+          if (matchedUser) {
+            targetStorageKey = (matchedUser.role === 'admin' || matchedUser.id === 'usr_admin')
+              ? STORAGE_KEYS.EVENTS
+              : `${STORAGE_KEYS.EVENTS}_${matchedUser.id}`;
+          }
+        }
+
+        if (targetStorageKey) {
+          if (replace) {
+            localStorage.setItem(targetStorageKey, JSON.stringify(remoteList));
+          } else if (window.CloudSync && typeof window.CloudSync.mergeEvents === 'function') {
+            let existing = [];
+            try {
+              existing = JSON.parse(localStorage.getItem(targetStorageKey) || '[]');
+            } catch (e) {}
+            const merged = window.CloudSync.mergeEvents(existing, remoteList);
+            localStorage.setItem(targetStorageKey, JSON.stringify(merged));
+          } else {
+            localStorage.setItem(targetStorageKey, JSON.stringify(remoteList));
+          }
+        }
+      });
+    } catch (e) {
+      console.warn('saveAllUserEventsMap hatası:', e);
+    }
   },
 
   // Tüm olayları getir (tarihe göre sıralı)

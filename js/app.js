@@ -81,11 +81,12 @@ const App = {
 
   // ================= 1. KULLANICI GİRİŞ & OTURUM SİSTEMİ (AUTH) =================
   setupAuthSystem() {
-    // 1. URL'de davet / hızlı giriş parametresi var mı (?invite=...)
+    // 1. URL'de davet / hızlı giriş parametresi var mı (?invite=...&bin=...&sync=...)
     try {
       const urlParams = new URLSearchParams(window.location.search);
       const invitePayload = urlParams.get('invite');
       const syncParam = urlParams.get('sync');
+      const binParam = urlParams.get('bin');
       const dataParam = urlParams.get('d');
 
       if (invitePayload) {
@@ -95,13 +96,13 @@ const App = {
         }
       }
 
-      // Eğer URL'de sync veya d parametresi de varsa CloudSync'i hemen bağla
-      if ((syncParam || dataParam) && window.CloudSync) {
-        CloudSync.handleIncomingUrlParams(syncParam, dataParam);
+      // Eğer URL'de sync, bin veya d parametresi de varsa CloudSync'i hemen bağla
+      if ((syncParam || binParam || dataParam) && window.CloudSync) {
+        CloudSync.handleIncomingUrlParams(syncParam, dataParam, binParam);
       }
 
       // İşlem bitince URL'yi temizle
-      if (invitePayload || syncParam || dataParam) {
+      if (invitePayload || syncParam || binParam || dataParam) {
         try {
           window.history.replaceState(null, '', window.location.pathname);
         } catch (e) {}
@@ -197,7 +198,7 @@ const App = {
       connectSubmitBtn.addEventListener('click', async () => {
         const val = connectInput.value.trim();
         if (!val) {
-          alert('Lütfen bilgisayardaki eşitleme kodunu veya bağlantısını girin.');
+          alert('Lütfen bilgisayardaki 7 haneli eşitleme kodunu veya bağlantısını girin.');
           return;
         }
 
@@ -206,33 +207,6 @@ const App = {
         connectSubmitBtn.textContent = '⏳ Bağlanıyor...';
 
         try {
-          // 1. Eğer doğrudan davet / eşitleme linki veya parametreler yapıştırılmışsa
-          if (val.includes('invite=') || val.includes('sync=') || val.includes('d=')) {
-            const urlObj = new URL(val.startsWith('http') ? val : 'https://dummy.com/' + val);
-            const inv = urlObj.searchParams.get('invite');
-            const syn = urlObj.searchParams.get('sync');
-            const d = urlObj.searchParams.get('d');
-
-            if (inv) {
-              Storage.importInvitePayload(inv);
-            }
-            if ((syn || d) && window.CloudSync) {
-              await CloudSync.handleIncomingUrlParams(syn, d);
-            }
-
-            const users = Storage.getUsers();
-            const curUser = Storage.getCurrentUser() || (users.length > 0 ? users[0] : null);
-            if (curUser) {
-              Storage.setCurrentUser(curUser);
-              this.closeLoginModal();
-              this.applyProfileGenderUI();
-              this.refreshAllViews();
-              showToast(`🎉 Hoş geldiniz ${curUser.name}! Bilgisayarınızdaki hesap bağlandı.`, 'success');
-              return;
-            }
-          }
-
-          // 2. Normal kod veya sync URL
           if (window.CloudSync) {
             const ok = await CloudSync.connectWithCode(val);
             if (ok) {
@@ -243,9 +217,6 @@ const App = {
                 this.closeLoginModal();
                 this.applyProfileGenderUI();
                 this.refreshAllViews();
-                showToast(`🎉 Başarıyla bağlandı! ${curUser.name} hesabıyla oturum açıldı.`, 'success');
-              } else {
-                showToast('🎉 Eşitleme bağlandı! Şimdi güncel şifrenizle giriş yapabilirsiniz.', 'success');
               }
               return;
             }
@@ -367,7 +338,7 @@ const App = {
     let lastInviteMessage = '';
 
     if (createForm) {
-      createForm.addEventListener('submit', (e) => {
+      createForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const username = document.getElementById('admin-new-username')?.value.trim();
         const name = document.getElementById('admin-new-name')?.value.trim();
@@ -376,6 +347,16 @@ const App = {
 
         try {
           const newUser = Storage.createUser({ username, password, name, gender, role: 'user' });
+          this.renderAdminUsersList();
+
+          if (window.CloudSync) {
+            if (!CloudSync.hasActiveSync() || CloudSync.provider !== 'hybrid-ext') {
+              await CloudSync.startNewSync();
+            } else {
+              await CloudSync.pushDirect(Storage.getEvents(), Storage.getCategories(false), Storage.getUsers());
+            }
+          }
+
           lastInviteUrl = Storage.generateInviteUrl(newUser);
           lastInviteMessage = `Merhaba ${newUser.name},\nSağlık & Yaşam Takvimi hesabınız hazırlandı!\n\n🔗 Giriş Linki: ${lastInviteUrl}\n👤 Kullanıcı Adı: ${newUser.username}\n🔑 Şifreniz: ${newUser.password}\n\nYukarıdaki linke tıklayarak doğrudan hesabınıza giriş yapabilir ve profilinizden şifrenizi dilediğiniz zaman değiştirebilirsiniz.`;
 
@@ -386,11 +367,7 @@ const App = {
           const passEl = document.getElementById('admin-new-password');
           if (passEl) passEl.value = '123456';
 
-          this.renderAdminUsersList();
-          if (window.CloudSync && CloudSync.hasActiveSync()) {
-            CloudSync.push(false);
-          }
-          showToast(`"${newUser.name}" hesabı oluşturuldu! Bilgileri kopyalayabilirsiniz.`, 'success');
+          showToast(`"${newUser.name}" hesabı oluşturuldu ve buluta kaydedildi!`, 'success');
         } catch (err) {
           alert(err.message);
         }
@@ -722,14 +699,16 @@ const App = {
 
     if (copyCodeBtn) {
       copyCodeBtn.addEventListener('click', () => {
-        const syncId = window.CloudSync ? CloudSync.getSyncId() : null;
-        if (!syncId) return;
+        const shortCode = window.CloudSync && typeof CloudSync.getShortDisplayCode === 'function'
+          ? CloudSync.getShortDisplayCode()
+          : (window.CloudSync ? CloudSync.getSyncId() : null);
+        if (!shortCode) return;
         if (navigator.clipboard && navigator.clipboard.writeText) {
-          navigator.clipboard.writeText(syncId).then(() => {
-            showToast('📋 Eşitleme kodu kopyalandı!', 'success');
-          }).catch(() => showToast('Eşitleme Kodu: ' + syncId, 'info'));
+          navigator.clipboard.writeText(shortCode).then(() => {
+            showToast(`📋 Eşitleme kodu (${shortCode}) kopyalandı!`, 'success');
+          }).catch(() => showToast('Eşitleme Kodu: ' + shortCode, 'info'));
         } else {
-          showToast('Eşitleme Kodu: ' + syncId, 'info');
+          showToast('Eşitleme Kodu: ' + shortCode, 'info');
         }
       });
     }
@@ -760,49 +739,52 @@ const App = {
     const modal = document.getElementById('modal-link-phone');
     if (!modal) return;
 
-    // Eğer henüz bir syncId yoksa veya eski geçersiz bir provider/id ise (örn direct_ veya 15 karakterden kısa)
-    const curId = window.CloudSync ? CloudSync.getSyncId() : null;
-    const curProv = window.CloudSync ? CloudSync.provider : null;
-    if (window.CloudSync && (!curId || curProv !== 'restful-api' || curId.startsWith('direct_') || curId.length < 15)) {
-      await CloudSync.startNewSync();
-    }
-
-    // Buluta güncel aboneler ve takvim olayları yüklensin
-    if (window.CloudSync && CloudSync.hasActiveSync()) {
-      CloudSync.pushDirect(Storage.getEvents(), Storage.getCategories(), Storage.getUsers());
-    }
-
-    const curUser = Storage.getCurrentUser();
-    const syncId = window.CloudSync ? CloudSync.getSyncId() : null;
-    let pairingUrl = '';
-    if (window.CloudSync && typeof CloudSync.getDevicePairingUrl === 'function') {
-      pairingUrl = CloudSync.getDevicePairingUrl(curUser);
-    } else {
-      pairingUrl = Storage.generateInviteUrl(curUser, syncId);
-    }
-
     const qrImg = document.getElementById('link-phone-qr-img');
     const syncCodeEl = document.getElementById('link-phone-sync-code');
     const urlInput = document.getElementById('link-phone-url-input');
     const whatsappBtn = document.getElementById('btn-link-phone-whatsapp');
 
-    if (syncCodeEl) syncCodeEl.textContent = syncId || 'Oluşturuluyor...';
-    if (urlInput) urlInput.value = pairingUrl;
-    if (qrImg) {
-      qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(pairingUrl)}`;
-    }
-
-    if (whatsappBtn) {
-      const uName = curUser ? curUser.name : 'Hesabım';
-      const msg = `📱 Sağlık Takvimi - Cihaz Eşitleme ve Giriş Bağlantısı:\n\nHesap: ${uName}\nEşitleme Kodu: ${syncId}\n\nBu linke tıklayarak telefonunuzda şifrenizle anında oturum açabilir, abonelerinizi ve takviminizi senkronize edebilirsiniz:\n\n${pairingUrl}`;
-      whatsappBtn.href = `https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`;
-    }
+    if (syncCodeEl) syncCodeEl.textContent = 'Hazırlanıyor...';
+    if (urlInput) urlInput.value = 'Bulut paketi oluşturuluyor, lütfen bekleyin...';
 
     try {
       modal.showModal();
     } catch (err) {
       modal.setAttribute('open', '');
       modal.style.display = 'flex';
+    }
+
+    // Buluta güncel tüm aboneleri, kullanıcıları ve takvim olaylarını yükle ve tamamlanmasını bekle
+    if (window.CloudSync) {
+      if (!CloudSync.hasActiveSync() || CloudSync.provider !== 'hybrid-ext') {
+        await CloudSync.startNewSync();
+      } else {
+        await CloudSync.pushDirect(Storage.getEvents(), Storage.getCategories(false), Storage.getUsers());
+      }
+    }
+
+    const curUser = Storage.getCurrentUser();
+    const shortCode = window.CloudSync && typeof CloudSync.getShortDisplayCode === 'function'
+      ? CloudSync.getShortDisplayCode()
+      : (window.CloudSync ? CloudSync.getSyncId() : null);
+
+    let pairingUrl = '';
+    if (window.CloudSync && typeof CloudSync.getDevicePairingUrl === 'function') {
+      pairingUrl = CloudSync.getDevicePairingUrl(curUser);
+    } else {
+      pairingUrl = Storage.generateInviteUrl(curUser, shortCode);
+    }
+
+    if (syncCodeEl) syncCodeEl.textContent = shortCode || 'Hata';
+    if (urlInput) urlInput.value = pairingUrl;
+    if (qrImg && pairingUrl) {
+      qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(pairingUrl)}`;
+    }
+
+    if (whatsappBtn && pairingUrl) {
+      const uName = curUser ? curUser.name : 'Hesabım';
+      const msg = `📱 Sağlık Takvimi - Cihaz Eşitleme ve Giriş Bağlantısı:\n\nHesap: ${uName}\nKısa Eşitleme Kodu: ${shortCode}\n\nBu linke tıklayarak telefonunuzda şifrenizle anında oturum açabilir, abonelerinizi ve takviminizi senkronize edebilirsiniz:\n\n${pairingUrl}`;
+      whatsappBtn.href = `https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`;
     }
   },
 
