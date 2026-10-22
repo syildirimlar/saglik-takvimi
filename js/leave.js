@@ -36,19 +36,21 @@ export class LeaveModule {
       empSelect.parentNode.appendChild(noticeEl);
     }
 
-    if (isAuthorized) {
-      // YETKİLİ PERSONEL: Tüm çalışanlar adına talep oluşturabilir
-      empSelect.disabled = false;
-      noticeEl.className = "text-[11px] font-semibold mt-1 p-1.5 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200";
-      noticeEl.innerHTML = "👑 <b>Yetkili Girişi (İK / Yönetici):</b> Fabrikadaki tüm personeller adına izin talebi açabilirsiniz.";
+    if (noticeEl) {
+      noticeEl.innerHTML = "";
+      noticeEl.className = "hidden";
+    }
 
+    if (isAuthorized) {
+      // YETKİLİ PERSONEL: Tüm çalışanlar listelenir
+      empSelect.disabled = false;
       empSelect.innerHTML = `<option value="">-- Personel Seçiniz --</option>`;
       employees.forEach(emp => {
         const dep = appState.state.departments.find(d => d.id === emp.departmentId) || { name: "" };
         const isMe = myEmp && emp.id === myEmp.id;
         empSelect.innerHTML += `
           <option value="${emp.id}" data-dept="${emp.departmentId}" data-remaining="${emp.remainingLeave}" ${isMe ? 'selected' : ''}>
-            ${emp.name} ${isMe ? '👤 (KENDİM / SİZ)' : ''} (${dep.name || 'Genel'} - Kalan: ${emp.remainingLeave} Gün)
+            ${emp.name} (${dep.name || 'Genel'} - Kalan: ${emp.remainingLeave} Gün)
           </option>
         `;
       });
@@ -57,19 +59,16 @@ export class LeaveModule {
         empSelect.value = myEmp.id;
       }
     } else {
-      // YETKİSİZ PERSONEL (Usta, İşçi, vb.): SADECE KENDİSİNİ SEÇEBİLİR!
-      noticeEl.className = "text-[11px] font-semibold mt-1 p-1.5 rounded-lg bg-amber-50 text-amber-900 border border-amber-200";
-      noticeEl.innerHTML = "🔒 <b>Standart Personel:</b> Başkası adına izin açma yetkiniz yoktur. Yalnızca kendi adınıza talep girebilirsiniz.";
-
+      // STANDART PERSONEL: Kendi profili doğrudan seçili gelir
       if (myEmp) {
         const dep = appState.state.departments.find(d => d.id === myEmp.departmentId) || { name: "" };
         empSelect.innerHTML = `
           <option value="${myEmp.id}" data-dept="${myEmp.departmentId}" data-remaining="${myEmp.remainingLeave}" selected>
-            👤 ${myEmp.name} (SİZ) - [${dep.name || 'Genel'}] - Kalan İzin: ${myEmp.remainingLeave} Gün
+            ${myEmp.name} (${dep.name || 'Genel'} - Kalan İzin: ${myEmp.remainingLeave} Gün)
           </option>
         `;
         empSelect.value = myEmp.id;
-        empSelect.disabled = true; // Kilitli: Yetkisiz personel başkasını seçemez!
+        empSelect.disabled = true;
       } else {
         empSelect.innerHTML = `<option value="">-- Çalışan profiliniz bulunamadı --</option>`;
         empSelect.disabled = true;
@@ -648,10 +647,10 @@ export class LeaveModule {
     const isAuthorized = isManagerOrHr();
     const myEmp = getCurrentUserEmployee();
 
-    // Sıkı Yetki Kontrolü: Yetkisiz kullanıcı başkası adına izin açamaz!
+    // Sıkı Yetki Kontrolü: Yetkisiz kullanıcı başkası adına izin açamaz
     if (!isAuthorized) {
       if (!myEmp || empId !== myEmp.id) {
-        alert("Yetki Hatası: Başka bir personel adına izin talebi oluşturma yetkiniz bulunmamaktadır. Yalnızca kendi adınıza izin talebi girebilirsiniz.");
+        alert("Lütfen yalnızca kendi adınıza izin talebi oluşturunuz.");
         return;
       }
     }

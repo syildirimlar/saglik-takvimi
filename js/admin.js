@@ -140,13 +140,57 @@ export class AdminModule {
       btnClearLogs.addEventListener("click", () => this.clearLogs());
     }
 
-    if (btnReset) {
-      btnReset.addEventListener("click", () => {
-        if (confirm("DİKKAT: Tüm veriler fabrika ayarlarına sıfırlanacak. Onaylıyor musunuz?")) {
-          appState.resetToDefaults();
-          alert("Sistem varsayılan verilere sıfırlandı.");
-          window.location.reload();
+    // Korumalı Fabrika Sıfırlama Dinleyicileri
+    const btnOpenGuardedReset = document.getElementById("btn-open-guarded-reset") || document.getElementById("btn-reset-factory");
+    const modalGuardedReset = document.getElementById("modal-guarded-reset");
+    const inputConfirmPhrase = document.getElementById("input-confirm-reset-phrase");
+    const btnExecuteGuardedReset = document.getElementById("btn-execute-guarded-reset");
+
+    if (btnOpenGuardedReset) {
+      btnOpenGuardedReset.addEventListener("click", () => {
+        const currentUser = appState.state.currentUser || {};
+        if (currentUser.role !== "ADMIN") {
+          alert("Yetki Hatası: Fabrika sıfırlama işlemi yalnızca Sistem Yöneticisi (ADMIN) yetkisiyle açılabilir.");
+          return;
         }
+
+        if (inputConfirmPhrase) {
+          inputConfirmPhrase.value = "";
+          setTimeout(() => inputConfirmPhrase.focus(), 150);
+        }
+        if (btnExecuteGuardedReset) btnExecuteGuardedReset.disabled = true;
+        if (modalGuardedReset) modalGuardedReset.classList.add("show");
+      });
+    }
+
+    if (inputConfirmPhrase && btnExecuteGuardedReset) {
+      inputConfirmPhrase.addEventListener("input", (e) => {
+        const val = e.target.value.trim().toUpperCase();
+        btnExecuteGuardedReset.disabled = (val !== "SIFIRLA");
+      });
+    }
+
+    if (btnExecuteGuardedReset) {
+      btnExecuteGuardedReset.addEventListener("click", () => {
+        const phrase = (inputConfirmPhrase ? inputConfirmPhrase.value : "").trim().toUpperCase();
+        if (phrase !== "SIFIRLA") {
+          alert("Lütfen onaylamak için kutucuğa SIFIRLA yazınız.");
+          return;
+        }
+
+        // 1. ADIM: Otomatik Acil Kurtarma Yedeği İndir (Veri Asla Kaybolmasın!)
+        try {
+          this.exportBackup();
+        } catch (e) {
+          console.error("Otomatik yedek alınırken hata oluştu:", e);
+        }
+
+        // 2. ADIM: Log kaydet ve sıfırla
+        logSystemAction("FABRİKA_SIFIRLAMA", `${appState.state.currentUser.name}, acil kurtarma yedeği alarak sistemi fabrika ayarlarına sıfırladı.`);
+        appState.resetToDefaults();
+
+        alert("Fabrika sıfırlama tamamlandı. Tüm verilerinizi içeren acil durum kurtarma yedeği dosyanız bilgisayarınıza otomatik olarak indirildi.");
+        window.location.reload();
       });
     }
   }

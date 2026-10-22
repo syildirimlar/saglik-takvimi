@@ -1,11 +1,14 @@
 // SODSAN Fabrika Portalı - Makina Arıza ve Bakım Takip Modülü (breakdown.js)
-import { appState, playAlertSound, logSystemAction, registerMachine, addExternalService, deleteExternalService } from './data.js';
+import { appState, playAlertSound, logSystemAction, registerMachine, updateMachine, deleteMachine, addExternalService, deleteExternalService } from './data.js';
 
 export class BreakdownModule {
   constructor() {
     this.filterStatus = "ALL";
     this.filterDept = "ALL";
     this.filterUrgency = "ALL";
+    this.activeSubtab = "LIVE"; // "LIVE", "PARK", "EXTERNAL"
+    this.searchMachinePark = "";
+    this.filterMachineParkDept = "ALL";
   }
 
   init() {
@@ -18,32 +21,40 @@ export class BreakdownModule {
   populateDepartmentSelect() {
     const modalDeptSelect = document.getElementById("breakdown-department");
     const filterDeptSelect = document.getElementById("filter-breakdown-dept");
+    const regDeptSelect = document.getElementById("reg-machine-department");
+    const editDeptSelect = document.getElementById("edit-machine-department");
+    const filterParkDeptSelect = document.getElementById("filter-machine-park-dept");
+
+    const deptOptionsHtml = appState.state.departments.map(dep => `
+      <option value="${dep.id}">${dep.icon} ${dep.name}</option>
+    `).join("");
 
     if (modalDeptSelect) {
-      modalDeptSelect.innerHTML = appState.state.departments.map(dep => `
-        <option value="${dep.id}">${dep.icon} ${dep.name}</option>
-      `).join("");
-
+      modalDeptSelect.innerHTML = deptOptionsHtml;
       const user = appState.state.currentUser;
       if (user && user.departmentId) {
         modalDeptSelect.value = user.departmentId;
       }
     }
 
-    const regDeptSelect = document.getElementById("reg-machine-department");
     if (regDeptSelect) {
-      regDeptSelect.innerHTML = appState.state.departments.map(dep => `
-        <option value="${dep.id}">${dep.icon} ${dep.name}</option>
-      `).join("");
+      regDeptSelect.innerHTML = deptOptionsHtml;
+    }
+
+    if (editDeptSelect) {
+      editDeptSelect.innerHTML = deptOptionsHtml;
     }
 
     if (filterDeptSelect) {
       const currentVal = this.filterDept;
-      filterDeptSelect.innerHTML = `<option value="ALL">Tüm Departmanlar</option>` +
-        appState.state.departments.map(dep => `
-          <option value="${dep.id}">${dep.icon} ${dep.name}</option>
-        `).join("");
+      filterDeptSelect.innerHTML = `<option value="ALL">Tüm Departmanlar</option>` + deptOptionsHtml;
       filterDeptSelect.value = currentVal;
+    }
+
+    if (filterParkDeptSelect) {
+      const currentVal = this.filterMachineParkDept;
+      filterParkDeptSelect.innerHTML = `<option value="ALL">Tüm Departmanlar</option>` + deptOptionsHtml;
+      filterParkDeptSelect.value = currentVal;
     }
   }
 
@@ -51,22 +62,76 @@ export class BreakdownModule {
     const machineSelect = document.getElementById("breakdown-machine");
     if (!machineSelect) return;
     const currentVal = machineSelect.value;
-    const machines = appState.state.machines || ["Kompresör"];
+    const rawMachines = appState.state.machines || [];
+    const machines = rawMachines.map(m => typeof m === "string" ? { id: m, name: m, code: "" } : m);
 
     machineSelect.innerHTML = `
       <option value="">-- Arızalanan Makina / Hat Seçiniz --</option>
-      ${machines.map(m => `<option value="${m}">⚙️ ${m}</option>`).join("")}
+      ${machines.map(m => `<option value="${m.name}">⚙️ ${m.name} ${m.code ? `(${m.code})` : ''}</option>`).join("")}
       <option value="DIGER">➕ [Yeni Makina Yaz ve Parka Kaydet...]</option>
     `;
 
-    if (currentVal && (machines.includes(currentVal) || currentVal === "DIGER")) {
+    const machineNames = machines.map(m => m.name);
+    if (currentVal && (machineNames.includes(currentVal) || currentVal === "DIGER")) {
       machineSelect.value = currentVal;
     } else if (machines.length > 0) {
-      machineSelect.value = machines[0]; // Kompresör varsayılan seçilir
+      machineSelect.value = machines[0].name;
     }
   }
 
   bindEvents() {
+    // Alt Sekme Geçişleri (Canlı Arıza vs Makine Parkuru vs Dış Servis Rehberi)
+    const subtabBtnLive = document.getElementById("subtab-btn-breakdown-live");
+    const subtabBtnPark = document.getElementById("subtab-btn-machine-park");
+    const subtabBtnExt = document.getElementById("subtab-btn-external-services");
+    const subpaneLive = document.getElementById("subpane-breakdown-live");
+    const subpanePark = document.getElementById("subpane-machine-park");
+    const subpaneExt = document.getElementById("subpane-external-services");
+
+    const switchSubtab = (tab) => {
+      this.activeSubtab = tab;
+      [subtabBtnLive, subtabBtnPark, subtabBtnExt].forEach(btn => {
+        if (!btn) return;
+        btn.className = "px-3.5 py-1.5 rounded-lg text-xs font-black transition flex items-center gap-1.5 text-slate-600 hover:text-slate-900";
+      });
+      [subpaneLive, subpanePark, subpaneExt].forEach(pane => {
+        if (pane) pane.classList.add("hidden");
+      });
+
+      if (tab === "LIVE") {
+        if (subtabBtnLive) subtabBtnLive.className = "px-3.5 py-1.5 rounded-lg text-xs font-black transition flex items-center gap-1.5 bg-white text-blue-700 shadow-sm";
+        if (subpaneLive) subpaneLive.classList.remove("hidden");
+      } else if (tab === "PARK") {
+        if (subtabBtnPark) subtabBtnPark.className = "px-3.5 py-1.5 rounded-lg text-xs font-black transition flex items-center gap-1.5 bg-white text-blue-700 shadow-sm";
+        if (subpanePark) subpanePark.classList.remove("hidden");
+        this.renderMachinePark();
+      } else if (tab === "EXTERNAL") {
+        if (subtabBtnExt) subtabBtnExt.className = "px-3.5 py-1.5 rounded-lg text-xs font-black transition flex items-center gap-1.5 bg-white text-blue-700 shadow-sm";
+        if (subpaneExt) subpaneExt.classList.remove("hidden");
+        this.renderExternalServices();
+      }
+    };
+
+    if (subtabBtnLive) subtabBtnLive.addEventListener("click", () => switchSubtab("LIVE"));
+    if (subtabBtnPark) subtabBtnPark.addEventListener("click", () => switchSubtab("PARK"));
+    if (subtabBtnExt) subtabBtnExt.addEventListener("click", () => switchSubtab("EXTERNAL"));
+
+    // Makine Parkuru Arama ve Filtre Dinleyicileri
+    const searchPark = document.getElementById("search-machine-park");
+    const filterParkDept = document.getElementById("filter-machine-park-dept");
+    if (searchPark) {
+      searchPark.addEventListener("input", (e) => {
+        this.searchMachinePark = e.target.value.toLowerCase().trim();
+        this.renderMachinePark();
+      });
+    }
+    if (filterParkDept) {
+      filterParkDept.addEventListener("change", (e) => {
+        this.filterMachineParkDept = e.target.value;
+        this.renderMachinePark();
+      });
+    }
+
     // Header'daki ve diğer yerlerdeki Arıza Bildir butonları
     const btnOpenReport = document.getElementById("btn-open-report-breakdown");
     const formReport = document.getElementById("form-report-breakdown");
@@ -82,8 +147,10 @@ export class BreakdownModule {
 
     // Makine Parkına Yeni Makine Kaydetme Butonları & Formu
     const btnOpenRegTop = document.getElementById("btn-open-register-machine-top");
+    const btnOpenRegFromPark = document.getElementById("btn-open-register-machine-park");
     const btnOpenRegFromBreakdown = document.getElementById("btn-open-register-machine-from-breakdown");
     const formRegisterMachine = document.getElementById("form-register-machine");
+    const formEditMachine = document.getElementById("form-edit-machine");
 
     const openRegisterModal = () => {
       this.populateDepartmentSelect();
@@ -91,18 +158,21 @@ export class BreakdownModule {
       if (modal) modal.classList.add("show");
     };
 
-    if (btnOpenRegTop) {
-      btnOpenRegTop.addEventListener("click", openRegisterModal);
-    }
-
-    if (btnOpenRegFromBreakdown) {
-      btnOpenRegFromBreakdown.addEventListener("click", openRegisterModal);
-    }
+    if (btnOpenRegTop) btnOpenRegTop.addEventListener("click", openRegisterModal);
+    if (btnOpenRegFromPark) btnOpenRegFromPark.addEventListener("click", openRegisterModal);
+    if (btnOpenRegFromBreakdown) btnOpenRegFromBreakdown.addEventListener("click", openRegisterModal);
 
     if (formRegisterMachine) {
       formRegisterMachine.addEventListener("submit", (e) => {
         e.preventDefault();
         this.saveRegisteredMachine();
+      });
+    }
+
+    if (formEditMachine) {
+      formEditMachine.addEventListener("submit", (e) => {
+        e.preventDefault();
+        this.saveEditedMachine();
       });
     }
 
@@ -271,7 +341,176 @@ export class BreakdownModule {
     });
   }
 
-  openReportModal() {
+  renderMachinePark() {
+    const tbody = document.getElementById("machine-park-table-tbody");
+    const emptyMsg = document.getElementById("machine-park-empty-msg");
+    const badge = document.getElementById("machine-park-badge-count");
+    if (!tbody) return;
+
+    let rawMachines = appState.state.machines || [];
+    let machines = rawMachines.map(m => typeof m === "string" ? {
+      id: "mac_" + m.toLowerCase().replace(/[^a-z0-9]/g, "_"),
+      name: m,
+      code: "",
+      departmentId: "",
+      location: "",
+      notes: "",
+      status: "Aktif",
+      addedAt: "2026-10-22"
+    } : m);
+
+    if (badge) {
+      badge.textContent = machines.length;
+    }
+
+    if (this.searchMachinePark) {
+      machines = machines.filter(m =>
+        m.name.toLowerCase().includes(this.searchMachinePark) ||
+        (m.code && m.code.toLowerCase().includes(this.searchMachinePark)) ||
+        (m.location && m.location.toLowerCase().includes(this.searchMachinePark))
+      );
+    }
+
+    if (this.filterMachineParkDept !== "ALL") {
+      machines = machines.filter(m => m.departmentId === this.filterMachineParkDept);
+    }
+
+    if (machines.length === 0) {
+      tbody.innerHTML = "";
+      if (emptyMsg) emptyMsg.classList.remove("hidden");
+      return;
+    }
+
+    if (emptyMsg) emptyMsg.classList.add("hidden");
+
+    tbody.innerHTML = machines.map(m => {
+      const dep = appState.state.departments.find(d => d.id === m.departmentId) || { name: "Genel Fabrika", icon: "🏢" };
+      const activeBrk = (appState.state.breakdowns || []).find(b => b.machineName === m.name && b.status !== "Giderildi");
+      const totalBreakdownCount = (appState.state.breakdowns || []).filter(b => b.machineName === m.name).length;
+
+      let statusBadge = "";
+      if (activeBrk) {
+        statusBadge = `<span class="bg-red-100 text-red-800 text-[10px] font-black px-2 py-0.5 rounded-full inline-flex items-center gap-1 shadow-sm border border-red-200 animate-pulse">🚨 Arızada (${activeBrk.urgency})</span>`;
+      } else if (m.status === "Bakımda") {
+        statusBadge = `<span class="bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded-full border border-amber-200">🟡 Bakımda</span>`;
+      } else if (m.status === "Devre Dışı") {
+        statusBadge = `<span class="bg-slate-100 text-slate-600 text-[10px] font-bold px-2 py-0.5 rounded-full border border-slate-200">⚪ Devre Dışı</span>`;
+      } else {
+        statusBadge = `<span class="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-200">🟢 Faal / Çalışıyor</span>`;
+      }
+
+      return `
+        <tr class="hover:bg-blue-50/40 transition">
+          <td class="py-2.5 px-3.5">
+            <div class="font-extrabold text-slate-900 flex items-center gap-1.5">
+              <span class="text-slate-400">⚙️</span>
+              <span class="text-sm">${m.name}</span>
+            </div>
+            ${m.notes ? `<div class="text-[10px] text-slate-400 truncate max-w-xs mt-0.5 italic">"${m.notes}"</div>` : ''}
+          </td>
+          <td class="py-2.5 px-3 whitespace-nowrap">
+            ${m.code ? `<span class="bg-slate-100 text-slate-700 text-[10px] font-mono font-bold px-2 py-0.5 rounded border border-slate-200">${m.code}</span>` : '<span class="text-slate-300">-</span>'}
+          </td>
+          <td class="py-2.5 px-3 font-semibold text-slate-700 whitespace-nowrap">
+            ${dep.icon} ${dep.name}
+          </td>
+          <td class="py-2.5 px-3 text-slate-600 font-medium whitespace-nowrap">
+            ${m.location ? `📍 ${m.location}` : '<span class="text-slate-300">-</span>'}
+          </td>
+          <td class="py-2.5 px-3 whitespace-nowrap">
+            ${statusBadge}
+          </td>
+          <td class="py-2.5 px-3 whitespace-nowrap">
+            ${totalBreakdownCount > 0 ? `<span class="bg-amber-50 text-amber-800 font-bold px-2 py-0.5 rounded text-[11px] border border-amber-200">${totalBreakdownCount} Arıza</span>` : '<span class="text-slate-400 text-[11px]">Sorunsuz</span>'}
+          </td>
+          <td class="py-2.5 px-3.5 text-right whitespace-nowrap">
+            <div class="flex items-center justify-end gap-1.5">
+              <button data-report-for-machine="${m.name}" title="Bu makineye arıza bildir" class="bg-red-50 hover:bg-red-600 hover:text-white text-red-600 font-bold text-xs py-1 px-2.5 rounded-lg border border-red-200 transition flex items-center gap-1 cursor-pointer">
+                <span>🚨</span> <span class="hidden sm:inline">Arıza Bildir</span>
+              </button>
+              <button data-edit-machine="${m.id}" title="Makine Bilgilerini Düzenle" class="bg-slate-100 hover:bg-blue-600 hover:text-white text-slate-700 font-bold text-xs p-1.5 rounded-lg border border-slate-200 transition cursor-pointer">
+                <span>✏️</span>
+              </button>
+              <button data-delete-machine="${m.id}" data-name="${m.name}" title="Parkurdan Kaldır" class="bg-slate-100 hover:bg-red-600 hover:text-white text-slate-400 font-bold text-xs p-1.5 rounded-lg border border-slate-200 transition cursor-pointer">
+                <span>🗑️</span>
+              </button>
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join("");
+
+    // Dinleyiciler
+    tbody.querySelectorAll("[data-edit-machine]").forEach(btn => {
+      btn.addEventListener("click", (e) => {
+        const id = e.currentTarget.getAttribute("data-edit-machine");
+        this.openEditMachineModal(id);
+      });
+    });
+
+    tbody.querySelectorAll("[data-delete-machine]").forEach(btn => {
+      btn.addEventListener("click", (e) => {
+        const id = e.currentTarget.getAttribute("data-delete-machine");
+        const name = e.currentTarget.getAttribute("data-name");
+        this.confirmDeleteMachine(id, name);
+      });
+    });
+
+    tbody.querySelectorAll("[data-report-for-machine]").forEach(btn => {
+      btn.addEventListener("click", (e) => {
+        const machineName = e.currentTarget.getAttribute("data-report-for-machine");
+        this.openReportModal(machineName);
+      });
+    });
+  }
+
+  openEditMachineModal(id) {
+    const rawMachines = appState.state.machines || [];
+    const m = rawMachines.find(mac => (typeof mac === "string" ? mac === id : mac.id === id));
+    if (!m) return;
+
+    const modal = document.getElementById("modal-edit-machine");
+    if (!modal) return;
+
+    this.populateDepartmentSelect();
+
+    const mObj = typeof m === "string" ? { id: m, name: m, code: "", departmentId: "", location: "", notes: "", status: "Aktif" } : m;
+
+    document.getElementById("edit-machine-id").value = mObj.id;
+    document.getElementById("edit-machine-name").value = mObj.name;
+    document.getElementById("edit-machine-code").value = mObj.code || "";
+    document.getElementById("edit-machine-status").value = mObj.status || "Aktif";
+    document.getElementById("edit-machine-location").value = mObj.location || "";
+    document.getElementById("edit-machine-notes").value = mObj.notes || "";
+
+    const deptSelect = document.getElementById("edit-machine-department");
+    if (deptSelect && mObj.departmentId) {
+      deptSelect.value = mObj.departmentId;
+    }
+
+    modal.classList.add("show");
+  }
+
+  confirmDeleteMachine(id, name) {
+    const active = (appState.state.breakdowns || []).some(b => b.machineName === name && b.status !== "Giderildi");
+    if (active) {
+      alert(`"${name}" makinesine ait henüz giderilmemiş aktif bir arıza kaydı bulunmaktadır. Önce arıza kaydını kapatınız veya siliniz.`);
+      return;
+    }
+
+    if (confirm(`"${name}" makinesini fabrika makine parkurundan silmek istediğinize emin misiniz?`)) {
+      deleteMachine(id);
+      logSystemAction(
+        "MAKİNE_SİLME",
+        `${appState.state.currentUser.name}, "${name}" makinesini makine parkurundan sildi.`,
+        { machineId: id, machineName: name }
+      );
+      this.populateMachineSelect();
+      this.render();
+    }
+  }
+
+  openReportModal(preSelectedMachine = null) {
     this.populateDepartmentSelect();
     this.populateMachineSelect();
 
@@ -279,6 +518,25 @@ export class BreakdownModule {
     const reporterEl = document.getElementById("breakdown-reporter-name");
     if (reporterEl) {
       reporterEl.textContent = appState.state.currentUser.name;
+    }
+
+    if (preSelectedMachine) {
+      const machineSelect = document.getElementById("breakdown-machine");
+      if (machineSelect) {
+        machineSelect.value = preSelectedMachine;
+      }
+      const customWrap = document.getElementById("breakdown-custom-machine-container");
+      if (customWrap) customWrap.classList.add("hidden");
+
+      // Makinenin departman ve konumunu otomatik doldur
+      const rawMachines = appState.state.machines || [];
+      const mObj = rawMachines.find(m => (typeof m === "string" ? m === preSelectedMachine : m.name === preSelectedMachine));
+      if (mObj && typeof mObj === "object") {
+        const deptSelect = document.getElementById("breakdown-department");
+        const locInput = document.getElementById("breakdown-location");
+        if (deptSelect && mObj.departmentId) deptSelect.value = mObj.departmentId;
+        if (locInput && mObj.location && !locInput.value) locInput.value = mObj.location;
+      }
     }
 
     const modal = document.getElementById("modal-report-breakdown");
@@ -369,6 +627,7 @@ export class BreakdownModule {
 
   saveRegisteredMachine() {
     const nameInput = document.getElementById("reg-machine-name");
+    const codeInput = document.getElementById("reg-machine-code");
     const deptSelect = document.getElementById("reg-machine-department");
     const locInput = document.getElementById("reg-machine-location");
     const notesInput = document.getElementById("reg-machine-notes");
@@ -379,8 +638,20 @@ export class BreakdownModule {
       return;
     }
 
+    const code = codeInput ? codeInput.value.trim() : "";
+    const departmentId = deptSelect ? deptSelect.value : "";
+    const location = locInput ? locInput.value.trim() : "";
+    const notes = notesInput ? notesInput.value.trim() : "";
+
     // Makineyi makine parkına kaydet
-    registerMachine(name);
+    registerMachine({
+      name,
+      code,
+      departmentId,
+      location,
+      notes
+    });
+
     this.populateMachineSelect();
 
     // Arıza bildirim penceresindeki seçimi otomatik bu makine yap
@@ -392,59 +663,133 @@ export class BreakdownModule {
     }
 
     // Konum ve departman belirtildiyse arıza formuna da aktar
-    if (locInput && locInput.value.trim()) {
+    if (location) {
       const bLoc = document.getElementById("breakdown-location");
       if (bLoc && !bLoc.value.trim()) {
-        bLoc.value = locInput.value.trim();
+        bLoc.value = location;
       }
     }
 
-    if (deptSelect && deptSelect.value) {
+    if (departmentId) {
       const bDept = document.getElementById("breakdown-department");
-      if (bDept) bDept.value = deptSelect.value;
+      if (bDept) bDept.value = departmentId;
     }
 
     logSystemAction(
       "MAKİNE_EKLEME",
-      `${appState.state.currentUser.name}, "${name}" makinesini fabrika makine parkına kaydetti.`,
-      { machineName: name, departmentId: deptSelect ? deptSelect.value : null }
+      `${appState.state.currentUser.name}, "${name}" (${code || 'KODSUZ'}) makinesini fabrika makine parkına kaydetti.`,
+      { machineName: name, code, departmentId }
     );
 
     playAlertSound("call");
 
     document.getElementById("form-register-machine").reset();
     document.getElementById("modal-register-machine").classList.remove("show");
-    alert(`"${name}" makinesi başarıyla fabrika parkına kaydedildi ve arıza bildiriminde seçildi.`);
+
+    this.render();
+    alert(`"${name}" makinesi başarıyla fabrika parkına kaydedildi.`);
   }
 
-  sendTelegramAlert(breakdown) {
+  saveEditedMachine() {
+    const id = document.getElementById("edit-machine-id").value;
+    const nameInput = document.getElementById("edit-machine-name");
+    const codeInput = document.getElementById("edit-machine-code");
+    const statusSelect = document.getElementById("edit-machine-status");
+    const deptSelect = document.getElementById("edit-machine-department");
+    const locInput = document.getElementById("edit-machine-location");
+    const notesInput = document.getElementById("edit-machine-notes");
+
+    const name = nameInput ? nameInput.value.trim() : "";
+    if (!name) {
+      alert("Lütfen makine adını giriniz.");
+      return;
+    }
+
+    const updated = updateMachine(id, {
+      name,
+      code: codeInput ? codeInput.value.trim() : "",
+      status: statusSelect ? statusSelect.value : "Aktif",
+      departmentId: deptSelect ? deptSelect.value : "",
+      location: locInput ? locInput.value.trim() : "",
+      notes: notesInput ? notesInput.value.trim() : ""
+    });
+
+    if (updated) {
+      logSystemAction(
+        "MAKİNE_DÜZENLEME",
+        `${appState.state.currentUser.name}, "${name}" makinesinin bilgilerini güncelledi.`,
+        { machineId: id, name, status: updated.status }
+      );
+
+      playAlertSound("call");
+      document.getElementById("modal-edit-machine").classList.remove("show");
+      this.populateMachineSelect();
+      this.render();
+      alert(`"${name}" makinesinin bilgileri başarıyla güncellendi.`);
+    }
+  }
+
+  async sendTelegramAlert(breakdown) {
     const config = appState.state.telegramConfig;
     if (!config || !config.enabled || !config.botToken || !config.chatId) return;
+    if (config.notifyBreakdown === false) {
+      console.log("Makine arıza Telegram bildirimi kullanıcı tercihiyle kapalı.");
+      return;
+    }
 
     const urgencyEmoji = breakdown.urgency === "Kritik" ? "🚨🚨 KRİTİK HAT DURUŞU 🚨🚨" : breakdown.urgency === "Yüksek" ? "⚠️ YÜKSEK ÖNCELİK" : "🔧 ARIZA BİLDİRİMİ";
-    const dep = appState.state.departments.find(d => d.id === breakdown.departmentId) || { name: "" };
+    const dep = appState.state.departments.find(d => d.id === breakdown.departmentId) || { name: "Genel Fabrika" };
+    const timeStr = new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
 
-    const message = `
-${urgencyEmoji}
-🏭 *SODSAN MAKİNA ARIZA BİLDİRİMİ*
-⚙️ *Makina:* ${breakdown.machineName}
-📍 *Konum:* ${breakdown.location} (${dep.name})
-⚡ *Arıza Türü:* ${breakdown.faultType}
-👤 *Bildiren:* ${breakdown.reportedBy}
-📝 *Açıklama:* ${breakdown.description}
-⏰ *Zaman:* ${new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
+    const escapeHtml = (str) => String(str || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+    const htmlMessage = `
+<b>${urgencyEmoji}</b>
+🏭 <b>SODSAN MAKİNA ARIZA BİLDİRİMİ</b>
+⚙️ <b>Makina:</b> ${escapeHtml(breakdown.machineName)}
+📍 <b>Konum:</b> ${escapeHtml(breakdown.location)} (${escapeHtml(dep.name)})
+⚡ <b>Arıza Türü:</b> ${escapeHtml(breakdown.faultType)}
+👤 <b>Bildiren:</b> ${escapeHtml(breakdown.reportedBy)}
+📝 <b>Açıklama:</b> ${escapeHtml(breakdown.description)}
+⏰ <b>Zaman:</b> ${timeStr}
 `.trim();
 
-    const url = `https://api.telegram.org/bot${config.botToken}/sendMessage`;
-    fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        chat_id: config.chatId,
-        text: message,
-        parse_mode: "Markdown"
-      })
-    }).catch(err => console.warn("Telegram arıza bildirimi gönderilemedi:", err));
+    const plainMessage = `
+${urgencyEmoji}
+SODSAN MAKİNA ARIZA BİLDİRİMİ
+Makina: ${breakdown.machineName}
+Konum: ${breakdown.location} (${dep.name})
+Arıza Türü: ${breakdown.faultType}
+Bildiren: ${breakdown.reportedBy}
+Açıklama: ${breakdown.description}
+Zaman: ${timeStr}
+`.trim();
+
+    try {
+      const url = `https://api.telegram.org/bot${config.botToken}/sendMessage`;
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          chat_id: config.chatId,
+          text: htmlMessage,
+          parse_mode: "HTML"
+        })
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok || (data && !data.ok)) {
+        await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            chat_id: config.chatId,
+            text: plainMessage
+          })
+        });
+      }
+    } catch (err) {
+      console.warn("Telegram arıza bildirimi gönderilemedi:", err);
+    }
   }
 
   assignSelfTechnician(breakdownId) {
@@ -594,6 +939,7 @@ ${urgencyEmoji}
 
   render() {
     this.renderEmergencyBanner();
+    this.renderMachinePark();
     this.renderExternalServices();
 
     const statsContainer = document.getElementById("breakdown-stats-summary");

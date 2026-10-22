@@ -221,11 +221,15 @@ body {
 
 /* Bottom Nav for Mobile */
 @media (max-width: 768px) {
+  body {
+    padding-bottom: calc(5rem + env(safe-area-inset-bottom, 0px)) !important;
+  }
   .desktop-nav {
     display: none;
   }
   .mobile-bottom-bar {
     display: flex;
+    padding-bottom: calc(0.4rem + env(safe-area-inset-bottom, 0px));
   }
   .calendar-day-cell {
     min-height: 42px;
@@ -237,6 +241,13 @@ body {
   .calendar-badge {
     font-size: 0.55rem;
     padding: 0 2px;
+  }
+  .modal-card {
+    max-height: 88vh;
+    border-radius: 1.25rem;
+  }
+  button, input, select, textarea {
+    touch-action: manipulation;
   }
 }
 

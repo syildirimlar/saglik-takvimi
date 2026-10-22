@@ -46,11 +46,35 @@ export class ForkliftModule {
       btnTelegramSettings.addEventListener("click", () => {
         const modal = document.getElementById("modal-telegram-settings");
         if (modal) {
-          document.getElementById("telegram-token").value = appState.state.telegramConfig?.botToken || "";
-          document.getElementById("telegram-chat-id").value = appState.state.telegramConfig?.chatId || "";
-          document.getElementById("telegram-enabled").checked = !!appState.state.telegramConfig?.enabled;
+          const cfg = appState.state.telegramConfig || {};
+          document.getElementById("telegram-token").value = cfg.botToken || "";
+          document.getElementById("telegram-chat-id").value = cfg.chatId || "";
+          document.getElementById("telegram-enabled").checked = !!cfg.enabled;
+
+          const elNew = document.getElementById("tg-notify-forklift-new");
+          if (elNew) elNew.checked = cfg.notifyForkliftNew !== false;
+
+          const elEnroute = document.getElementById("tg-notify-forklift-enroute");
+          if (elEnroute) elEnroute.checked = cfg.notifyForkliftEnRoute !== false;
+
+          const elDone = document.getElementById("tg-notify-forklift-done");
+          if (elDone) elDone.checked = cfg.notifyForkliftDone !== false;
+
+          const elBreakdown = document.getElementById("tg-notify-breakdown");
+          if (elBreakdown) elBreakdown.checked = cfg.notifyBreakdown !== false;
+
+          const elCalendar = document.getElementById("tg-notify-calendar");
+          if (elCalendar) elCalendar.checked = cfg.notifyCalendar !== false;
+
           modal.classList.add("show");
         }
+      });
+    }
+
+    const btnTest = document.getElementById("btn-telegram-test");
+    if (btnTest) {
+      btnTest.addEventListener("click", () => {
+        this.testTelegramConnection();
       });
     }
 
@@ -193,7 +217,7 @@ export class ForkliftModule {
 
     // Aksiyon Dinleyicileri
     container.querySelectorAll("[data-forklift-action]").forEach(btn => {
-      btn.addEventListener("click", (e) => {
+      btn.addEventListener("click", async (e) => {
         const id = e.currentTarget.getAttribute("data-call-id");
         const action = e.currentTarget.getAttribute("data-forklift-action");
         const call = appState.state.forkliftRequests.find(c => c.id === id);
@@ -210,6 +234,9 @@ export class ForkliftModule {
 
           playAlertSound("call");
           this.render();
+
+          // Telegram Grubu Bildirimi (Görevi Aldı / Tamamladı)
+          await this.sendTelegramNotification(call, action);
         }
       });
     });
@@ -230,34 +257,124 @@ export class ForkliftModule {
     });
   }
 
-  async sendTelegramNotification(call) {
+  async sendTelegramNotification(call, eventType = "NEW") {
     const config = appState.state.telegramConfig;
     if (!config || !config.enabled || !config.botToken || !config.chatId) {
       console.log("Telegram entegrasyonu devre dışı veya yapılandırılmamış.");
       return;
     }
 
-    const dep = appState.state.departments.find(d => d.id === call.departmentId) || { name: "" };
-    const text = `🚜 *YENİ FORKLİFT ÇAĞRISI!*
-📍 *Bölüm:* ${dep.name}
-📌 *Konum:* ${call.location}
-⚡ *Aciliyet:* ${call.urgency}
-👤 *Talep Eden:* ${call.requestedBy}
-📝 *Not:* ${call.description}
-⏰ *Saat:* ${new Date().toLocaleTimeString('tr-TR')}`;
+    // Seçim kutusu filtre kontrolleri
+    if (eventType === "NEW" && config.notifyForkliftNew === false) {
+      console.log("Yeni forklift çağrısı bildirimi tercihi kapalı.");
+      return;
+    }
+    if (eventType === "Yolda" && config.notifyForkliftEnRoute === false) {
+      console.log("Forklift operatör yolda bildirimi tercihi kapalı.");
+      return;
+    }
+    if (eventType === "Tamamlandı" && config.notifyForkliftDone === false) {
+      console.log("Forklift görevi tamamlandı bildirimi tercihi kapalı.");
+      return;
+    }
+
+    const dep = appState.state.departments.find(d => d.id === call.departmentId) || { name: "Genel Fabrika" };
+    const timeStr = new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+
+    const escapeHtml = (str) => {
+      if (!str) return "";
+      return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+    };
+
+    const depName = escapeHtml(dep.name);
+    const loc = escapeHtml(call.location);
+    const reqBy = escapeHtml(call.requestedBy);
+    const opName = escapeHtml(call.operatorName || appState.state.currentUser.name);
+    const desc = escapeHtml(call.description);
+    const urgency = escapeHtml(call.urgency || "Normal");
+
+    let htmlText = "";
+    let plainText = "";
+
+    if (eventType === "Yolda") {
+      htmlText = `🚜 <b>FORKLİFT HAREKETE GEÇTİ (YOLDA)</b>\n\n` +
+        `📍 <b>Bölüm:</b> ${depName}\n` +
+        `📌 <b>Konum:</b> ${loc}\n` +
+        `👷 <b>Operatör:</b> ${opName}\n` +
+        `👤 <b>Talep Eden:</b> ${reqBy}\n` +
+        `📝 <b>İş:</b> ${desc}\n` +
+        `⏰ <b>Başlama Saati:</b> ${timeStr}`;
+
+      plainText = `🚜 FORKLİFT HAREKETE GEÇTİ (YOLDA)\n\n` +
+        `📍 Bölüm: ${dep.name}\n` +
+        `📌 Konum: ${call.location}\n` +
+        `👷 Operatör: ${call.operatorName || appState.state.currentUser.name}\n` +
+        `👤 Talep Eden: ${call.requestedBy}\n` +
+        `📝 İş: ${call.description}\n` +
+        `⏰ Başlama Saati: ${timeStr}`;
+    } else if (eventType === "Tamamlandı") {
+      htmlText = `✅ <b>FORKLİFT GÖREVİ TAMAMLANDI</b>\n\n` +
+        `📍 <b>Bölüm:</b> ${depName}\n` +
+        `📌 <b>Konum:</b> ${loc}\n` +
+        `👷 <b>Tamamlayan:</b> ${opName}\n` +
+        `👤 <b>Talep Eden:</b> ${reqBy}\n` +
+        `📝 <b>İş:</b> ${desc}\n` +
+        `⏰ <b>Bitiş Saati:</b> ${timeStr}`;
+
+      plainText = `✅ FORKLİFT GÖREVİ TAMAMLANDI\n\n` +
+        `📍 Bölüm: ${dep.name}\n` +
+        `📌 Konum: ${call.location}\n` +
+        `👷 Tamamlayan: ${call.operatorName || appState.state.currentUser.name}\n` +
+        `👤 Talep Eden: ${call.requestedBy}\n` +
+        `📝 İş: ${call.description}\n` +
+        `⏰ Bitiş Saati: ${timeStr}`;
+    } else {
+      htmlText = `🚜 <b>YENİ FORKLİFT ÇAĞRISI!</b>\n\n` +
+        `📍 <b>Bölüm:</b> ${depName}\n` +
+        `📌 <b>Konum:</b> ${loc}\n` +
+        `⚡ <b>Aciliyet:</b> ${urgency}\n` +
+        `👤 <b>Talep Eden:</b> ${reqBy}\n` +
+        `📝 <b>İş:</b> ${desc}\n` +
+        `⏰ <b>Saat:</b> ${timeStr}`;
+
+      plainText = `🚜 YENİ FORKLİFT ÇAĞRISI!\n\n` +
+        `📍 Bölüm: ${dep.name}\n` +
+        `📌 Konum: ${call.location}\n` +
+        `⚡ Aciliyet: ${call.urgency || "Normal"}\n` +
+        `👤 Talep Eden: ${call.requestedBy}\n` +
+        `📝 İş: ${call.description}\n` +
+        `⏰ Saat: ${timeStr}`;
+    }
 
     try {
       const url = `https://api.telegram.org/bot${config.botToken}/sendMessage`;
-      await fetch(url, {
+      const res = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           chat_id: config.chatId,
-          text: text,
-          parse_mode: "Markdown"
+          text: htmlText,
+          parse_mode: "HTML"
         })
       });
-      console.log("Telegram bildirimi başarıyla gönderildi.");
+
+      const resData = await res.json().catch(() => null);
+
+      if (!res.ok || (resData && !resData.ok)) {
+        console.warn("Telegram HTML gönderimi başarısız oldu, düz metin deneniyor...", resData);
+        await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            chat_id: config.chatId,
+            text: plainText
+          })
+        });
+      }
+      console.log(`Telegram bildirimi (${eventType}) başarıyla gönderildi.`);
     } catch (e) {
       console.warn("Telegram mesajı gönderilemedi:", e);
     }
@@ -317,14 +434,76 @@ export class ForkliftModule {
     const chatId = document.getElementById("telegram-chat-id").value.trim();
     const enabled = document.getElementById("telegram-enabled").checked;
 
+    const notifyForkliftNew = document.getElementById("tg-notify-forklift-new") ? document.getElementById("tg-notify-forklift-new").checked : true;
+    const notifyForkliftEnRoute = document.getElementById("tg-notify-forklift-enroute") ? document.getElementById("tg-notify-forklift-enroute").checked : true;
+    const notifyForkliftDone = document.getElementById("tg-notify-forklift-done") ? document.getElementById("tg-notify-forklift-done").checked : true;
+    const notifyBreakdown = document.getElementById("tg-notify-breakdown") ? document.getElementById("tg-notify-breakdown").checked : true;
+    const notifyCalendar = document.getElementById("tg-notify-calendar") ? document.getElementById("tg-notify-calendar").checked : true;
+
     appState.state.telegramConfig = {
       botToken: token,
       chatId: chatId,
-      enabled: enabled
+      enabled: enabled,
+      notifyForkliftNew,
+      notifyForkliftEnRoute,
+      notifyForkliftDone,
+      notifyBreakdown,
+      notifyCalendar
     };
 
     appState.saveState();
-    alert("Telegram ayarları başarıyla kaydedildi.");
+    logSystemAction("TELEGRAM_AYAR", `${appState.state.currentUser.name} Telegram bot bildirim tercihlerini güncelledi.`);
+    alert("Telegram ayarları ve bildirim tercihleri başarıyla kaydedildi.");
     document.getElementById("modal-telegram-settings").classList.remove("show");
+  }
+
+  async testTelegramConnection() {
+    const token = document.getElementById("telegram-token").value.trim();
+    const chatId = document.getElementById("telegram-chat-id").value.trim();
+
+    if (!token || !chatId) {
+      alert("Lütfen önce Bot Token ve Hedef Chat / Grup ID alanlarını doldurunuz.");
+      return;
+    }
+
+    const testBtn = document.getElementById("btn-telegram-test");
+    const originalContent = testBtn.innerHTML;
+    testBtn.innerHTML = "<span>⏳</span> <span>Gönderiliyor...</span>";
+    testBtn.disabled = true;
+
+    const timeStr = new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    const escapeHtml = (str) => String(str || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    const userName = escapeHtml(appState.state.currentUser?.name || "Yönetici");
+
+    const text = `🔔 <b>SODSAN Fabrika Portalı Test Bildirimi</b>\n\n` +
+      `✅ Telegram bot entegrasyonu başarıyla çalışıyor!\n` +
+      `👤 <b>İşlem Yapan:</b> ${userName}\n` +
+      `⏰ <b>Saat:</b> ${timeStr}`;
+
+    try {
+      const url = `https://api.telegram.org/bot${token}/sendMessage`;
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          chat_id: chatId,
+          text: text,
+          parse_mode: "HTML"
+        })
+      });
+
+      const data = await res.json().catch(() => null);
+
+      if (res.ok && data?.ok) {
+        alert("✅ Test bildirimi Telegram grubunuza başarıyla iletildi!");
+      } else {
+        alert("❌ Telegram Hatası: " + (data?.description || `HTTP ${res.status}`));
+      }
+    } catch (e) {
+      alert("❌ Bağlantı hatası: " + e.message);
+    } finally {
+      testBtn.innerHTML = originalContent;
+      testBtn.disabled = false;
+    }
   }
 }

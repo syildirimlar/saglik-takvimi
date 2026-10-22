@@ -200,7 +200,16 @@ export const DEFAULT_COMPANIES = [
 
 // Tanımlı Makina & Hat Listesi (Kompresör hariç hepsi silindi, kullanıcı yenilerini ekleyebilir)
 export const DEFAULT_MACHINES = [
-  "Kompresör"
+  {
+    id: "mac_kompresor",
+    name: "Kompresör",
+    code: "KMP-01",
+    departmentId: "dep_bakim",
+    location: "Kompresör Dairesi",
+    notes: "Fabrika genel hava besleme kompresörü",
+    status: "Aktif",
+    addedAt: "2026-10-22"
+  }
 ];
 
 // Dışarıdan Hizmet Alınan Servis & Bakım Ekipleri Rehberi
@@ -324,16 +333,47 @@ export class StateManager {
           "Koltuk Karkas Montaj Robotu",
           "Vidalı Hava Kompresörü & Kurutucu"
         ]);
-        if (!Array.isArray(parsed.machines)) {
-          parsed.machines = [...DEFAULT_MACHINES];
+        if (!Array.isArray(parsed.machines) || parsed.machines.length === 0) {
+          parsed.machines = JSON.parse(JSON.stringify(DEFAULT_MACHINES));
           stateChanged = true;
         } else {
-          const filteredMachines = parsed.machines.filter(m => !OLD_HARDCODED_MACHINES.has(m));
-          if (!filteredMachines.some(m => m.toLowerCase().includes("kompresör") || m.toLowerCase().includes("kompresor"))) {
-            filteredMachines.unshift("Kompresör");
+          // Geriye dönük uyumluluk: String makineleri zengin objeye normalize et
+          let normalized = parsed.machines.map(m => {
+            if (typeof m === 'string') {
+              const isKomp = m.toLowerCase().includes("kompresör") || m.toLowerCase().includes("kompresor");
+              return {
+                id: isKomp ? "mac_kompresor" : ("mac_" + Math.random().toString(36).substr(2, 9)),
+                name: m,
+                code: isKomp ? "KMP-01" : "",
+                departmentId: isKomp ? "dep_bakim" : "",
+                location: isKomp ? "Kompresör Dairesi" : "",
+                notes: isKomp ? "Ana fabrika vidalı hava kompresörü" : "",
+                status: "Aktif",
+                addedAt: "2026-10-22"
+              };
+            }
+            return {
+              id: m.id || ("mac_" + Math.random().toString(36).substr(2, 9)),
+              name: m.name || "Bilinmeyen Makine",
+              code: m.code || "",
+              departmentId: m.departmentId || "",
+              location: m.location || "",
+              notes: m.notes || "",
+              status: m.status || "Aktif",
+              addedAt: m.addedAt || "2026-10-22"
+            };
+          });
+
+          // Eski hardcoded demo makineleri temizle
+          normalized = normalized.filter(m => !OLD_HARDCODED_MACHINES.has(m.name));
+
+          // Kompresör yoksa ekle
+          if (!normalized.some(m => m.name.toLowerCase().includes("kompresör") || m.name.toLowerCase().includes("kompresor"))) {
+            normalized.unshift(DEFAULT_MACHINES[0]);
           }
-          if (filteredMachines.length !== parsed.machines.length) {
-            parsed.machines = filteredMachines;
+
+          if (JSON.stringify(normalized) !== JSON.stringify(parsed.machines)) {
+            parsed.machines = normalized;
             stateChanged = true;
           }
         }
@@ -366,6 +406,19 @@ export class StateManager {
               stateChanged = true;
             }
           });
+        }
+
+        if (parsed.telegramConfig) {
+          parsed.telegramConfig = {
+            botToken: parsed.telegramConfig.botToken || "",
+            chatId: parsed.telegramConfig.chatId || "",
+            enabled: !!parsed.telegramConfig.enabled,
+            notifyForkliftNew: parsed.telegramConfig.notifyForkliftNew !== false,
+            notifyForkliftEnRoute: parsed.telegramConfig.notifyForkliftEnRoute !== false,
+            notifyForkliftDone: parsed.telegramConfig.notifyForkliftDone !== false,
+            notifyBreakdown: parsed.telegramConfig.notifyBreakdown !== false,
+            notifyCalendar: parsed.telegramConfig.notifyCalendar !== false
+          };
         }
 
         if (stateChanged) {
@@ -402,7 +455,12 @@ export class StateManager {
       telegramConfig: {
         botToken: "",
         chatId: "",
-        enabled: false
+        enabled: false,
+        notifyForkliftNew: true,
+        notifyForkliftEnRoute: true,
+        notifyForkliftDone: true,
+        notifyBreakdown: true,
+        notifyCalendar: true
       }
     };
   }
@@ -430,19 +488,109 @@ export class StateManager {
     return clean;
   }
 
-  registerMachine(name) {
-    const clean = (name || "").trim();
-    if (!clean || clean === "DIGER") return null;
+  registerMachine(data) {
+    let name = "";
+    let code = "";
+    let departmentId = "";
+    let location = "";
+    let notes = "";
+
+    if (typeof data === "string") {
+      name = data.trim();
+    } else if (data && typeof data === "object") {
+      name = (data.name || "").trim();
+      code = (data.code || "").trim();
+      departmentId = data.departmentId || "";
+      location = (data.location || "").trim();
+      notes = (data.notes || "").trim();
+    }
+
+    if (!name || name === "DIGER") return null;
+
     if (!Array.isArray(this.state.machines)) {
-      this.state.machines = [...DEFAULT_MACHINES];
+      this.state.machines = JSON.parse(JSON.stringify(DEFAULT_MACHINES));
     }
-    const exists = this.state.machines.some(m => m.toLowerCase() === clean.toLowerCase());
-    if (!exists) {
-      this.state.machines.push(clean);
-      this.state.machines.sort((a, b) => a.localeCompare(b, 'tr'));
-      this.saveState();
+
+    const existing = this.state.machines.find(m => {
+      const mName = typeof m === "string" ? m : m.name;
+      return mName.toLowerCase() === name.toLowerCase();
+    });
+
+    if (existing) {
+      if (typeof existing === "object") {
+        if (code) existing.code = code;
+        if (departmentId) existing.departmentId = departmentId;
+        if (location) existing.location = location;
+        if (notes) existing.notes = notes;
+        this.saveState();
+        return existing;
+      }
+      return existing;
     }
-    return clean;
+
+    const newMachine = {
+      id: "mac_" + Date.now() + "_" + Math.floor(Math.random() * 1000),
+      name: name,
+      code: code,
+      departmentId: departmentId,
+      location: location,
+      notes: notes,
+      status: "Aktif",
+      addedAt: new Date().toISOString().split("T")[0]
+    };
+
+    this.state.machines.push(newMachine);
+    this.saveState();
+    return newMachine;
+  }
+
+  updateMachine(id, data) {
+    if (!Array.isArray(this.state.machines)) return false;
+    const index = this.state.machines.findIndex(m => {
+      if (typeof m === "string") return m === id;
+      return m.id === id || m.name === id;
+    });
+
+    if (index === -1) return false;
+
+    const old = this.state.machines[index];
+    const oldName = typeof old === "string" ? old : old.name;
+    const newName = (data.name || oldName).trim();
+
+    const updated = {
+      id: (typeof old === "object" && old.id) ? old.id : ("mac_" + Date.now()),
+      name: newName,
+      code: data.code !== undefined ? data.code.trim() : (old.code || ""),
+      departmentId: data.departmentId !== undefined ? data.departmentId : (old.departmentId || ""),
+      location: data.location !== undefined ? data.location.trim() : (old.location || ""),
+      notes: data.notes !== undefined ? data.notes.trim() : (old.notes || ""),
+      status: data.status || (typeof old === "object" ? old.status : "Aktif"),
+      addedAt: (typeof old === "object" && old.addedAt) ? old.addedAt : new Date().toISOString().split("T")[0]
+    };
+
+    this.state.machines[index] = updated;
+
+    // Eğer makine adı değiştiyse, arıza kayıtlarındaki makine adını da güncelle
+    if (oldName !== newName && Array.isArray(this.state.breakdowns)) {
+      this.state.breakdowns.forEach(b => {
+        if (b.machineName === oldName) {
+          b.machineName = newName;
+        }
+      });
+    }
+
+    this.saveState();
+    return updated;
+  }
+
+  deleteMachine(id) {
+    if (!Array.isArray(this.state.machines)) return false;
+    this.state.machines = this.state.machines.filter(m => {
+      if (typeof m === "string") return m !== id;
+      return m.id !== id && m.name !== id;
+    });
+    this.saveState();
+    return true;
   }
 
   addExternalService(service) {
@@ -574,8 +722,16 @@ export function registerCompany(name) {
   return appState.registerCompany(name);
 }
 
-export function registerMachine(name) {
-  return appState.registerMachine(name);
+export function registerMachine(data) {
+  return appState.registerMachine(data);
+}
+
+export function updateMachine(id, data) {
+  return appState.updateMachine(id, data);
+}
+
+export function deleteMachine(id) {
+  return appState.deleteMachine(id);
 }
 
 export function addExternalService(service) {

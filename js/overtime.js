@@ -49,7 +49,7 @@ export class OvertimeModule {
     const btnSelectAll = document.getElementById("btn-overtime-select-all");
     const btnClearAll = document.getElementById("btn-overtime-clear-all");
 
-    // YETKİSİZ KULLANICI (Standart personel, usta, forklift vb.): SADECE KENDİSİ
+    // Standart Personel Girişi: Kendi profili doğrudan seçili gelir
     if (!isAuthorized) {
       if (btnSelectAll) btnSelectAll.classList.add("hidden");
       if (btnClearAll) btnClearAll.classList.add("hidden");
@@ -57,8 +57,8 @@ export class OvertimeModule {
       if (!myEmp) {
         const u = appState.state.currentUser;
         container.innerHTML = `
-          <div class="p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-800">
-            ⚠️ <strong>${u?.name || "Kullanıcı"}</strong> hesabına ait çalışan kaydı bulunamadı. Lütfen İK veya Yöneticiye başvurunuz.
+          <div class="p-3 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-600">
+            <strong>${u?.name || "Kullanıcı"}</strong> hesabına ait çalışan kaydı bulunamadı.
           </div>
         `;
         this.updateSelectedEmployeeCount();
@@ -67,19 +67,15 @@ export class OvertimeModule {
 
       const dep = appState.state.departments.find(d => d.id === myEmp.departmentId) || { name: "", icon: "🏢" };
       container.innerHTML = `
-        <div class="mb-2 p-2 bg-amber-50 border border-amber-200 rounded-lg text-[11px] text-amber-900 flex items-center justify-between">
-          <span>🔒 <b>Standart Personel:</b> Başkası adına mesai yazamazsınız. Yalnızca kendi adınıza talep girebilirsiniz.</span>
-          <span class="font-bold text-amber-700 bg-white px-2 py-0.5 rounded shadow-sm text-[10px]">Kilitli</span>
-        </div>
-        <label class="flex items-center justify-between p-2.5 rounded-lg border-2 border-blue-500 bg-blue-50/70 select-none">
+        <div class="flex items-center justify-between p-2.5 rounded-lg border border-slate-200 bg-slate-50 text-xs">
           <div class="flex items-center gap-2">
-            <input type="checkbox" name="overtime-emp" value="${myEmp.id}" data-name="${myEmp.name}" data-dept="${myEmp.departmentId}" checked disabled class="rounded border-blue-500 text-blue-600 focus:ring-blue-500 w-4 h-4 cursor-not-allowed">
+            <input type="checkbox" name="overtime-emp" value="${myEmp.id}" data-name="${myEmp.name}" data-dept="${myEmp.departmentId}" checked class="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4 cursor-default">
             <span class="text-slate-900 font-extrabold flex items-center gap-1.5">
-              <span>👤</span> ${myEmp.name} <span class="text-[10px] bg-blue-200 text-blue-900 px-1.5 py-0.5 rounded font-bold">(KENDİM / SİZ)</span>
+              <span>👤</span> <span>${myEmp.name}</span>
             </span>
           </div>
-          <span class="text-[10px] text-slate-600 font-semibold">${dep.icon} ${dep.name}</span>
-        </label>
+          <span class="text-[11px] text-slate-500 font-medium">${dep.icon} ${dep.name}</span>
+        </div>
       `;
       this.updateSelectedEmployeeCount();
       return;
@@ -324,7 +320,7 @@ export class OvertimeModule {
       } else {
         const hasOthers = checkedEmployees.some(cb => cb.value !== myEmp.id);
         if (hasOthers || checkedEmployees.length > 1) {
-          alert("Yetki Hatası: Standart personel başka bir çalışan adına fazla mesai talebi oluşturamaz! Yalnızca kendiniz için talep girebilirsiniz.");
+          alert("Lütfen yalnızca kendi adınıza fazla mesai talebi oluşturunuz.");
           return;
         }
       }
