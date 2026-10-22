@@ -7,10 +7,12 @@
   
   <!-- PWA & Favicon -->
   <link rel="icon" type="image/png" href="assets/sodsan-favicon.png">
+  <link rel="apple-touch-icon" href="assets/sodsan-favicon.png">
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#2563eb">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="SODSAN Portal">
   
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -43,17 +45,97 @@
 </head>
 <body class="bg-slate-50 text-slate-900 pb-36 md:pb-24">
 
+  <!-- ==================== GİRİŞ EKRANI (AUTH GATEWAY) ==================== -->
+  <div id="screen-auth-login" class="fixed inset-0 z-50 bg-slate-900/95 backdrop-blur-md flex items-center justify-center p-4 transition-all duration-300">
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl relative overflow-hidden text-slate-800 dark:text-slate-100">
+      
+      <!-- Dekoratif Arka Plan Efekti -->
+      <div class="absolute -top-24 -right-24 w-48 h-48 bg-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
+      <div class="absolute -bottom-24 -left-24 w-48 h-48 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+      <!-- Üst Logo & Başlık -->
+      <div class="text-center mb-6">
+        <div class="inline-flex flex-col items-center mb-2">
+          <img src="assets/sodsan-logo.png" alt="SODSAN" class="h-10 w-auto object-contain block mx-auto">
+          <span class="text-[11px] font-black tracking-[0.25em] text-blue-600 dark:text-blue-400 uppercase text-center mt-1">PORTAL</span>
+        </div>
+        <h2 class="text-lg font-black text-slate-900 dark:text-white mt-1">Fabrika Operasyon Girişi</h2>
+        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Sisteme erişebilmek için lütfen kullanıcı bilgilerinizi doğrulayınız.</p>
+      </div>
+
+      <!-- Giriş Formu -->
+      <form id="form-auth-login" class="space-y-4">
+        
+        <!-- Kullanıcı Seçimi / Girişi -->
+        <div>
+          <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Kullanıcı / Personel Seçin:</label>
+          <div class="relative">
+            <select id="login-user-select" class="w-full text-xs font-bold bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-slate-800 dark:text-slate-100 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition cursor-pointer">
+              <!-- JS tarafından dinamik doldurulur -->
+            </select>
+          </div>
+          <div class="mt-1 flex items-center justify-between text-[11px]">
+            <button type="button" id="btn-toggle-custom-username" class="text-blue-600 dark:text-blue-400 hover:underline font-semibold cursor-pointer">
+              Kullanıcı adını elle yazmak istiyorum &rarr;
+            </button>
+          </div>
+          <div id="login-custom-username-wrapper" class="hidden mt-2">
+            <input type="text" id="login-username-input" placeholder="Kullanıcı adınız (örn: admin, usta_ahmet)" autocomplete="username" class="w-full text-xs font-mono bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-slate-800 dark:text-slate-100 outline-none">
+          </div>
+        </div>
+
+        <!-- Şifre / PIN Kodu -->
+        <div>
+          <div class="flex items-center justify-between mb-1.5">
+            <label class="text-xs font-bold text-slate-700 dark:text-slate-300">Giriş PIN Kodu / Şifre:</label>
+            <span class="text-[10px] text-slate-400 font-mono">Standart PIN: 1234</span>
+          </div>
+          <div class="relative">
+            <input type="password" id="login-pin-input" required maxlength="20" placeholder="••••" autocomplete="current-password" class="w-full text-sm font-black tracking-widest text-center bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-slate-800 dark:text-slate-100 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition">
+            <button type="button" id="btn-toggle-pin-visibility" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xs font-bold px-1" title="Şifreyi Göster/Gizle">
+              👁️
+            </button>
+          </div>
+        </div>
+
+        <!-- Beni Bu Cihazda Hatırla -->
+        <div class="flex items-center justify-between pt-1">
+          <label class="flex items-center gap-2 cursor-pointer text-xs text-slate-600 dark:text-slate-400 select-none">
+            <input type="checkbox" id="login-remember-me" checked class="w-4 h-4 text-blue-600 rounded border-slate-300">
+            <span class="font-medium">Bu cihazda oturumu açık tut</span>
+          </label>
+        </div>
+
+        <!-- Hata Bildirimi -->
+        <div id="login-error-message" class="hidden p-2.5 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 text-xs font-bold text-center">
+        </div>
+
+        <!-- Giriş Yap Butonu -->
+        <button type="submit" id="btn-submit-login" class="w-full bg-blue-600 hover:bg-blue-700 active:scale-[0.99] text-white font-black text-sm py-3.5 px-4 rounded-xl shadow-lg shadow-blue-600/20 transition flex items-center justify-center gap-2 cursor-pointer">
+          <span>🚀</span> <span>Güvenli Giriş Yap</span>
+        </button>
+
+      </form>
+
+      <!-- PWA Uygulama Olarak Yükleme Butonu (Giriş Ekranında) -->
+      <div id="login-pwa-install-area" class="mt-5 pt-4 border-t border-slate-100 dark:border-slate-800 text-center">
+        <button id="btn-pwa-install-login" type="button" class="w-full py-2.5 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 hover:bg-slate-100 text-slate-700 dark:text-slate-300 text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer">
+          <span>📲</span> <span>Uygulamayı Telefona Yükle (PWA)</span>
+        </button>
+        <p class="text-[10px] text-slate-400 mt-1.5">Telefon ana ekranına tek tıkla eklenebilir, internet çubuğu olmadan tam ekran çalışır.</p>
+      </div>
+
+    </div>
+  </div>
+
   <!-- ==================== ÜST BİLGİ VE OTURUM ÇUBUĞU ==================== -->
   <header class="top-header">
     <div class="app-container py-3 flex items-center justify-between gap-4">
       <!-- Logo ve Başlık -->
       <div class="flex items-center gap-3">
-        <div class="flex flex-col items-start">
-          <img src="assets/sodsan-logo.png" alt="SODSAN" class="h-7 sm:h-8 w-auto object-contain">
-          <div class="flex items-center gap-1.5 mt-0.5">
-            <span class="text-[11px] font-black tracking-widest text-blue-700 uppercase">PORTAL</span>
-            <span class="brand-badge text-[9px] py-0 px-1.5 leading-tight">FABRİKA AĞI</span>
-          </div>
+        <div class="flex flex-col items-center">
+          <img src="assets/sodsan-logo.png" alt="SODSAN" class="h-7 sm:h-8 w-auto object-contain block">
+          <span class="text-[10px] sm:text-[11px] font-black tracking-[0.22em] text-blue-700 dark:text-blue-400 uppercase text-center mt-0.5">PORTAL</span>
         </div>
         <div class="hidden lg:block pl-2.5 border-l border-slate-200">
           <p class="text-[11px] text-slate-500 font-medium">İç Haberleşme, Lojistik, İK & Bakım Sistemi</p>
@@ -108,7 +190,7 @@
         <div class="flex items-center gap-2.5">
           <span class="text-2xl">📅</span>
           <div>
-            <div class="text-[11px] font-black uppercase tracking-widest text-blue-400">SEVKİYAT BAKIM TAKVİMİ</div>
+            <div class="text-[11px] font-black uppercase tracking-widest text-blue-400">PLANLAMA & OPERASYON TAKVİMİ</div>
             <h2 id="cal-month-title" class="text-base sm:text-lg font-black tracking-wide text-white">Ekim 2026</h2>
           </div>
         </div>
@@ -515,73 +597,146 @@
 
     <!-- ==================== SEKME: MAKİNA & ARIZA TAKİP PANOSU ==================== -->
     <section id="tab-breakdown" class="tab-pane hidden space-y-4">
-      <!-- Arıza İstatistik Özet Kartları -->
-      <div id="breakdown-stats-summary">
-        <!-- JavaScript tarafından doldurulur -->
-      </div>
 
-      <!-- Filtreler & Arıza Bildir Butonu -->
-      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h2 class="text-base font-extrabold text-slate-800 flex items-center gap-2">
-            <span>🛠️ Makina Arıza & Bakım Takip Panosu</span>
-            <span class="text-xs bg-red-100 text-red-800 px-2 py-0.5 rounded font-bold">Canlı Fabrika Hattı</span>
-          </h2>
-          <p class="text-xs text-slate-500">Tüm çalışanlar arıza bildirebilir; bakım ekibi buradan müdahale edip arızayı kapatır.</p>
+      <!-- Alt Sekmeler (Subtabs): Canlı Arıza vs Makine Parkuru vs Dış Servis Rehberi -->
+      <div class="flex items-center justify-between border-b border-slate-200 pb-2 flex-wrap gap-2">
+        <div class="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl">
+          <button id="subtab-btn-breakdown-live" class="px-3.5 py-1.5 rounded-lg text-xs font-black transition flex items-center gap-1.5 bg-white text-blue-700 shadow-sm">
+            <span>🚨</span> <span>Canlı Arıza & Bakım</span>
+          </button>
+          <button id="subtab-btn-machine-park" class="px-3.5 py-1.5 rounded-lg text-xs font-black transition flex items-center gap-1.5 text-slate-600 hover:text-slate-900">
+            <span>🏭</span> <span>Makina Parkuru</span>
+            <span id="machine-park-badge-count" class="bg-blue-100 text-blue-700 text-[10px] font-black px-1.5 py-0.2 rounded-full">1</span>
+          </button>
+          <button id="subtab-btn-external-services" class="px-3.5 py-1.5 rounded-lg text-xs font-black transition flex items-center gap-1.5 text-slate-600 hover:text-slate-900">
+            <span>📞</span> <span>Dış Servis Rehberi</span>
+          </button>
         </div>
 
-        <div class="flex flex-wrap items-center gap-2.5">
-          <select id="filter-breakdown-dept" class="text-xs bg-slate-50 border border-slate-200 rounded-lg py-1.5 px-2.5 font-medium text-slate-700">
-            <option value="ALL">Tüm Departmanlar</option>
-          </select>
-
-          <select id="filter-breakdown-urgency" class="text-xs bg-slate-50 border border-slate-200 rounded-lg py-1.5 px-2.5 font-medium text-slate-700">
-            <option value="ALL">Tüm Aciliyetler</option>
-            <option value="Kritik">🔴 Kritik (Hat Durdu)</option>
-            <option value="Yüksek">🟠 Yüksek Aciliyet</option>
-            <option value="Normal">🟡 Normal</option>
-          </select>
-
-          <select id="filter-breakdown-status" class="text-xs bg-slate-50 border border-slate-200 rounded-lg py-1.5 px-2.5 font-medium text-slate-700">
-            <option value="ALL">Tüm Durumlar</option>
-            <option value="Bekliyor">⏳ Müdahale Bekleyenler</option>
-            <option value="Müdahale Ediliyor">🛠️ Onarımda Olanlar</option>
-            <option value="Parça Bekleniyor">⏸️ Parça Bekleyenler</option>
-            <option value="Giderildi">✅ Giderilenler</option>
-          </select>
-
-          <button id="btn-open-register-machine-top" class="bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-bold py-2 px-3.5 rounded-xl shadow-sm transition flex items-center gap-1.5 cursor-pointer">
-            <span>⚙️</span> <span>Yeni Makine Kaydet</span>
+        <div class="flex items-center gap-2">
+          <button id="btn-open-register-machine-top" class="bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-bold py-1.5 px-3 rounded-lg shadow-sm transition flex items-center gap-1.5 cursor-pointer">
+            <span>⚙️</span> <span>Yeni Makine Ekle</span>
           </button>
-
-          <button data-open-report-breakdown class="bg-red-600 hover:bg-red-700 text-white text-xs sm:text-sm font-bold py-2 px-4 rounded-xl shadow-sm transition flex items-center gap-1.5 cursor-pointer">
-            <span>🚨</span> <span>Arıza Bildir (Herkes Yapabilir)</span>
+          <button data-open-report-breakdown class="bg-red-600 hover:bg-red-700 text-white text-xs sm:text-sm font-bold py-1.5 px-3 rounded-lg shadow-sm transition flex items-center gap-1.5 cursor-pointer">
+            <span>🚨</span> <span>Arıza Bildir</span>
           </button>
         </div>
       </div>
 
-      <!-- Arıza Kartları Akışı -->
-      <div id="breakdown-cards-list" class="space-y-3">
-        <!-- JavaScript tarafından doldurulur -->
-      </div>
+      <!-- ALT PANE 1: CANLI ARIZA & BAKIM TAKİBİ -->
+      <div id="subpane-breakdown-live" class="space-y-4">
+        <!-- Arıza İstatistik Özet Kartları -->
+        <div id="breakdown-stats-summary">
+          <!-- JavaScript tarafından doldurulur -->
+        </div>
 
-      <!-- Dışarıdan Hizmet Alınan Servis & Bakım Ekipleri Rehberi -->
-      <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mt-6">
-        <div class="p-4 border-b border-slate-200 flex items-center justify-between flex-wrap gap-2 bg-slate-50">
+        <!-- Filtreler & Arıza Bildir Butonu -->
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h3 class="text-sm font-extrabold text-slate-800 flex items-center gap-2">
-              <span>📞</span> <span>Dış Servis & Teknik Destek İletişim Rehberi</span>
-            </h3>
-            <p class="text-xs text-slate-500">Dışarıdan hizmet ve periyodik destek alınan anlaşmalı servisler</p>
+            <h2 class="text-base font-extrabold text-slate-800 flex items-center gap-2">
+              <span>🛠️ Canlı Arıza & Bakım Takip Listesi</span>
+              <span class="text-xs bg-red-100 text-red-800 px-2 py-0.5 rounded font-bold">Fabrika Hattı</span>
+            </h2>
+            <p class="text-xs text-slate-500">Tüm çalışanlar arıza bildirebilir; bakım ekibi buradan müdahale edip arızayı kapatır.</p>
           </div>
-          <button id="btn-open-add-external-service" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-1.5 px-3 rounded-lg shadow-sm transition flex items-center gap-1">
-            <span>+</span> <span>Yeni Dış Servis Ekle</span>
-          </button>
+
+          <div class="flex flex-wrap items-center gap-2.5">
+            <select id="filter-breakdown-dept" class="text-xs bg-slate-50 border border-slate-200 rounded-lg py-1.5 px-2.5 font-medium text-slate-700">
+              <option value="ALL">Tüm Departmanlar</option>
+            </select>
+
+            <select id="filter-breakdown-urgency" class="text-xs bg-slate-50 border border-slate-200 rounded-lg py-1.5 px-2.5 font-medium text-slate-700">
+              <option value="ALL">Tüm Aciliyetler</option>
+              <option value="Kritik">🔴 Kritik (Hat Durdu)</option>
+              <option value="Yüksek">🟠 Yüksek Aciliyet</option>
+              <option value="Normal">🟡 Normal</option>
+            </select>
+
+            <select id="filter-breakdown-status" class="text-xs bg-slate-50 border border-slate-200 rounded-lg py-1.5 px-2.5 font-medium text-slate-700">
+              <option value="ALL">Tüm Durumlar</option>
+              <option value="Bekliyor">⏳ Müdahale Bekleyenler</option>
+              <option value="Müdahale Ediliyor">🛠️ Onarımda Olanlar</option>
+              <option value="Parça Bekleniyor">⏸️ Parça Bekleyenler</option>
+              <option value="Giderildi">✅ Giderilenler</option>
+            </select>
+          </div>
         </div>
-        <div id="external-services-list" class="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-          <!-- JS tarafından doldurulur -->
+
+        <!-- Arıza Kartları Akışı -->
+        <div id="breakdown-cards-list" class="space-y-3">
+          <!-- JavaScript tarafından doldurulur -->
         </div>
       </div>
+
+      <!-- ALT PANE 2: FABRİKA MAKİNA PARKURU & EKİPMANLAR -->
+      <div id="subpane-machine-park" class="hidden space-y-4">
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 class="text-base font-extrabold text-slate-800 flex items-center gap-2">
+              <span>🏭 Makina Parkuru & Ekipman Envanteri</span>
+              <span class="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded font-bold">Kayıtlı Ekipmanlar</span>
+            </h2>
+            <p class="text-xs text-slate-500">Makinelerin adlarını, kodlarını, departmanlarını ve durumlarını düzenleyebilir veya yeni makine ekleyebilirsiniz.</p>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-2.5">
+            <input type="text" id="search-machine-park" placeholder="🔍 Makine veya kod ara..." class="text-xs bg-slate-50 border border-slate-200 rounded-lg py-1.5 px-2.5 font-medium text-slate-700">
+            <select id="filter-machine-park-dept" class="text-xs bg-slate-50 border border-slate-200 rounded-lg py-1.5 px-2.5 font-medium text-slate-700">
+              <option value="ALL">Tüm Departmanlar</option>
+            </select>
+            <button id="btn-open-register-machine-park" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-1.5 px-3 rounded-lg shadow-sm transition flex items-center gap-1">
+              <span>+</span> <span>Yeni Makine Ekle</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Makine Parkuru Tek Satır Liste Tablosu -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs border-collapse">
+              <thead class="bg-slate-50 text-slate-500 font-bold uppercase text-[11px] border-b border-slate-200">
+                <tr>
+                  <th class="py-3 px-3.5">Makina / Ekipman Adı</th>
+                  <th class="py-3 px-3">Kod</th>
+                  <th class="py-3 px-3">Birim / Hat</th>
+                  <th class="py-3 px-3">Konum</th>
+                  <th class="py-3 px-3">Çalışma Durumu</th>
+                  <th class="py-3 px-3">Arıza Kaydı</th>
+                  <th class="py-3 px-3.5 text-right">İşlemler</th>
+                </tr>
+              </thead>
+              <tbody id="machine-park-table-tbody" class="divide-y divide-slate-100 bg-white">
+                <!-- JavaScript tarafından tek satır olarak doldurulur -->
+              </tbody>
+            </table>
+          </div>
+          <div id="machine-park-empty-msg" class="hidden text-center py-10 text-slate-400">
+            <p class="text-3xl mb-1">🏭</p>
+            <p class="text-xs font-bold text-slate-600">Kriterlere uygun kayıtlı makina bulunamadı.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ALT PANE 3: DIŞ SERVİS REHBERİ -->
+      <div id="subpane-external-services" class="hidden space-y-4">
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+          <div class="p-4 border-b border-slate-200 flex items-center justify-between flex-wrap gap-2 bg-slate-50">
+            <div>
+              <h3 class="text-sm font-extrabold text-slate-800 flex items-center gap-2">
+                <span>📞</span> <span>Dış Servis & Teknik Destek İletişim Rehberi</span>
+              </h3>
+              <p class="text-xs text-slate-500">Dışarıdan hizmet ve periyodik destek alınan anlaşmalı servisler</p>
+            </div>
+            <button id="btn-open-add-external-service" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-1.5 px-3 rounded-lg shadow-sm transition flex items-center gap-1">
+              <span>+</span> <span>Yeni Dış Servis Ekle</span>
+            </button>
+          </div>
+          <div id="external-services-list" class="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            <!-- JS tarafından doldurulur -->
+          </div>
+        </div>
+      </div>
+
     </section>
 
     <!-- ==================== SEKME 5: YÖNETİCİ & ADMIN PANELİ ==================== -->
@@ -730,20 +885,27 @@
         </div>
       </div>
 
-      <!-- Sistem Yedekleme & Fabrika Ayarlarına Dönme -->
+      <!-- Sistem Yedekleme & Güvenli Sıfırlama Merkezi -->
       <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-        <h3 class="text-sm font-extrabold text-slate-800 mb-1">Veri Güvenliği, Yedekleme ve Sıfırlama</h3>
-        <p class="text-xs text-slate-500 mb-3">Tüm sistemi JSON dosyası olarak bilgisayarınıza indirebilir veya geri yükleyebilirsiniz.</p>
-        <div class="flex flex-wrap gap-2">
-          <button id="btn-export-backup" class="bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold py-2 px-3.5 rounded-lg transition">
-            💾 Verileri Yedekle (JSON İndir)
+        <div class="flex items-center justify-between flex-wrap gap-2 mb-2">
+          <div>
+            <h3 class="text-sm font-extrabold text-slate-800">Veritabanı Güvenliği & Sistem Yedekleme</h3>
+            <p class="text-xs text-slate-500">Tüm personel, stok hareketleri, makine parkuru ve arıza kayıtlarını JSON olarak yedekleyin veya geri yükleyin.</p>
+          </div>
+          <span class="text-[11px] bg-emerald-50 text-emerald-700 font-bold px-2.5 py-1 rounded-full border border-emerald-200">
+            🛡️ Kazara Veri Silinmesi Korumalı
+          </span>
+        </div>
+        <div class="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-100">
+          <button id="btn-export-backup" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-2 px-4 rounded-lg shadow-sm transition flex items-center gap-1.5 cursor-pointer">
+            <span>💾</span> <span>Tam Sistem Yedeği İndir (JSON)</span>
           </button>
           <input type="file" id="file-import-backup" accept=".json" class="hidden">
-          <button id="btn-import-backup" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold py-2 px-3.5 rounded-lg border border-slate-200 transition">
-            📂 Yedekten Geri Yükle
+          <button id="btn-import-backup" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold py-2 px-3.5 rounded-lg border border-slate-200 transition flex items-center gap-1.5 cursor-pointer">
+            <span>📂</span> <span>Yedekten Geri Yükle</span>
           </button>
-          <button id="btn-reset-factory" class="bg-red-50 hover:bg-red-100 text-red-600 text-xs font-bold py-2 px-3.5 rounded-lg border border-red-200 transition ml-auto">
-            ⚠️ Fabrika Ayarlarına Sıfırla
+          <button id="btn-open-guarded-reset" class="bg-red-50 hover:bg-red-100 text-red-600 text-xs font-bold py-2 px-3.5 rounded-lg border border-red-200 transition ml-auto flex items-center gap-1.5 cursor-pointer">
+            <span>🔒</span> <span>Fabrika Sıfırlama Koruması</span>
           </button>
         </div>
       </div>
@@ -752,26 +914,30 @@
   </main>
 
   <!-- ==================== MOBİL ALT GEZİNME ÇUBUĞU ==================== -->
-  <nav class="mobile-bottom-bar fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 py-1.5 px-2 flex justify-around items-center z-40 shadow-lg">
-    <button class="mobile-tab-btn flex flex-col items-center text-xs text-blue-600 font-bold" data-tab="tab-products">
-      <span class="text-lg">📦</span>
-      <span class="text-[10px]">Ürünler</span>
+  <nav class="mobile-bottom-bar fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 py-1.5 px-1 flex justify-around items-center z-40 shadow-lg">
+    <button class="mobile-tab-btn flex flex-col items-center text-xs text-blue-600 font-bold flex-1" data-tab="tab-products">
+      <span class="text-base sm:text-lg">📦</span>
+      <span class="text-[9px] sm:text-[10px]">Ürünler</span>
     </button>
-    <button class="mobile-tab-btn flex flex-col items-center text-xs text-slate-500 font-semibold" data-tab="tab-supplies">
-      <span class="text-lg">🛒</span>
-      <span class="text-[10px]">İhtiyaç</span>
+    <button class="mobile-tab-btn flex flex-col items-center text-xs text-slate-500 font-semibold flex-1" data-tab="tab-supplies">
+      <span class="text-base sm:text-lg">🛒</span>
+      <span class="text-[9px] sm:text-[10px]">İhtiyaç</span>
     </button>
-    <button class="mobile-tab-btn flex flex-col items-center text-xs text-slate-500 font-semibold" data-tab="tab-leave">
-      <span class="text-lg">🏖️</span>
-      <span class="text-[10px]">İzin/Mesai</span>
+    <button class="mobile-tab-btn flex flex-col items-center text-xs text-slate-500 font-semibold flex-1" data-tab="tab-leave">
+      <span class="text-base sm:text-lg">🏖️</span>
+      <span class="text-[9px] sm:text-[10px]">İzin/Mesai</span>
     </button>
-    <button class="mobile-tab-btn flex flex-col items-center text-xs text-slate-500 font-semibold" data-tab="tab-forklift">
-      <span class="text-lg">🚜</span>
-      <span class="text-[10px]">Forklift</span>
+    <button class="mobile-tab-btn flex flex-col items-center text-xs text-slate-500 font-semibold flex-1" data-tab="tab-forklift">
+      <span class="text-base sm:text-lg">🚜</span>
+      <span class="text-[9px] sm:text-[10px]">Forklift</span>
     </button>
-    <button class="mobile-tab-btn flex flex-col items-center text-xs text-slate-500 font-semibold" data-tab="tab-admin">
-      <span class="text-lg">⚙️</span>
-      <span class="text-[10px]">Admin</span>
+    <button class="mobile-tab-btn flex flex-col items-center text-xs text-slate-500 font-semibold flex-1" data-tab="tab-breakdown">
+      <span class="text-base sm:text-lg">🛠️</span>
+      <span class="text-[9px] sm:text-[10px]">Arıza/Bakım</span>
+    </button>
+    <button class="mobile-tab-btn flex flex-col items-center text-xs text-slate-500 font-semibold flex-1" data-tab="tab-admin">
+      <span class="text-base sm:text-lg">⚙️</span>
+      <span class="text-[9px] sm:text-[10px]">Admin</span>
     </button>
   </nav>
 
@@ -1063,7 +1229,7 @@
       <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
         <div>
           <h3 class="text-base font-extrabold text-slate-900">🏖️ İK'ya İzin Talebi Gönder</h3>
-          <p class="text-xs text-slate-500">Yetkili personel herkes adına, çalışanlar yalnızca kendi adlarına izin talebi oluşturabilir.</p>
+          <p class="text-xs text-slate-500">Tarih aralığı ve izin türünü belirterek talebinizi İK onayına iletebilirsiniz.</p>
         </div>
         <button data-close-modal class="text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
       </div>
@@ -1209,32 +1375,110 @@
 
   <!-- MODAL 6: Telegram Ayarları -->
   <div id="modal-telegram-settings" class="modal-backdrop">
-    <div class="modal-card p-5">
+    <div class="modal-card p-5 max-w-lg">
       <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
-        <h3 class="text-base font-extrabold text-slate-900">💬 Telegram Bot Bildirim Ayarı</h3>
+        <h3 class="text-base font-extrabold text-slate-900 flex items-center gap-2">
+          <span>💬</span> Telegram Bot ve Bildirim Tercihleri
+        </h3>
         <button data-close-modal class="text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
       </div>
-      <form id="form-telegram-settings" class="space-y-3">
-        <p class="text-xs text-slate-500">Forklift çağrısı yapıldığında Telegram üzerinden operatörlere veya gruba anlık bildirim gitmesi için bot bilgilerinizi giriniz.</p>
+      <form id="form-telegram-settings" class="space-y-4">
+        <p class="text-xs text-slate-500">
+          Fabrika hareketlerinin Telegram grubuna anlık olarak iletilmesi için bot bilgilerinizi girip bildirim almak istediğiniz olayları seçin.
+        </p>
 
-        <div>
-          <label class="text-xs font-bold text-slate-700 block mb-1">Telegram Bot Token:</label>
-          <input type="text" id="telegram-token" placeholder="Örn: 123456789:ABCdefGhIJKlmNoPQRstuVWXyz" class="w-full text-xs font-mono border border-slate-200 rounded-lg p-2">
+        <!-- Bot ve Chat ID -->
+        <div class="space-y-3 bg-slate-50 p-3 rounded-xl border border-slate-200">
+          <div>
+            <label class="text-xs font-bold text-slate-700 block mb-1">Telegram Bot Token:</label>
+            <input type="text" id="telegram-token" placeholder="Örn: 123456789:ABCdefGhIJKlmNoPQRstuVWXyz" class="w-full text-xs font-mono border border-slate-200 rounded-lg p-2 bg-white">
+          </div>
+
+          <div>
+            <label class="text-xs font-bold text-slate-700 block mb-1">Hedef Chat / Grup ID:</label>
+            <input type="text" id="telegram-chat-id" placeholder="Örn: -100123456789 veya 987654321" class="w-full text-xs font-mono border border-slate-200 rounded-lg p-2 bg-white">
+          </div>
+
+          <div class="flex items-center gap-2 pt-1 border-t border-slate-200">
+            <input type="checkbox" id="telegram-enabled" class="w-4 h-4 text-blue-600 rounded">
+            <label for="telegram-enabled" class="text-xs font-extrabold text-slate-800 cursor-pointer">Telegram Bildirimlerini Genel Olarak Etkinleştir</label>
+          </div>
         </div>
 
-        <div>
-          <label class="text-xs font-bold text-slate-700 block mb-1">Hedef Chat / Grup ID:</label>
-          <input type="text" id="telegram-chat-id" placeholder="Örn: -100123456789 veya 987654321" class="w-full text-xs font-mono border border-slate-200 rounded-lg p-2">
+        <!-- Seçim Kutuları (Bildirim Kategorileri & Olaylar) -->
+        <div class="space-y-2">
+          <div class="flex items-center justify-between">
+            <h4 class="text-xs font-extrabold text-slate-700 uppercase tracking-wider">🔔 Gönderilecek Bildirim Türleri</h4>
+            <span class="text-[10px] text-slate-400">İstediğiniz bildirimleri açıp kapatabilirsiniz</span>
+          </div>
+
+          <div class="bg-white rounded-xl border border-slate-200 divide-y divide-slate-100 overflow-hidden">
+            <!-- Forklift: Yeni Çağrı -->
+            <label class="flex items-start gap-3 p-2.5 hover:bg-slate-50 cursor-pointer transition">
+              <input type="checkbox" id="tg-notify-forklift-new" class="w-4 h-4 text-blue-600 rounded mt-0.5">
+              <div>
+                <div class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                  <span>🚜</span> Yeni Forklift Çağrısı
+                </div>
+                <div class="text-[11px] text-slate-500">Bölümlerden yeni bir forklift talebi açıldığında bildir</div>
+              </div>
+            </label>
+
+            <!-- Forklift: Operatör Yola Çıktı -->
+            <label class="flex items-start gap-3 p-2.5 hover:bg-slate-50 cursor-pointer transition">
+              <input type="checkbox" id="tg-notify-forklift-enroute" class="w-4 h-4 text-amber-600 rounded mt-0.5">
+              <div>
+                <div class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                  <span>⚡</span> Operatör Görevi Aldı (Yola Çıktı)
+                </div>
+                <div class="text-[11px] text-slate-500">Forklift operatörü görevi üstlendiğinde gruba bilgi ver</div>
+              </div>
+            </label>
+
+            <!-- Forklift: Görev Tamamlandı -->
+            <label class="flex items-start gap-3 p-2.5 hover:bg-slate-50 cursor-pointer transition">
+              <input type="checkbox" id="tg-notify-forklift-done" class="w-4 h-4 text-emerald-600 rounded mt-0.5">
+              <div>
+                <div class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                  <span>✅</span> Forklift Görevi Tamamlandı
+                </div>
+                <div class="text-[11px] text-slate-500">Operatör taşıma işini bitirip tamamladığında bildir</div>
+              </div>
+            </label>
+
+            <!-- Makine: Arıza Bildirimi -->
+            <label class="flex items-start gap-3 p-2.5 hover:bg-slate-50 cursor-pointer transition">
+              <input type="checkbox" id="tg-notify-breakdown" class="w-4 h-4 text-red-600 rounded mt-0.5">
+              <div>
+                <div class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                  <span>🚨</span> Makine Arıza & Hat Duruşu
+                </div>
+                <div class="text-[11px] text-slate-500">Saha veya ustalardan makine arızası girildiğinde ekibe ilet</div>
+              </div>
+            </label>
+
+            <!-- Takvim: Eğitim, Bakım ve Sevkiyat -->
+            <label class="flex items-start gap-3 p-2.5 hover:bg-slate-50 cursor-pointer transition">
+              <input type="checkbox" id="tg-notify-calendar" class="w-4 h-4 text-purple-600 rounded mt-0.5">
+              <div>
+                <div class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                  <span>📅</span> Takvim Etkinlikleri (Eğitim, Bakım, Sevkiyat)
+                </div>
+                <div class="text-[11px] text-slate-500">Takvime yeni eğitim, periyodik bakım veya sevkiyat eklendiğinde bildir</div>
+              </div>
+            </label>
+          </div>
         </div>
 
-        <div class="flex items-center gap-2 pt-1">
-          <input type="checkbox" id="telegram-enabled" class="w-4 h-4 text-blue-600 rounded">
-          <label for="telegram-enabled" class="text-xs font-bold text-slate-800">Telegram Bildirimlerini Etkinleştir</label>
-        </div>
-
-        <div class="pt-2 flex justify-end gap-2">
-          <button type="button" data-close-modal class="text-xs font-bold text-slate-500 py-2 px-3 rounded-lg hover:bg-slate-100">Kapat</button>
-          <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs py-2 px-5 rounded-lg shadow-sm">Ayarları Kaydet</button>
+        <!-- Butonlar & Test Mesajı -->
+        <div class="pt-2 flex items-center justify-between border-t border-slate-100 flex-wrap gap-2">
+          <button type="button" id="btn-telegram-test" class="text-xs font-bold text-blue-600 hover:text-blue-700 py-2 px-3 rounded-lg border border-blue-200 hover:bg-blue-50 transition flex items-center gap-1">
+            <span>🧪</span> <span>Test Mesajı Gönder</span>
+          </button>
+          <div class="flex items-center gap-2">
+            <button type="button" data-close-modal class="text-xs font-bold text-slate-500 py-2 px-3 rounded-lg hover:bg-slate-100">Kapat</button>
+            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs py-2 px-5 rounded-lg shadow-sm">Ayarları Kaydet</button>
+          </div>
         </div>
       </form>
     </div>
@@ -1539,7 +1783,7 @@
           <h3 class="text-base font-extrabold text-slate-900 flex items-center gap-1.5">
             <span>⏰ İK'ya Fazla Mesai Talebi Gönder</span>
           </h3>
-          <p class="text-xs text-slate-500">Yetkili personel herkes adına, çalışanlar yalnızca kendi adlarına fazla mesai talebi oluşturabilir.</p>
+          <p class="text-xs text-slate-500">Tarih, mesai saat aralığı ve personel ihtiyacını belirterek talep oluşturabilirsiniz.</p>
         </div>
         <button data-close-modal class="text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
       </div>
@@ -1585,11 +1829,11 @@
         <!-- Mesai Katsayısı & Otomatik Süre -->
         <div class="grid grid-cols-2 gap-3">
           <div>
-            <label class="text-xs font-bold text-slate-700 block mb-1">Mesai Türü / Katsayı:</label>
+            <label class="text-xs font-bold text-slate-700 block mb-1">Çalışma Günü / Türü:</label>
             <select id="overtime-rate-type" class="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg p-2 font-semibold">
-              <option value="Hafta İçi (%50)">Hafta İçi (%50 Zamlı)</option>
-              <option value="Cumartesi / Hafta Sonu (%50)">Cumartesi / Hafta Sonu (%50 Zamlı)</option>
-              <option value="Pazar / Resmi Tatil (%100)">Pazar / Resmi Tatil (%100 Zamlı)</option>
+              <option value="Hafta İçi Mesaisi">Hafta İçi Mesaisi</option>
+              <option value="Cumartesi Mesaisi">Cumartesi Mesaisi</option>
+              <option value="Pazar / Tatil Mesaisi">Pazar / Tatil Mesaisi</option>
             </select>
           </div>
           <div>
@@ -1793,7 +2037,7 @@
     <div class="modal-card p-5 max-w-lg">
       <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-3">
         <div>
-          <div class="text-[10px] font-black uppercase tracking-wider text-blue-600">SEVKİYAT BAKIM TAKVİMİ</div>
+          <div class="text-[10px] font-black uppercase tracking-wider text-blue-600">PLANLAMA & OPERASYON TAKVİMİ</div>
           <h3 id="modal-day-title" class="text-base font-extrabold text-slate-900">Seçili Günün Olayları</h3>
         </div>
         <button data-close-modal class="text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
@@ -1883,6 +2127,12 @@
       <div id="quick-user-list" class="space-y-2 max-h-80 overflow-y-auto pr-1">
         <!-- JavaScript tarafından doldurulur -->
       </div>
+      <div class="pt-3 mt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+        <button type="button" id="btn-logout" class="text-xs font-bold text-red-600 hover:text-red-700 bg-red-50 dark:bg-red-950/40 hover:bg-red-100 py-2 px-3 rounded-xl transition flex items-center gap-1.5 cursor-pointer">
+          <span>🚪</span> <span>Oturumu Kapat / Çıkış Yap</span>
+        </button>
+        <button type="button" data-close-modal class="text-xs font-bold text-slate-500 py-2 px-3 rounded-lg hover:bg-slate-100">Kapat</button>
+      </div>
     </div>
   </div>
 
@@ -1895,24 +2145,30 @@
           <h3 class="text-base font-extrabold text-slate-900 flex items-center gap-2">
             <span>⚙️</span> <span>Fabrika Parkına Yeni Makine Kaydet</span>
           </h3>
-          <p class="text-xs text-slate-500">Eklenen makineler arıza bildirimi ve bakım listelerine kalıcı kaydedilir.</p>
+          <p class="text-xs text-slate-500">Eklenen makineler makine parkuruna ve arıza listelerine kalıcı kaydedilir.</p>
         </div>
         <button data-close-modal class="text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
       </div>
       <form id="form-register-machine" class="space-y-3.5">
-        <div>
-          <label class="text-xs font-bold text-slate-700 block mb-1">Makine / Ekipman Adı:</label>
-          <input type="text" id="reg-machine-name" required placeholder="Örn: CNC Kontur Kesim Robotu No:2" class="w-full text-xs border border-slate-200 rounded-lg p-2.5 font-bold text-slate-800">
-        </div>
-        <div>
-          <label class="text-xs font-bold text-slate-700 block mb-1">Bulunduğu Departman / Hat:</label>
-          <select id="reg-machine-department" class="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg p-2 font-semibold">
-            <!-- Dinamik doldurulur -->
-          </select>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+          <div class="sm:col-span-2">
+            <label class="text-xs font-bold text-slate-700 block mb-1">Makine / Ekipman Adı:</label>
+            <input type="text" id="reg-machine-name" required placeholder="Örn: CNC Kontur Kesim Robotu" class="w-full text-xs border border-slate-200 rounded-lg p-2.5 font-bold text-slate-800">
+          </div>
+          <div>
+            <label class="text-xs font-bold text-slate-700 block mb-1">Makine Kodu / No (Opsiyonel):</label>
+            <input type="text" id="reg-machine-code" placeholder="Örn: CNC-02" class="w-full text-xs border border-slate-200 rounded-lg p-2 font-mono">
+          </div>
+          <div>
+            <label class="text-xs font-bold text-slate-700 block mb-1">Bulunduğu Departman / Hat:</label>
+            <select id="reg-machine-department" class="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg p-2 font-semibold">
+              <!-- Dinamik doldurulur -->
+            </select>
+          </div>
         </div>
         <div>
           <label class="text-xs font-bold text-slate-700 block mb-1">Varsayılan Konum / İstasyon (Opsiyonel):</label>
-          <input type="text" id="reg-machine-location" placeholder="Örn: Kesim Hattı - 3. Masa" class="w-full text-xs border border-slate-200 rounded-lg p-2 font-medium">
+          <input type="text" id="reg-machine-location" placeholder="Örn: Kesim Hattı - 3. İstasyon" class="w-full text-xs border border-slate-200 rounded-lg p-2 font-medium">
         </div>
         <div>
           <label class="text-xs font-bold text-slate-700 block mb-1">Açıklama / Model / Not (Opsiyonel):</label>
@@ -1925,6 +2181,108 @@
           </button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- MODAL: Makine Bilgilerini Düzenle -->
+  <div id="modal-edit-machine" class="modal-backdrop">
+    <div class="modal-card p-5 max-w-md">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+        <div>
+          <h3 class="text-base font-extrabold text-slate-900 flex items-center gap-2">
+            <span>✏️</span> <span>Makine Bilgilerini Düzenle</span>
+          </h3>
+          <p class="text-xs text-slate-500">Makinenin adı, kodu, departmanı veya durum bilgilerini güncelleyin.</p>
+        </div>
+        <button data-close-modal class="text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
+      </div>
+      <form id="form-edit-machine" class="space-y-3.5">
+        <input type="hidden" id="edit-machine-id">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+          <div class="sm:col-span-2">
+            <label class="text-xs font-bold text-slate-700 block mb-1">Makine / Ekipman Adı:</label>
+            <input type="text" id="edit-machine-name" required class="w-full text-xs border border-slate-200 rounded-lg p-2.5 font-bold text-slate-800">
+          </div>
+          <div>
+            <label class="text-xs font-bold text-slate-700 block mb-1">Makine Kodu / No:</label>
+            <input type="text" id="edit-machine-code" placeholder="Örn: KMP-01" class="w-full text-xs border border-slate-200 rounded-lg p-2 font-mono">
+          </div>
+          <div>
+            <label class="text-xs font-bold text-slate-700 block mb-1">Çalışma Durumu:</label>
+            <select id="edit-machine-status" class="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg p-2 font-semibold">
+              <option value="Aktif">🟢 Aktif / Faal</option>
+              <option value="Bakımda">🟡 Planlı Bakımda</option>
+              <option value="Arızalı">🔴 Arızalı / Durdu</option>
+              <option value="Devre Dışı">⚪ Yedek / Devre Dışı</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label class="text-xs font-bold text-slate-700 block mb-1">Bağlı Olduğu Departman / Hat:</label>
+          <select id="edit-machine-department" class="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg p-2 font-semibold">
+            <!-- Dinamik doldurulur -->
+          </select>
+        </div>
+        <div>
+          <label class="text-xs font-bold text-slate-700 block mb-1">Fabrika Konumu / İstasyon:</label>
+          <input type="text" id="edit-machine-location" placeholder="Örn: Kesim Hattı - 3. Masa" class="w-full text-xs border border-slate-200 rounded-lg p-2 font-medium">
+        </div>
+        <div>
+          <label class="text-xs font-bold text-slate-700 block mb-1">Açıklama / Model / Not:</label>
+          <textarea id="edit-machine-notes" rows="2" placeholder="Örn: Vidalı tip, 2023 model..." class="w-full text-xs border border-slate-200 rounded-lg p-2"></textarea>
+        </div>
+        <div class="pt-2 flex justify-end gap-2 border-t border-slate-100">
+          <button type="button" data-close-modal class="text-xs font-bold text-slate-500 py-2 px-3 rounded-lg hover:bg-slate-100">İptal</button>
+          <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs py-2 px-5 rounded-lg shadow-sm flex items-center gap-1.5 cursor-pointer">
+            <span>💾</span> <span>Değişiklikleri Kaydet</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: Korumalı ve Otomatik Yedekli Fabrika Sıfırlama -->
+  <div id="modal-guarded-reset" class="modal-backdrop">
+    <div class="modal-card p-5 max-w-md">
+      <div class="flex items-center justify-between border-b border-red-100 pb-3 mb-4">
+        <div class="flex items-center gap-2">
+          <span class="text-2xl">⚠️</span>
+          <div>
+            <h3 class="text-base font-extrabold text-red-700">Kritik İşlem: Fabrika Verilerini Sıfırlama</h3>
+            <p class="text-[11px] text-slate-500">Bu işlem veri kaybı riski taşır ve sıkı koruma altındadır.</p>
+          </div>
+        </div>
+        <button data-close-modal class="text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
+      </div>
+
+      <div class="space-y-3.5 text-xs text-slate-600">
+        <div class="p-3 bg-amber-50 border border-amber-200 rounded-xl space-y-1.5 text-amber-900">
+          <p class="font-bold flex items-center gap-1 text-xs">
+            <span>🛡️</span> <span>Otomatik Acil Durum Yedeği:</span>
+          </p>
+          <p class="text-[11px] leading-relaxed">
+            Sıfırlama butonuna bastığınız anda sistem <strong>öncelikle o anki tüm fabrika verilerinizi</strong> (personeller, stok hareketleri, makineler, arızalar) otomatik olarak bilgisayarınıza <code>.json</code> yedeği olarak indirecektir.
+          </p>
+        </div>
+
+        <div class="p-3 bg-red-50 border border-red-200 rounded-xl text-red-800 text-[11px] leading-relaxed">
+          <strong>Dikkat:</strong> Tarayıcıdaki tüm çalışan listeleri, izin bakiyeleri, stok hareketleri ve arıza kayıtları temizlenecektir.
+        </div>
+
+        <div>
+          <label class="font-bold text-slate-800 block mb-1">
+            İşlemi onaylamak için aşağıdaki kutucuğa büyük harflerle <span class="text-red-600 bg-red-100 px-1.5 py-0.5 rounded font-black">SIFIRLA</span> yazınız:
+          </label>
+          <input type="text" id="input-confirm-reset-phrase" placeholder="SIFIRLA" autocomplete="off" class="w-full text-sm font-black text-center tracking-widest uppercase border-2 border-slate-300 focus:border-red-500 rounded-lg p-2.5 outline-none">
+        </div>
+
+        <div class="pt-2 flex justify-end gap-2 border-t border-slate-100">
+          <button type="button" data-close-modal class="text-xs font-bold text-slate-500 py-2 px-3 rounded-lg hover:bg-slate-100">Vazgeç</button>
+          <button type="button" id="btn-execute-guarded-reset" disabled class="bg-red-600 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-red-700 text-white font-black text-xs py-2 px-5 rounded-lg shadow-sm flex items-center gap-1.5 transition">
+            <span>⚠️</span> <span>Tüm Verileri Sıfırla</span>
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -2014,6 +2372,6 @@
   </script>
 
   <!-- ES Modül Girişi -->
-  <script type="module" src="js/app.js?v=3.3"></script>
+  <script type="module" src="js/app.js?v=4.1"></script>
 </body>
 </html>

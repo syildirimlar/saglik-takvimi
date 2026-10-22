@@ -1,4 +1,4 @@
-// SODSAN Fabrika Portalı - Sevkiyat & Bakım Takvimi Modülü (calendar.js)
+// SODSAN Fabrika Portalı - Planlama & Operasyon Takvimi Modülü (calendar.js)
 import { appState, logSystemAction, playAlertSound } from './data.js';
 
 export class CalendarModule {
@@ -719,9 +719,13 @@ export class CalendarModule {
   }
 
   // Takvime eklenen plan, bakım veya eğitimleri Telegram üzerinden ilgili birimlere iletir
-  sendTelegramEventNotification(event) {
+  async sendTelegramEventNotification(event) {
     const config = appState.state.telegramConfig;
     if (!config || !config.enabled || !config.botToken || !config.chatId) return;
+    if (config.notifyCalendar === false) {
+      console.log("Takvim etkinlikleri Telegram bildirimi kullanıcı tercihiyle kapalı.");
+      return;
+    }
 
     let typeLabel = "📌 Takvim Planı";
     let typeEmoji = "📅";
@@ -742,27 +746,55 @@ export class CalendarModule {
       typeEmoji = "👔";
     }
 
-    const message = `
-${typeEmoji} *SEVKİYAT & BAKIM TAKVİMİ BİLDİRİMİ*
+    const escapeHtml = (str) => String(str || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    const timeStr = new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+
+    const htmlMessage = `
+${typeEmoji} <b>PLANLAMA & OPERASYON TAKVİMİ BİLDİRİMİ</b>
 ─────────────────────
-📌 *Başlık:* ${event.title}
-🏷️ *Tür:* ${typeLabel}
-📆 *Tarih:* ${event.date}
-👤 *Sorumlu:* ${event.responsible || 'Belirtilmedi'}
-✍️ *Kaydeden:* ${event.createdBy || appState.state.currentUser.name}
-${event.notes ? `💬 *Açıklama / Not:* ${event.notes}` : ''}
-⏰ *Kayıt Zamanı:* ${new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
+📌 <b>Başlık:</b> ${escapeHtml(event.title)}
+🏷️ <b>Tür:</b> ${escapeHtml(typeLabel)}
+📆 <b>Tarih:</b> ${escapeHtml(event.date)}
+👤 <b>Sorumlu:</b> ${escapeHtml(event.responsible || 'Belirtilmedi')}
+✍️ <b>Kaydeden:</b> ${escapeHtml(event.createdBy || appState.state.currentUser.name)}
+${event.notes ? `💬 <b>Açıklama / Not:</b> ${escapeHtml(event.notes)}\n` : ''}⏰ <b>Kayıt Zamanı:</b> ${timeStr}
 `.trim();
 
-    const url = `https://api.telegram.org/bot${config.botToken}/sendMessage`;
-    fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        chat_id: config.chatId,
-        text: message,
-        parse_mode: "Markdown"
-      })
-    }).catch(err => console.warn("Telegram takvim bildirimi gönderilemedi:", err));
+    const plainMessage = `
+${typeEmoji} PLANLAMA & OPERASYON TAKVİMİ BİLDİRİMİ
+─────────────────────
+📌 Başlık: ${event.title}
+🏷️ Tür: ${typeLabel}
+📆 Tarih: ${event.date}
+👤 Sorumlu: ${event.responsible || 'Belirtilmedi'}
+✍️ Kaydeden: ${event.createdBy || appState.state.currentUser.name}
+${event.notes ? `💬 Not: ${event.notes}\n` : ''}⏰ Kayıt Zamanı: ${timeStr}
+`.trim();
+
+    try {
+      const url = `https://api.telegram.org/bot${config.botToken}/sendMessage`;
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          chat_id: config.chatId,
+          text: htmlMessage,
+          parse_mode: "HTML"
+        })
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok || (data && !data.ok)) {
+        await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            chat_id: config.chatId,
+            text: plainMessage
+          })
+        });
+      }
+    } catch (err) {
+      console.warn("Telegram takvim bildirimi gönderilemedi:", err);
+    }
   }
 }
