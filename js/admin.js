@@ -365,18 +365,23 @@ export class AdminModule {
       const roleInfo = getRoleInfo(u.role);
 
       return `
-        <tr class="border-b border-slate-100 hover:bg-slate-50 transition text-sm">
+        <tr class="border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition text-sm">
           <td class="py-3 px-3">
-            <div class="font-bold text-slate-900">${u.name}</div>
+            <div class="font-bold text-slate-900 dark:text-slate-100">${u.name}</div>
             <div class="text-xs text-slate-400 font-mono">@${u.username} | Tel: ${u.phone || '-'}</div>
           </td>
-          <td class="py-3 px-3 text-xs text-slate-700 font-medium">${dep.icon} ${dep.name}</td>
+          <td class="py-3 px-3 text-xs text-slate-700 dark:text-slate-300 font-medium">${dep.icon} ${dep.name}</td>
           <td class="py-3 px-3">
             <span class="text-[11px] font-bold px-2 py-0.5 rounded ${roleInfo.badge}">
               ${roleInfo.title}
             </span>
           </td>
-          <td class="py-3 px-3 text-xs font-mono font-bold text-slate-600">${u.pin || '1234'}</td>
+          <td class="py-3 px-3 text-xs">
+            <div class="inline-flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-700">
+              <span class="font-mono font-bold tracking-widest text-slate-700 dark:text-slate-300 text-sm pin-mask">••••</span>
+              <button type="button" data-toggle-pin-reveal="${u.pin || '1234'}" class="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer" title="Şifreyi Göster/Gizle">👁️</button>
+            </div>
+          </td>
           <td class="py-3 px-3 text-right">
             <button data-edit-user="${u.id}" class="bg-blue-50 text-blue-700 hover:bg-blue-100 px-2.5 py-1 rounded-md text-xs font-bold mr-2 transition">✏️ Düzenle</button>
             ${u.id !== "u_admin" ? `
@@ -386,6 +391,23 @@ export class AdminModule {
         </tr>
       `;
     }).join("");
+
+    // Şifre Göster/Gizle Butonları
+    tbody.querySelectorAll("[data-toggle-pin-reveal]").forEach(btn => {
+      btn.addEventListener("click", (e) => {
+        const pin = e.currentTarget.getAttribute("data-toggle-pin-reveal");
+        const maskSpan = e.currentTarget.parentElement.querySelector(".pin-mask");
+        if (maskSpan.textContent === "••••") {
+          maskSpan.textContent = pin;
+          maskSpan.classList.remove("tracking-widest");
+          e.currentTarget.textContent = "🙈";
+        } else {
+          maskSpan.textContent = "••••";
+          maskSpan.classList.add("tracking-widest");
+          e.currentTarget.textContent = "👁️";
+        }
+      });
+    });
 
     // Kullanıcı Düzenle Dinleyicisi
     tbody.querySelectorAll("[data-edit-user]").forEach(btn => {
