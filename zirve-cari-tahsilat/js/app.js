@@ -182,15 +182,17 @@ const App = window.App = {
     applySettingsToUi() {
         const s = this.state.settings || {};
         if (s.rates) {
-            document.getElementById("rateUSD").value = s.rates.USD || 36.50;
-            document.getElementById("rateEUR").value = s.rates.EUR || 39.80;
+            const usdEl = document.getElementById("rateUSD");
+            const eurEl = document.getElementById("rateEUR");
+            if (usdEl) usdEl.value = s.rates.USD || 36.50;
+            if (eurEl) eurEl.value = s.rates.EUR || 39.80;
         }
-        document.getElementById("ownFirmName").value = s.ownFirmName || "SODSAN";
-        document.getElementById("ownFirmVkn").value = s.ownFirmVkn || "";
-        document.getElementById("zirveXmlPath").value = s.zirveXmlPath || "C:\\zirve";
-        document.getElementById("sqlServerInput").value = s.sqlServer || ".\\ZIRVESQL";
-        document.getElementById("sqlAuthType").value = s.sqlAuthType || "windows";
-        document.getElementById("sqlUserInput").value = s.sqlUser || "sa";
+        const fn = document.getElementById("ownFirmName"); if (fn) fn.value = s.ownFirmName || "SODSAN";
+        const vkn = document.getElementById("ownFirmVkn"); if (vkn) vkn.value = s.ownFirmVkn || "";
+        const xp = document.getElementById("zirveXmlPath"); if (xp) xp.value = s.zirveXmlPath || "C:\\zirve";
+        const srv = document.getElementById("sqlServerInput"); if (srv) srv.value = s.sqlServer || ".\\ZIRVESQL";
+        const auth = document.getElementById("sqlAuthType"); if (auth) auth.value = s.sqlAuthType || "windows";
+        const usr = document.getElementById("sqlUserInput"); if (usr) usr.value = s.sqlUser || "sa";
         this.toggleSqlAuthInputs();
     },
 
@@ -426,10 +428,10 @@ const App = window.App = {
     recalculateAndRenderAll() {
         this.computeAll();
 
-        document.getElementById("cntCariler").textContent = this.state.cariler.length;
-        document.getElementById("cntHareketler").textContent = this.state.hareketler.length;
-        document.getElementById("cntFaturalar").textContent = this.state.faturalar.length;
-        document.getElementById("cntCekSenet").textContent = this.state.ceksenetler.length;
+        const elC = document.getElementById("cntCariler"); if (elC) elC.textContent = this.state.cariler.length;
+        const elH = document.getElementById("cntHareketler"); if (elH) elH.textContent = this.state.hareketler.length;
+        const elF = document.getElementById("cntFaturalar"); if (elF) elF.textContent = this.state.faturalar.length;
+        const elCS = document.getElementById("cntCekSenet"); if (elCS) elCS.textContent = this.state.ceksenetler.length;
 
         this.renderDashboard();
         this.renderCariler();

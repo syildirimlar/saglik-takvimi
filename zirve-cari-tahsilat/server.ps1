@@ -1064,6 +1064,9 @@ ORDER BY ISNULL(SUM(p.rows), 0) DESC
             ".svg"  { $contentType = "image/svg+xml" }
         }
         $bytes = [System.IO.File]::ReadAllBytes($filePath)
+        $response.AddHeader("Cache-Control", "no-cache, no-store, must-revalidate")
+        $response.AddHeader("Pragma", "no-cache")
+        $response.AddHeader("Expires", "0")
         $response.ContentType = $contentType
         $response.ContentLength64 = $bytes.Length
         $response.OutputStream.Write($bytes, 0, $bytes.Length)

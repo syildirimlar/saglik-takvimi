@@ -116,7 +116,7 @@ window.ZirveExcelImporter = {
         });
     },
 
-    async parsePdf(file) {
+    async parsePdf(file, appInstance) {
         if (!window.pdfjsLib) {
             throw new Error("PDF kütüphanesi hazır değil. Lütfen sayfayı yenileyiniz.");
         }

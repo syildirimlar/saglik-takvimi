@@ -1,6 +1,6 @@
 {
   "settings": {
-    "ownFirmName": "",
+    "ownFirmName": "SODSAN STANDART OTO DÖŞEME A.Ş.",
     "ownFirmVkn": "",
     "zirveXmlPath": "C:\\zirve",
     "sqlServer": ".\\ZIRVESQL",
@@ -16,6 +16,5 @@
   "cariler": [],
   "hareketler": [],
   "faturalar": [],
-  "ceksenetler": [],
-  "initialized": true
+  "ceksenetler": []
 }
