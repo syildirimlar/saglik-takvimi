@@ -1,18 +1,21 @@
 // SODSAN Fabrika İçi Portal - Veri Modeli ve Durum Yönetimi (data.js)
 
-const STORAGE_KEY = "SODSAN_PORTAL_STATE_V1";
+const STORAGE_KEY = "SODSAN_PORTAL_STATE_V2";
+const LEGACY_STORAGE_KEY = "SODSAN_PORTAL_STATE_V1";
 
-// Standart Varsayılan Departmanlar
+// Standart Gerçek Fabrika Departmanları
 export const DEFAULT_DEPARTMENTS = [
-  { id: "dep_hammadde", name: "Hammadde & Giriş Depo", icon: "📦", color: "#3b82f6" },
-  { id: "dep_kesim", name: "Kesim & Sünger Üretim", icon: "✂️", color: "#8b5cf6" },
-  { id: "dep_montaj", name: "Montaj & Hatlar", icon: "⚙️", color: "#06b6d4" },
   { id: "dep_sevkiyat", name: "Sevkiyat & Mamul Depo", icon: "🚚", color: "#f59e0b" },
   { id: "dep_bakim", name: "Bakım & Onarım", icon: "🛠️", color: "#ef4444" },
   { id: "dep_kalite", name: "Kalite Kontrol", icon: "🔍", color: "#10b981" },
   { id: "dep_satinalma", name: "Satın Alma", icon: "🛒", color: "#6366f1" },
   { id: "dep_ik", name: "İnsan Kaynakları & İdari İşler", icon: "👔", color: "#ec4899" },
-  { id: "dep_yonetim", name: "Fabrika Müdürlüğü / Yönetim", icon: "🏢", color: "#1e293b" }
+  { id: "dep_yonetim", name: "Fabrika Müdürlüğü / Yönetim", icon: "🏢", color: "#1e293b" },
+  { id: "dep_1792617714014", name: "1400 ÜRETİM", icon: "🏢", color: "#2563eb" },
+  { id: "dep_1792617758042", name: "1400 DEPO", icon: "🏢", color: "#2563eb" },
+  { id: "dep_1792617771756", name: "1500 DÖŞEME", icon: "🏢", color: "#2563eb" },
+  { id: "dep_1792617860390", name: "1500 SEVKİYAT", icon: "🏢", color: "#2563eb" },
+  { id: "dep_1792617873852", name: "1500 VAKUM", icon: "🏢", color: "#2563eb" }
 ];
 
 // Standart Roller ve Yetki Matrisi
@@ -151,59 +154,186 @@ export function getCurrentUserEmployee() {
   return employees.find(e => e.userId === user.id || e.id === user.id || e.name.toLowerCase() === user.name.toLowerCase()) || null;
 }
 
-// Başlangıç Kullanıcıları (Deneme isimleri temizlenmiştir)
+// Başlangıç Gerçek Fabrika Kullanıcıları (Admin PIN: 58105810, Personel PIN: 1234)
 export const DEFAULT_USERS = [
-  { id: "u_admin", username: "admin", name: "Sistem Yöneticisi", role: "ADMIN", departmentId: "dep_yonetim", phone: "5551112233", pin: "1234" }
+  { id: "u_admin", username: "admin", name: "Sistem Yöneticisi", role: "ADMIN", departmentId: "dep_yonetim", phone: "5551112233", pin: "58105810" },
+  { id: "u_ik", username: "gurkan", name: "Gürkan", role: "IK", departmentId: "dep_ik", phone: "", pin: "1234" },
+  { id: "u_ahmet", username: "ayhan", name: "Ayhan", role: "USTA", departmentId: "dep_1792617714014", phone: "", pin: "1234" },
+  { id: "u_mehmet", username: "eray", name: "Eray", role: "USTA", departmentId: "dep_1792617873852", phone: "", pin: "1234" },
+  { id: "u_ali", username: "sefa", name: "Sefa", role: "FORKLIFT", departmentId: "dep_1792617758042", phone: "", pin: "1234" },
+  { id: "u_1792618640012", username: "esma", name: "Esma", role: "USTA", departmentId: "dep_1792617860390", phone: "", pin: "1234" },
+  { id: "u_1792669812232", username: "nisa", name: "Nisa", role: "USTA", departmentId: "dep_1792617860390", phone: "", pin: "1234" },
+  { id: "u_1792669862039", username: "onur", name: "Onur", role: "BAKIM", departmentId: "dep_1792617873852", phone: "", pin: "1234" },
+  { id: "u_1792669911638", username: "abdurrahman", name: "Abdurrahman", role: "USTA", departmentId: "dep_1792617771756", phone: "", pin: "1234" },
+  { id: "u_1792690211697", username: "mustafakara", name: "Mustafa Kara", role: "PERSONEL", departmentId: "dep_1792617873852", phone: "", pin: "1234" },
+  { id: "u_1792696635019", username: "rasit", name: "Raşit", role: "USTA", departmentId: "dep_1792617860390", phone: "", pin: "1234" },
+  { id: "u_1792699612413", username: "kaan", name: "Kağan", role: "IK", departmentId: "dep_ik", phone: "", pin: "1234" },
+  { id: "u_1792699659049", username: "buke", name: "Büke", role: "IK", departmentId: "dep_ik", phone: "", pin: "1234" }
 ];
 
-// Başlangıç Personel Listesi (İzin Bakiye Takibi için - Boş başlangıç)
-export const DEFAULT_EMPLOYEES = [];
+// Başlangıç Gerçek Fabrika Personel Listesi (İzin Bakiye Takibi)
+export const DEFAULT_EMPLOYEES = [
+  { id: "u_admin", userId: "u_admin", name: "Sistem Yöneticisi", role: "ADMIN", departmentId: "dep_yonetim", totalLeave: 14, usedLeave: 0, remainingLeave: 14, hireDate: "2024-01-01" },
+  { id: "u_ik", userId: "u_ik", name: "Gürkan", role: "IK", departmentId: "dep_ik", totalLeave: 14, usedLeave: 0, remainingLeave: 14, hireDate: "2024-01-01" },
+  { id: "u_ahmet", userId: "u_ahmet", name: "Ayhan", role: "USTA", departmentId: "dep_1792617714014", totalLeave: 14, usedLeave: 0, remainingLeave: 14, hireDate: "2024-01-01" },
+  { id: "u_mehmet", userId: "u_mehmet", name: "Eray", role: "USTA", departmentId: "dep_1792617873852", totalLeave: 14, usedLeave: 0, remainingLeave: 14, hireDate: "2024-01-01" },
+  { id: "u_ali", userId: "u_ali", name: "Sefa", role: "FORKLIFT", departmentId: "dep_1792617758042", totalLeave: 14, usedLeave: 0, remainingLeave: 14, hireDate: "2024-01-01" },
+  { id: "u_1792618640012", userId: "u_1792618640012", name: "Esma", role: "USTA", departmentId: "dep_1792617860390", totalLeave: 14, usedLeave: 0, remainingLeave: 14, hireDate: "2024-01-01" },
+  { id: "u_1792669812232", userId: "u_1792669812232", name: "Nisa", role: "USTA", departmentId: "dep_1792617860390", totalLeave: 14, usedLeave: 0, remainingLeave: 14, hireDate: "2024-01-01" },
+  { id: "u_1792669862039", userId: "u_1792669862039", name: "Onur", role: "BAKIM", departmentId: "dep_1792617873852", totalLeave: 14, usedLeave: 0, remainingLeave: 14, hireDate: "2024-01-01" },
+  { id: "u_1792669911638", userId: "u_1792669911638", name: "Abdurrahman", role: "USTA", departmentId: "dep_1792617771756", totalLeave: 14, usedLeave: 0, remainingLeave: 14, hireDate: "2024-01-01" },
+  { id: "u_1792690211697", userId: "u_1792690211697", name: "Mustafa Kara", role: "PERSONEL", departmentId: "dep_1792617873852", totalLeave: 14, usedLeave: 0, remainingLeave: 14, hireDate: "2024-01-01" },
+  { id: "u_1792696635019", userId: "u_1792696635019", name: "Raşit", role: "USTA", departmentId: "dep_1792617860390", totalLeave: 14, usedLeave: 0, remainingLeave: 14, hireDate: "2024-01-01" },
+  { id: "u_1792699612413", userId: "u_1792699612413", name: "Kağan", role: "IK", departmentId: "dep_ik", totalLeave: 14, usedLeave: 0, remainingLeave: 14, hireDate: "2024-01-01" },
+  { id: "u_1792699659049", userId: "u_1792699659049", name: "Büke", role: "IK", departmentId: "dep_ik", totalLeave: 14, usedLeave: 0, remainingLeave: 14, hireDate: "2024-01-01" }
+];
 
-// Gelen-Giden Ürün Hareketleri (Boş başlangıç)
-export const DEFAULT_PRODUCTS = [];
+// Gelen-Giden Ürün Hareketleri (Gerçek Kayıtlar)
+export const DEFAULT_PRODUCTS = [
+  {
+    id: "p_1792689128132",
+    date: "2026-10-22T17:12:08.132Z",
+    type: "GELEN",
+    departmentId: "dep_1792617714014",
+    productName: "C702",
+    amount: 1,
+    unit: "Ton",
+    unitDetail: "",
+    company: "Burpol",
+    supplier: "Burpol (İRSALİYE YOK)",
+    invoiceNo: "İRSALİYE YOK",
+    createdBy: "Sistem Yöneticisi",
+    note: ""
+  }
+];
 
-// Sarf Malzeme İhtiyaçları (Boş başlangıç)
+// Sarf Malzeme İhtiyaçları
 export const DEFAULT_SUPPLIES = [];
 
-// İzin Talepleri (Boş başlangıç)
+// İzin Talepleri
 export const DEFAULT_LEAVE_REQUESTS = [];
 
-// Fazla Mesai Talepleri (Boş başlangıç)
+// Fazla Mesai Talepleri
 export const DEFAULT_OVERTIME_REQUESTS = [];
 
-// Makina Arıza Bildirimleri (Boş başlangıç)
+// Makina Arıza Bildirimleri
 export const DEFAULT_BREAKDOWNS = [];
 
-// Forklift Çağrıları (Boş başlangıç)
-export const DEFAULT_FORKLIFT_REQUESTS = [];
+// Forklift Çağrıları (Gerçek Kayıtlar)
+export const DEFAULT_FORKLIFT_REQUESTS = [
+  {
+    id: "fork_1792694908797",
+    departmentId: "dep_1792617714014",
+    location: "1400",
+    urgency: "Normal",
+    description: "deneme cagrısı",
+    status: "Tamamlandı",
+    requestTime: "2026-10-22T18:48:28.797Z",
+    requestedBy: "Sistem Yöneticisi",
+    operatorName: "Sistem Yöneticisi"
+  }
+];
 
-// Takvim Etkinlikleri & Makine Bakım Planı (Boş başlangıç)
+// Takvim Etkinlikleri & Makine Bakım Planı
 export const DEFAULT_CALENDAR_EVENTS = [];
 
 // Standart Tanımlı Firma & Tedarikçi & Müşteri Listesi
 export const DEFAULT_COMPANIES = [
   "Bayer Kimya A.Ş.",
   "Bellona Mobilya A.Ş.",
-  "İstikbal Mobilya",
+  "Burpol",
   "Doğan Sünger",
-  "Yataş A.Ş.",
+  "İstikbal Mobilya",
+  "Kolsan Koltuk",
   "Teknik Bıçak San.",
-  "Kolsan Koltuk"
+  "Yataş A.Ş."
 ];
 
-// Tanımlı Makina & Hat Listesi (Kompresör hariç hepsi silindi, kullanıcı yenilerini ekleyebilir)
+// Tanımlı Makina & Hat Parkuru (Gerçek Fabrika Enjeksiyon ve Kompresör Parkuru)
 export const DEFAULT_MACHINES = [
   {
+    id: "mac_ur9hr2fee",
+    name: "ENJEKSİYON 1050",
+    code: "",
+    departmentId: "dep_1792617714014",
+    location: "",
+    notes: "",
+    status: "Aktif",
+    addedAt: "2026-10-22"
+  },
+  {
+    id: "mac_ealni0wrm",
+    name: "ENJEKSİYON 130",
+    code: "",
+    departmentId: "dep_1792617714014",
+    location: "",
+    notes: "",
+    status: "Aktif",
+    addedAt: "2026-10-22"
+  },
+  {
+    id: "mac_fxhbk1bqn",
+    name: "ENJEKSİYON 1400",
+    code: "",
+    departmentId: "dep_1792617714014",
+    location: "",
+    notes: "",
+    status: "Aktif",
+    addedAt: "2026-10-22"
+  },
+  {
+    id: "mac_gakua6pxy",
+    name: "ENJEKSİYON 1500",
+    code: "",
+    departmentId: "dep_1792617873852",
+    location: "",
+    notes: "",
+    status: "Aktif",
+    addedAt: "2026-10-22"
+  },
+  {
+    id: "mac_ful1pjcg3",
+    name: "HAVA KURUTUCU",
+    code: "",
+    departmentId: "dep_1792617860390",
+    location: "",
+    notes: "",
+    status: "Aktif",
+    addedAt: "2026-10-22"
+  },
+  {
     id: "mac_kompresor",
-    name: "Kompresör",
-    code: "KMP-01",
-    departmentId: "dep_bakim",
+    name: "Kompresör1",
+    code: "",
+    departmentId: "dep_1792617860390",
     location: "Kompresör Dairesi",
-    notes: "Fabrika genel hava besleme kompresörü",
+    notes: "",
+    status: "Aktif",
+    addedAt: "2026-10-22"
+  },
+  {
+    id: "mac_1792696272439_732",
+    name: "Kompresör2",
+    code: "",
+    departmentId: "dep_1792617860390",
+    location: "Kompresör Dairesi",
+    notes: "",
     status: "Aktif",
     addedAt: "2026-10-22"
   }
 ];
+
+// Varsayılan Telegram Bot Yapılandırması
+export const DEFAULT_TELEGRAM_CONFIG = {
+  botToken: "8946959841:AAFj2Wtzf8n1FNcRjc5gYkJZOrBlci5c1HA",
+  chatId: "-1004438133842",
+  enabled: true,
+  notifyForkliftNew: true,
+  notifyForkliftEnRoute: true,
+  notifyForkliftDone: true,
+  notifyBreakdown: true,
+  notifyCalendar: true
+};
 
 // Dışarıdan Hizmet Alınan Servis & Bakım Ekipleri Rehberi
 export const DEFAULT_EXTERNAL_SERVICES = [
@@ -263,220 +393,168 @@ export class StateManager {
   }
 
   loadState() {
-    // Eski örnek/demo olay ve kayıtların ID kümesi
-    const DEMO_IDS = new Set([
-      "p_1", "p_2", "p_3",
-      "sup_1", "sup_2", "sup_3",
-      "leave_1", "leave_2",
-      "ot_1", "ot_2", "ot_3",
-      "brk_1", "brk_2",
-      "fork_1", "fork_2",
-      "ev_1", "ev_2", "ev_3",
-      "log_1", "log_2", "log_3", "log_4", "log_5",
-      "emp_1", "emp_2", "emp_3", "emp_4", "emp_5", "emp_6"
-    ]);
-
     try {
-      const saved = localStorage.getItem(STORAGE_KEY);
+      // 1. Önce V2 (yeni sürüm) depolamayı kontrol et, yoksa V1'i dene
+      let saved = localStorage.getItem(STORAGE_KEY) || localStorage.getItem(LEGACY_STORAGE_KEY);
+      
+      let parsed = null;
       if (saved) {
-        const parsed = JSON.parse(saved);
-        if (!parsed.roles || parsed.roles.length === 0) {
-          parsed.roles = DEFAULT_ROLES;
+        try {
+          parsed = JSON.parse(saved);
+        } catch (e) {
+          console.error("State parse hatası:", e);
         }
+      }
 
-        // Önbellekteki veya mevcut depolamadaki tüm örnek olayları kaldır
-        let stateChanged = false;
-        const cleanArray = (key) => {
-          if (Array.isArray(parsed[key])) {
-            const beforeCount = parsed[key].length;
-            parsed[key] = parsed[key].filter(item => item && item.id && !DEMO_IDS.has(item.id));
-            if (parsed[key].length !== beforeCount) {
-              stateChanged = true;
-            }
+      if (!parsed || typeof parsed !== "object") {
+        parsed = {};
+      }
+
+      // Departmanlar: Boşsa veya eksikse varsayılan gerçek fabrika departmanlarını kullan
+      if (!Array.isArray(parsed.departments) || parsed.departments.length === 0) {
+        parsed.departments = JSON.parse(JSON.stringify(DEFAULT_DEPARTMENTS));
+      } else {
+        // Eksik gerçek departman varsa ekle
+        DEFAULT_DEPARTMENTS.forEach(defDep => {
+          if (!parsed.departments.some(d => d.id === defDep.id)) {
+            parsed.departments.push(defDep);
+          }
+        });
+      }
+
+      // Roller
+      if (!Array.isArray(parsed.roles) || parsed.roles.length === 0) {
+        parsed.roles = JSON.parse(JSON.stringify(DEFAULT_ROLES));
+      }
+
+      // Kullanıcılar (users): Kesinlikle hiçbir kullanıcı silinmez!
+      if (!Array.isArray(parsed.users) || parsed.users.length === 0) {
+        parsed.users = JSON.parse(JSON.stringify(DEFAULT_USERS));
+      } else {
+        // Gerçek kullanıcıların eksiksiz olmasını sağla
+        DEFAULT_USERS.forEach(defUser => {
+          const existing = parsed.users.find(u => u.username === defUser.username || u.id === defUser.id);
+          if (!existing) {
+            parsed.users.push(defUser);
           } else {
-            parsed[key] = [];
-            stateChanged = true;
+            // Admin şifresini eğer boşsa veya 1234 ise kullanıcının asıl PIN'i (58105810) ile güncelle
+            if (defUser.username === "admin" && (!existing.pin || existing.pin === "1234")) {
+              existing.pin = defUser.pin;
+            }
           }
+        });
+      }
+
+      // Personel (employees): Kesinlikle silinmez!
+      if (!Array.isArray(parsed.employees) || parsed.employees.length === 0) {
+        parsed.employees = JSON.parse(JSON.stringify(DEFAULT_EMPLOYEES));
+      } else {
+        DEFAULT_EMPLOYEES.forEach(defEmp => {
+          if (!parsed.employees.some(e => e.id === defEmp.id || e.name === defEmp.name)) {
+            parsed.employees.push(defEmp);
+          }
+        });
+      }
+
+      // Makineler (machines): Kesinlikle silinmez!
+      if (!Array.isArray(parsed.machines) || parsed.machines.length === 0) {
+        parsed.machines = JSON.parse(JSON.stringify(DEFAULT_MACHINES));
+      } else {
+        DEFAULT_MACHINES.forEach(defMac => {
+          if (!parsed.machines.some(m => m.id === defMac.id || m.name.toLowerCase() === defMac.name.toLowerCase())) {
+            parsed.machines.push(defMac);
+          }
+        });
+      }
+
+      // Ürün Hareketleri
+      if (!Array.isArray(parsed.products) || parsed.products.length === 0) {
+        parsed.products = JSON.parse(JSON.stringify(DEFAULT_PRODUCTS));
+      }
+
+      // Forklift Talepleri
+      if (!Array.isArray(parsed.forkliftRequests) || parsed.forkliftRequests.length === 0) {
+        parsed.forkliftRequests = JSON.parse(JSON.stringify(DEFAULT_FORKLIFT_REQUESTS));
+      }
+
+      // Diğer diziler
+      if (!Array.isArray(parsed.supplies)) parsed.supplies = [];
+      if (!Array.isArray(parsed.leaveRequests)) parsed.leaveRequests = [];
+      if (!Array.isArray(parsed.overtimeRequests)) parsed.overtimeRequests = [];
+      if (!Array.isArray(parsed.breakdowns)) parsed.breakdowns = [];
+      if (!Array.isArray(parsed.calendarEvents)) parsed.calendarEvents = [];
+      if (!Array.isArray(parsed.activityLogs)) parsed.activityLogs = [];
+
+      // Firmalar
+      if (!Array.isArray(parsed.companies) || parsed.companies.length === 0) {
+        parsed.companies = [...DEFAULT_COMPANIES];
+      }
+
+      // Dış Servisler
+      if (!Array.isArray(parsed.externalServices) || parsed.externalServices.length === 0) {
+        parsed.externalServices = [...DEFAULT_EXTERNAL_SERVICES];
+      }
+
+      // Telegram Yapılandırması
+      if (!parsed.telegramConfig || !parsed.telegramConfig.botToken) {
+        parsed.telegramConfig = JSON.parse(JSON.stringify(DEFAULT_TELEGRAM_CONFIG));
+      } else {
+        parsed.telegramConfig = {
+          botToken: parsed.telegramConfig.botToken || DEFAULT_TELEGRAM_CONFIG.botToken,
+          chatId: parsed.telegramConfig.chatId || DEFAULT_TELEGRAM_CONFIG.chatId,
+          enabled: parsed.telegramConfig.enabled !== false,
+          notifyForkliftNew: parsed.telegramConfig.notifyForkliftNew !== false,
+          notifyForkliftEnRoute: parsed.telegramConfig.notifyForkliftEnRoute !== false,
+          notifyForkliftDone: parsed.telegramConfig.notifyForkliftDone !== false,
+          notifyBreakdown: parsed.telegramConfig.notifyBreakdown !== false,
+          notifyCalendar: parsed.telegramConfig.notifyCalendar !== false
         };
-
-        cleanArray("products");
-        cleanArray("supplies");
-        cleanArray("leaveRequests");
-        cleanArray("overtimeRequests");
-        cleanArray("breakdowns");
-        cleanArray("forkliftRequests");
-        cleanArray("calendarEvents");
-        cleanArray("activityLogs");
-
-        // Firma & Müşteri Listesi
-        if (!Array.isArray(parsed.companies) || parsed.companies.length === 0) {
-          parsed.companies = [...DEFAULT_COMPANIES];
-          stateChanged = true;
-        }
-
-        // Makina Listesi (Kompresör hariç eski varsayılanlar silinir, Kompresör ve eklenenler kalır)
-        const OLD_HARDCODED_MACHINES = new Set([
-          "Dikey Blok Kesim Makinası No:1",
-          "Dikey Blok Kesim Makinası No:2",
-          "Yatay Sünger Dilme Hattı",
-          "Köpük Döküm Reaktörü & Mikser",
-          "Blok Taşıma Konveyör Hattı",
-          "CNC Kontur Kesim Robotu",
-          "Paketleme & Rulo Pres Makinası",
-          "Koltuk Karkas Montaj Robotu",
-          "Vidalı Hava Kompresörü & Kurutucu"
-        ]);
-        if (!Array.isArray(parsed.machines) || parsed.machines.length === 0) {
-          parsed.machines = JSON.parse(JSON.stringify(DEFAULT_MACHINES));
-          stateChanged = true;
-        } else {
-          // Geriye dönük uyumluluk: String makineleri zengin objeye normalize et
-          let normalized = parsed.machines.map(m => {
-            if (typeof m === 'string') {
-              const isKomp = m.toLowerCase().includes("kompresör") || m.toLowerCase().includes("kompresor");
-              return {
-                id: isKomp ? "mac_kompresor" : ("mac_" + Math.random().toString(36).substr(2, 9)),
-                name: m,
-                code: isKomp ? "KMP-01" : "",
-                departmentId: isKomp ? "dep_bakim" : "",
-                location: isKomp ? "Kompresör Dairesi" : "",
-                notes: isKomp ? "Ana fabrika vidalı hava kompresörü" : "",
-                status: "Aktif",
-                addedAt: "2026-10-22"
-              };
-            }
-            return {
-              id: m.id || ("mac_" + Math.random().toString(36).substr(2, 9)),
-              name: m.name || "Bilinmeyen Makine",
-              code: m.code || "",
-              departmentId: m.departmentId || "",
-              location: m.location || "",
-              notes: m.notes || "",
-              status: m.status || "Aktif",
-              addedAt: m.addedAt || "2026-10-22"
-            };
-          });
-
-          // Eski hardcoded demo makineleri temizle
-          normalized = normalized.filter(m => !OLD_HARDCODED_MACHINES.has(m.name));
-
-          // Kompresör yoksa ekle
-          if (!normalized.some(m => m.name.toLowerCase().includes("kompresör") || m.name.toLowerCase().includes("kompresor"))) {
-            normalized.unshift(DEFAULT_MACHINES[0]);
-          }
-
-          if (JSON.stringify(normalized) !== JSON.stringify(parsed.machines)) {
-            parsed.machines = normalized;
-            stateChanged = true;
-          }
-        }
-
-        // Dış Servis Ekipleri Rehberi
-        if (!Array.isArray(parsed.externalServices) || parsed.externalServices.length === 0) {
-          parsed.externalServices = [...DEFAULT_EXTERNAL_SERVICES];
-          stateChanged = true;
-        }
-
-        // Sahte/Örnek Kullanıcıları (Deneme İsimlerini) Sistemden Otomatik Temizle
-        const demoUserIds = new Set(["u_ik", "u_ahmet", "u_mehmet", "u_ali", "u_kemal", "u_hasan", "u_can"]);
-        if (Array.isArray(parsed.users)) {
-          const beforeUserCount = parsed.users.length;
-          parsed.users = parsed.users.filter(u => !demoUserIds.has(u.id));
-          if (parsed.users.length === 0) {
-            parsed.users = [...DEFAULT_USERS];
-          }
-          if (parsed.users.length !== beforeUserCount) {
-            stateChanged = true;
-          }
-        } else {
-          parsed.users = [...DEFAULT_USERS];
-          stateChanged = true;
-        }
-
-        // Sahte/Örnek Personel Kayıtlarını Çizelgeden Temizle
-        if (Array.isArray(parsed.employees)) {
-          const fakeEmpNames = new Set(["Can Demir", "Murat Yıldız", "Serkan Aydın", "İsmail Koç", "Recep Şen", "Yusuf Çelik"]);
-          const beforeEmpCount = parsed.employees.length;
-          parsed.employees = parsed.employees.filter(emp => !DEMO_IDS.has(emp.id) && !fakeEmpNames.has(emp.name));
-          if (parsed.employees.length !== beforeEmpCount) {
-            stateChanged = true;
-          }
-        } else {
-          parsed.employees = [];
-          stateChanged = true;
-        }
-
-        // Örnek izinler temizlendiğinde personel kalan izinlerini sıfırla/düzelt
-        if (Array.isArray(parsed.employees)) {
-          parsed.employees.forEach(emp => {
-            if (emp.usedLeave > 0 && (!parsed.leaveRequests || parsed.leaveRequests.length === 0)) {
-              emp.usedLeave = 0;
-              emp.remainingLeave = emp.totalLeave;
-              stateChanged = true;
-            }
-          });
-        }
-
-        if (parsed.telegramConfig) {
-          parsed.telegramConfig = {
-            botToken: parsed.telegramConfig.botToken || "",
-            chatId: parsed.telegramConfig.chatId || "",
-            enabled: !!parsed.telegramConfig.enabled,
-            notifyForkliftNew: parsed.telegramConfig.notifyForkliftNew !== false,
-            notifyForkliftEnRoute: parsed.telegramConfig.notifyForkliftEnRoute !== false,
-            notifyForkliftDone: parsed.telegramConfig.notifyForkliftDone !== false,
-            notifyBreakdown: parsed.telegramConfig.notifyBreakdown !== false,
-            notifyCalendar: parsed.telegramConfig.notifyCalendar !== false
-          };
-        }
-
-        if (stateChanged) {
-          try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
-          } catch (e) {
-            console.error("Temizlenen state kaydedilemedi:", e);
-          }
-        }
-
-        return parsed;
       }
+
+      // İlk kullanıcı olarak Admin
+      if (!parsed.currentUser) {
+        parsed.currentUser = parsed.users.find(u => u.username === "admin") || parsed.users[0];
+      }
+
+      // Güncel veriyi V2 olarak kaydet
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
+        localStorage.setItem("sodsan_auto_backup_latest", JSON.stringify(parsed));
+      } catch (e) {
+        console.error("State kaydedilemedi:", e);
+      }
+
+      return parsed;
     } catch (e) {
-      console.error("State parse hatası:", e);
+      console.error("loadState kritik hata:", e);
+      return {
+        departments: JSON.parse(JSON.stringify(DEFAULT_DEPARTMENTS)),
+        users: JSON.parse(JSON.stringify(DEFAULT_USERS)),
+        roles: JSON.parse(JSON.stringify(DEFAULT_ROLES)),
+        employees: JSON.parse(JSON.stringify(DEFAULT_EMPLOYEES)),
+        products: JSON.parse(JSON.stringify(DEFAULT_PRODUCTS)),
+        supplies: [],
+        leaveRequests: [],
+        overtimeRequests: [],
+        breakdowns: [],
+        forkliftRequests: JSON.parse(JSON.stringify(DEFAULT_FORKLIFT_REQUESTS)),
+        calendarEvents: [],
+        companies: [...DEFAULT_COMPANIES],
+        machines: JSON.parse(JSON.stringify(DEFAULT_MACHINES)),
+        externalServices: [...DEFAULT_EXTERNAL_SERVICES],
+        activityLogs: [],
+        currentUser: DEFAULT_USERS[0],
+        telegramConfig: JSON.parse(JSON.stringify(DEFAULT_TELEGRAM_CONFIG))
+      };
     }
-
-    return {
-      departments: DEFAULT_DEPARTMENTS,
-      users: DEFAULT_USERS,
-      roles: DEFAULT_ROLES,
-      activityLogs: DEFAULT_LOGS,
-      employees: DEFAULT_EMPLOYEES,
-      products: DEFAULT_PRODUCTS,
-      supplies: DEFAULT_SUPPLIES,
-      leaveRequests: DEFAULT_LEAVE_REQUESTS,
-      overtimeRequests: DEFAULT_OVERTIME_REQUESTS,
-      breakdowns: DEFAULT_BREAKDOWNS,
-      forkliftRequests: DEFAULT_FORKLIFT_REQUESTS,
-      calendarEvents: DEFAULT_CALENDAR_EVENTS,
-      companies: [...DEFAULT_COMPANIES],
-      machines: [...DEFAULT_MACHINES],
-      externalServices: [...DEFAULT_EXTERNAL_SERVICES],
-      currentUser: DEFAULT_USERS[0], // Varsayılan Admin
-      telegramConfig: {
-        botToken: "",
-        chatId: "",
-        enabled: false,
-        notifyForkliftNew: true,
-        notifyForkliftEnRoute: true,
-        notifyForkliftDone: true,
-        notifyBreakdown: true,
-        notifyCalendar: true
-      }
-    };
   }
 
   saveState() {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(this.state));
+      const dataStr = JSON.stringify(this.state);
+      localStorage.setItem(STORAGE_KEY, dataStr);
+      // Ayrıca yedek anahtarına da kaydet (veri kaybını %100 önlemek için)
+      localStorage.setItem("sodsan_auto_backup_latest", dataStr);
     } catch (e) {
       console.error("State kaydedilemedi:", e);
     }
