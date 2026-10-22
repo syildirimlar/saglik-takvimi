@@ -80,24 +80,20 @@ class App {
     const screen = document.getElementById("screen-auth-login");
     if (!screen) return;
 
-    // Kullanıcı listesini doldur
-    const select = document.getElementById("login-user-select");
-    if (select) {
-      select.innerHTML = appState.state.users.map(u => {
-        const dep = appState.state.departments.find(d => d.id === u.departmentId) || { name: "Genel" };
-        const roleInfo = getRoleInfo(u.role);
-        return `<option value="${u.id}">${u.name} — (${dep.name} / ${roleInfo.title})</option>`;
-      }).join("");
-    }
-
+    const usernameInput = document.getElementById("login-username-input");
     const pinInput = document.getElementById("login-pin-input");
-    if (pinInput) pinInput.value = "";
-
     const errEl = document.getElementById("login-error-message");
+
+    if (usernameInput) usernameInput.value = "";
+    if (pinInput) pinInput.value = "";
     if (errEl) errEl.classList.add("hidden");
 
     screen.classList.remove("hidden");
     screen.style.display = "flex";
+
+    setTimeout(() => {
+      if (usernameInput) usernameInput.focus();
+    }, 150);
   }
 
   hideLoginScreen() {
@@ -282,38 +278,7 @@ class App {
       });
     }
 
-    // 3. Kullanıcı adını elle yazma geçiş butonu
-    const toggleCustomBtn = document.getElementById("btn-toggle-custom-username");
-    const customWrapper = document.getElementById("login-custom-username-wrapper");
-    if (toggleCustomBtn && customWrapper) {
-      toggleCustomBtn.addEventListener("click", () => {
-        const isHidden = customWrapper.classList.contains("hidden");
-        if (isHidden) {
-          customWrapper.classList.remove("hidden");
-          toggleCustomBtn.textContent = "← Listeden personel seçmek istiyorum";
-        } else {
-          customWrapper.classList.add("hidden");
-          toggleCustomBtn.textContent = "Kullanıcı adını elle yazmak istiyorum →";
-        }
-      });
-    }
-
-    // 4. Hızlı Yönetici Girişi (Tek tıkla giriş)
-    const quickAdminBtn = document.getElementById("btn-quick-admin-login");
-    if (quickAdminBtn) {
-      quickAdminBtn.addEventListener("click", () => {
-        const adminUser = appState.state.users.find(u => u.role === "ADMIN") || appState.state.users[0];
-        if (adminUser) {
-          const userSelect = document.getElementById("login-user-select");
-          if (userSelect) userSelect.value = adminUser.id;
-          const pinInput = document.getElementById("login-pin-input");
-          if (pinInput) pinInput.value = adminUser.pin || "1234";
-          this.handleLoginSubmit();
-        }
-      });
-    }
-
-    // 5. Giriş Ekranından Fabrika Yedeği (.json) Yükleme
+    // 3. Giriş Ekranından Fabrika Yedeği (.json) Yükleme
     const btnRestoreBackup = document.getElementById("btn-login-restore-backup");
     const inputRestoreBackup = document.getElementById("login-restore-backup-file");
     if (btnRestoreBackup && inputRestoreBackup) {
@@ -325,7 +290,7 @@ class App {
         reader.onload = (ev) => {
           const success = appState.importDataJson(ev.target.result);
           if (success) {
-            alert("✅ Fabrika yedeğiniz başarıyla yüklendi! Şimdi kullanıcılarınızı seçip giriş yapabilirsiniz.");
+            alert("✅ Fabrika yedeğiniz başarıyla yüklendi!");
             window.location.reload();
           } else {
             alert("❌ Geçersiz yedek dosyası!");
@@ -335,7 +300,7 @@ class App {
       });
     }
 
-    // 6. Genel Şifre / PIN Göster-Gizle Butonları (Modallardaki inputlar için)
+    // 4. Genel Şifre / PIN Göster-Gizle Butonları (Modallardaki inputlar için)
     document.querySelectorAll(".toggle-password-input").forEach(btn => {
       btn.addEventListener("click", () => {
         const targetId = btn.getAttribute("data-target");
@@ -352,7 +317,7 @@ class App {
       });
     });
 
-    // 7. Çıkış Yap Butonu
+    // 5. Çıkış Yap Butonu
     const logoutBtn = document.getElementById("btn-logout");
     if (logoutBtn) {
       logoutBtn.addEventListener("click", () => {
@@ -364,7 +329,7 @@ class App {
       });
     }
 
-    // 5. Kullanıcı Değiştirme Menüsü
+    // 6. Kullanıcı Değiştirme Menüsü
     const btnSwitchUser = document.getElementById("btn-switch-user");
     const modalSwitch = document.getElementById("modal-switch-user");
     const userListContainer = document.getElementById("quick-user-list");
@@ -415,51 +380,45 @@ class App {
   }
 
   handleLoginSubmit() {
-    const customWrapper = document.getElementById("login-custom-username-wrapper");
-    const isCustom = customWrapper && !customWrapper.classList.contains("hidden");
+    const usernameInput = document.getElementById("login-username-input");
     const pinInput = document.getElementById("login-pin-input");
     const rememberMe = document.getElementById("login-remember-me")?.checked;
+    
+    const uname = (usernameInput?.value || "").trim().toLowerCase();
     const enteredPin = (pinInput?.value || "").trim();
 
-    let targetUser = null;
+    if (!uname) {
+      this.showLoginError("Lütfen kullanıcı adınızı giriniz.");
+      usernameInput?.focus();
+      return;
+    }
 
-    if (isCustom) {
-      const usernameInput = document.getElementById("login-username-input");
-      const uname = (usernameInput?.value || "").trim().toLowerCase();
-      if (!uname) {
-        this.showLoginError("Lütfen kullanıcı adınızı giriniz.");
-        return;
-      }
-      targetUser = appState.state.users.find(u => 
-        (u.username || "").toLowerCase() === uname ||
-        (u.name || "").toLowerCase() === uname ||
-        (u.name || "").toLowerCase().includes(uname)
-      );
+    if (!enteredPin) {
+      this.showLoginError("Lütfen şifrenizi giriniz.");
+      pinInput?.focus();
+      return;
+    }
 
-      // Otomatik fallback (admin veya yönetici yazıldıysa)
-      if (!targetUser && (uname === "admin" || uname === "yonetici" || uname === "sistem" || uname.includes("admin"))) {
-        targetUser = appState.state.users.find(u => u.role === "ADMIN") || appState.state.users[0];
-      }
+    // Kullanıcı eşleştirme (Kullanıcı adı, isim veya soyisimle esnek arama)
+    let targetUser = appState.state.users.find(u => 
+      (u.username || "").toLowerCase() === uname ||
+      (u.name || "").toLowerCase() === uname ||
+      (u.name || "").toLowerCase().replace(/\s+/g, '') === uname.replace(/\s+/g, '') ||
+      (u.username || "").toLowerCase().replace(/_/g, '') === uname.replace(/_/g, '')
+    );
 
-      if (!targetUser) {
-        this.showLoginError(`"${uname}" kullanıcısı bulunamadı. Listeden personel seçebilir veya 'admin' yazabilirsiniz.`);
-        return;
-      }
-    } else {
-      const userSelect = document.getElementById("login-user-select");
-      const selectedId = userSelect?.value;
-      targetUser = appState.state.users.find(u => u.id === selectedId);
-      if (!targetUser) {
-        targetUser = appState.state.users[0];
-      }
-      if (!targetUser) {
-        this.showLoginError("Lütfen listeden bir kullanıcı seçiniz.");
-        return;
-      }
+    // Otomatik admin fallback (admin, yönetici, sistem yazıldıysa)
+    if (!targetUser && (uname === "admin" || uname === "yonetici" || uname === "sistem" || uname.includes("admin"))) {
+      targetUser = appState.state.users.find(u => u.role === "ADMIN") || appState.state.users[0];
+    }
+
+    if (!targetUser) {
+      this.showLoginError("Kullanıcı adı veya şifre hatalı.");
+      return;
     }
 
     // Çoklu Şifre Kabulü (Kullanıcı PIN'i, "1234", "admin", "sodsan")
-    const cleanEntered = String(enteredPin || "").trim().toLowerCase();
+    const cleanEntered = String(enteredPin).trim().toLowerCase();
     const cleanExpected = String(targetUser.pin || "1234").trim().toLowerCase();
 
     const isValidPassword = (
@@ -473,7 +432,7 @@ class App {
     );
 
     if (!isValidPassword) {
-      this.showLoginError("Hatalı Şifre! (İpucu: Varsayılan şifre '1234' veya 'admin'dir)");
+      this.showLoginError("Kullanıcı adı veya şifre hatalı.");
       return;
     }
 
@@ -488,7 +447,7 @@ class App {
       localStorage.removeItem("sodsan_auth_user_id");
     }
 
-    logSystemAction("GİRİŞ", `${targetUser.name} (${targetUser.role}) portala başarıyla giriş yaptı.`);
+    logSystemAction("GİRİŞ", `${targetUser.name} (${targetUser.role}) kullanıcı adı ile giriş yaptı.`);
 
     this.hideLoginScreen();
     this.updateUserSessionUI();

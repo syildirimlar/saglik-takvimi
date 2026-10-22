@@ -66,47 +66,35 @@
       <!-- Giriş Formu -->
       <form id="form-auth-login" class="space-y-4">
         
-        <!-- Kullanıcı Seçimi / Girişi -->
+        <!-- Kullanıcı Adı Girişi (Otomatik liste yok, kullanıcı kendisi yazar) -->
         <div>
-          <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Kullanıcı / Personel Seçin:</label>
+          <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Kullanıcı Adı veya Ad Soyad:</label>
           <div class="relative">
-            <select id="login-user-select" class="w-full text-xs font-bold bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-slate-800 dark:text-slate-100 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition cursor-pointer">
-              <!-- JS tarafından dinamik doldurulur -->
-            </select>
-          </div>
-          <div class="mt-1 flex items-center justify-between text-[11px]">
-            <button type="button" id="btn-toggle-custom-username" class="text-blue-600 dark:text-blue-400 hover:underline font-semibold cursor-pointer">
-              Kullanıcı adını elle yazmak istiyorum &rarr;
-            </button>
-          </div>
-          <div id="login-custom-username-wrapper" class="hidden mt-2">
-            <input type="text" id="login-username-input" placeholder="Kullanıcı adınız (örn: admin, usta_ahmet)" autocomplete="username" class="w-full text-xs font-mono bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-slate-800 dark:text-slate-100 outline-none">
+            <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm">👤</span>
+            <input type="text" id="login-username-input" required autofocus placeholder="Kullanıcı adınız (örn: admin)" autocomplete="username" class="w-full text-xs font-bold bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl py-3 pl-10 pr-3 text-slate-800 dark:text-slate-100 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition">
           </div>
         </div>
 
         <!-- Şifre / PIN Kodu -->
         <div>
           <div class="flex items-center justify-between mb-1.5">
-            <label class="text-xs font-bold text-slate-700 dark:text-slate-300">Giriş PIN Kodu / Şifre:</label>
-            <span class="text-[11px] text-blue-600 dark:text-blue-400 font-bold font-mono">Standart Şifre: 1234 veya admin</span>
+            <label class="text-xs font-bold text-slate-700 dark:text-slate-300">Giriş Şifresi / PIN:</label>
           </div>
           <div class="relative">
-            <input type="password" id="login-pin-input" required maxlength="20" placeholder="••••" autocomplete="current-password" class="w-full text-sm font-black tracking-widest text-center bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-slate-800 dark:text-slate-100 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition">
-            <button type="button" id="btn-toggle-pin-visibility" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xs font-bold px-1" title="Şifreyi Göster/Gizle">
+            <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm">🔒</span>
+            <input type="password" id="login-pin-input" required maxlength="30" placeholder="••••" autocomplete="current-password" class="w-full text-sm font-black tracking-widest bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl py-3 pl-10 pr-10 text-slate-800 dark:text-slate-100 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition">
+            <button type="button" id="btn-toggle-pin-visibility" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xs font-bold px-1 cursor-pointer" title="Şifreyi Göster/Gizle">
               👁️
             </button>
           </div>
         </div>
 
-        <!-- Beni Bu Cihazda Hatırla & Hızlı Admin Girişi -->
-        <div class="flex items-center justify-between pt-1 flex-wrap gap-2">
+        <!-- Beni Bu Cihazda Hatırla -->
+        <div class="flex items-center justify-between pt-1">
           <label class="flex items-center gap-2 cursor-pointer text-xs text-slate-600 dark:text-slate-400 select-none">
             <input type="checkbox" id="login-remember-me" checked class="w-4 h-4 text-blue-600 rounded border-slate-300">
-            <span class="font-medium">Oturumu açık tut</span>
+            <span class="font-medium">Bu cihazda oturumu açık tut</span>
           </label>
-          <button type="button" id="btn-quick-admin-login" class="text-[11px] text-blue-600 hover:text-blue-700 dark:text-blue-400 font-bold hover:underline cursor-pointer">
-            ⚡ Yönetici Olarak Tek Tıkla Gir
-          </button>
         </div>
 
         <!-- Hata Bildirimi -->
@@ -2389,6 +2377,6 @@
   </script>
 
   <!-- ES Modül Girişi -->
-  <script type="module" src="js/app.js?v=4.3"></script>
+  <script type="module" src="js/app.js?v=4.4"></script>
 </body>
 </html>
