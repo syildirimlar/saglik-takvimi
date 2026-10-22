@@ -1,5 +1,5 @@
 // SODSAN Fabrika Portalı - Ana Uygulama Yöneticisi (app.js)
-import { appState, ROLES, getRoleInfo } from './data.js?v=3.9';
+import { appState, ROLES, getRoleInfo } from './data.js?v=4.2';
 import { CalendarModule } from './calendar.js?v=3.9';
 import { ProductsModule } from './products.js';
 import { SuppliesModule } from './supplies.js';
