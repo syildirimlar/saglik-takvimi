@@ -3,7 +3,7 @@
  * Cari Hareket Temelli Bakiye, FIFO Yaşlandırma, Zirve SQL & UBL-TR e-Fatura Entegrasyonu
  */
 
-const App = {
+const App = window.App = {
     state: {
         settings: {
             ownFirmName: "SODSAN",
@@ -1371,8 +1371,12 @@ const App = {
     async handleExcelFileSelected(file) {
         if (!file) return;
         try {
-            const res = await window.ZirveExcelImporter.processFile(file);
-            alert(`✅ Zirve Dosyası Başarıyla İçe Aktarıldı!\n\n• ${res.cariler} yeni Cari Kart eklendi.\n• ${res.hareketler} Cari Hareket / Bakiye satırı işlendi.\n• Toplam Aktif Cari: ${res.totalCariler || this.state.cariler.length}\n\nTüm cariler, borç/alacak bakiyeleri, gecikmiş vadeler ve nakit akışı takvimi otomatik güncellendi.`);
+            const res = await window.ZirveExcelImporter.processFile(file, this);
+            let msg = `✅ Zirve Dosyası Başarıyla İçe Aktarıldı!\n\n• ${res.cariler} Cari Hesap işlendi.\n• ${res.hareketler} Cari Hareket / İşlem kaydedildi.`;
+            if (res.faturalar) msg += `\n• ${res.faturalar} Fatura yaşlandırmaya alındı.`;
+            if (res.ceksenet) msg += `\n• ${res.ceksenet} Çek/Senet portföye eklendi.`;
+            msg += `\n• Toplam Aktif Cari: ${res.totalCariler || this.state.cariler.length}\n\nTüm bakiyeler, gecikmiş vadeler ve nakit akışı takvimi otomatik hesaplandı.`;
+            alert(msg);
         } catch (e) {
             alert("❌ Dosya okuma hatası: " + e.message);
         }
@@ -2194,4 +2198,5 @@ const App = {
     }
 };
 
+window.App = App;
 window.addEventListener("DOMContentLoaded", () => App.init());
