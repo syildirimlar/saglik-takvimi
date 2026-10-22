@@ -1,0 +1,407 @@
+/* SODSAN Fabrika İçi Operasyon ve Haberleşme Portalı - CSS */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+:root {
+  --primary: #2563eb;
+  --primary-hover: #1d4ed8;
+  --primary-light: #eff6ff;
+  --success: #16a34a;
+  --warning: #d97706;
+  --danger: #dc2626;
+  --dark: #0f172a;
+  --slate: #475569;
+  --border: #e2e8f0;
+  --card-bg: #ffffff;
+  --body-bg: #f8fafc;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  background-color: var(--body-bg);
+  color: var(--dark);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Responsive Container */
+.app-container {
+  max-width: 1440px;
+  margin: 0 auto;
+  width: 100%;
+  padding: 0 1rem;
+}
+
+/* Header & Top Bar */
+.top-header {
+  background: #ffffff;
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+}
+
+.brand-badge {
+  background: linear-gradient(135deg, #1e3a8a, #2563eb);
+  color: white;
+  padding: 0.25rem 0.6rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+/* Calendar Styles */
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.calendar-day-header {
+  text-align: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #64748b;
+  padding: 0.4rem 0;
+}
+
+.calendar-day-cell {
+  min-height: 52px;
+  border-radius: 8px;
+  border: 1px solid #f1f5f9;
+  background: #ffffff;
+  padding: 4px 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.calendar-day-cell:hover {
+  border-color: #93c5fd;
+  background: #f8fafc;
+  transform: translateY(-1px);
+}
+
+.calendar-day-cell.active-day {
+  border-color: var(--primary);
+  background: #eff6ff;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+}
+
+.calendar-day-cell.other-month {
+  opacity: 0.35;
+  background: #f8fafc;
+}
+
+.calendar-day-cell.today {
+  font-weight: 800;
+  color: var(--primary);
+}
+
+.calendar-badge {
+  font-size: 0.65rem;
+  border-radius: 4px;
+  padding: 1px 4px;
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
+}
+
+/* Tab Navigation */
+.nav-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #64748b;
+  border-bottom: 2px solid transparent;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.nav-tab-btn:hover {
+  color: var(--primary);
+  background-color: #f8fafc;
+}
+
+.nav-tab-btn.active {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+  font-weight: 600;
+  background-color: #eff6ff;
+}
+
+/* Modals */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(4px);
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.modal-backdrop.show {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.modal-card {
+  background: white;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 580px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  transform: scale(0.95);
+  transition: transform 0.2s ease;
+}
+
+.modal-backdrop.show .modal-card {
+  transform: scale(1);
+}
+
+/* Forklift Pulse Animation */
+@keyframes emergency-pulse {
+  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.7); }
+  70% { transform: scale(1.02); box-shadow: 0 0 0 10px rgba(220, 38, 38, 0); }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
+}
+
+.pulse-emergency {
+  animation: emergency-pulse 1.8s infinite;
+}
+
+/* Feed item hover */
+.feed-card {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.feed-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.08);
+}
+
+/* Bottom Nav for Mobile */
+@media (max-width: 768px) {
+  .desktop-nav {
+    display: none;
+  }
+  .mobile-bottom-bar {
+    display: flex;
+  }
+  .calendar-day-cell {
+    min-height: 42px;
+    padding: 2px 3px;
+  }
+  .calendar-day-header {
+    font-size: 0.65rem;
+  }
+  .calendar-badge {
+    font-size: 0.55rem;
+    padding: 0 2px;
+  }
+}
+
+@media (min-width: 769px) {
+  .mobile-bottom-bar {
+    display: none;
+  }
+}
+
+/* ==================== KARANLIK MOD (DARK MODE) STİLLERİ ==================== */
+html.dark {
+  color-scheme: dark;
+}
+
+html.dark body {
+  background-color: #0b1120 !important;
+  color: #f1f5f9 !important;
+}
+
+html.dark .top-header {
+  background-color: #111827 !important;
+  border-bottom-color: #1f2937 !important;
+}
+
+html.dark .desktop-nav {
+  background-color: #111827 !important;
+  border-color: #1f2937 !important;
+}
+
+html.dark .desktop-nav button.nav-tab-btn:hover {
+  background-color: #1f2937 !important;
+  color: #f3f4f6 !important;
+}
+
+html.dark .desktop-nav button.nav-tab-btn.active {
+  background-color: #2563eb !important;
+  color: #ffffff !important;
+}
+
+html.dark .mobile-bottom-bar {
+  background-color: #111827 !important;
+  border-top-color: #1f2937 !important;
+}
+
+html.dark .mobile-tab-btn {
+  color: #9ca3af !important;
+}
+
+html.dark .mobile-tab-btn.active {
+  color: #3b82f6 !important;
+}
+
+html.dark .bg-white {
+  background-color: #111827 !important;
+  color: #f9fafb !important;
+}
+
+html.dark .bg-slate-50 {
+  background-color: #0b1120 !important;
+}
+
+html.dark .bg-slate-100 {
+  background-color: #1f2937 !important;
+  color: #e5e7eb !important;
+}
+
+html.dark .border-slate-200,
+html.dark .border-slate-100 {
+  border-color: #1f2937 !important;
+}
+
+html.dark .text-slate-900,
+html.dark .text-slate-800 {
+  color: #f9fafb !important;
+}
+
+html.dark .text-slate-700,
+html.dark .text-slate-600 {
+  color: #d1d5db !important;
+}
+
+html.dark .text-slate-500,
+html.dark .text-slate-400 {
+  color: #9ca3af !important;
+}
+
+/* Modallar */
+html.dark .modal-card {
+  background-color: #111827 !important;
+  border: 1px solid #374151 !important;
+  color: #f9fafb !important;
+}
+
+html.dark .modal-card .border-b,
+html.dark .modal-card .border-t {
+  border-color: #1f2937 !important;
+}
+
+/* Form Elemanları */
+html.dark input,
+html.dark select,
+html.dark textarea {
+  background-color: #1f2937 !important;
+  color: #f9fafb !important;
+  border-color: #374151 !important;
+}
+
+html.dark input:focus,
+html.dark select:focus,
+html.dark textarea:focus {
+  border-color: #3b82f6 !important;
+  background-color: #111827 !important;
+}
+
+html.dark input::placeholder,
+html.dark textarea::placeholder {
+  color: #6b7280 !important;
+}
+
+/* Tablolar */
+html.dark table thead {
+  background-color: #1f2937 !important;
+  color: #9ca3af !important;
+}
+
+html.dark table tbody tr {
+  border-bottom-color: #1f2937 !important;
+}
+
+html.dark table tbody tr:hover {
+  background-color: rgba(31, 41, 55, 0.7) !important;
+}
+
+html.dark .calendar-grid {
+  background-color: #1f2937 !important;
+}
+
+html.dark .calendar-day-cell {
+  background-color: #111827 !important;
+  border-color: #1f2937 !important;
+}
+
+html.dark .calendar-day-cell:hover {
+  background-color: #1f2937 !important;
+}
+
+html.dark .calendar-day-header {
+  background-color: #111827 !important;
+  color: #9ca3af !important;
+}
+
+html.dark .calendar-day-cell.other-month {
+  background-color: #0b1120 !important;
+  color: #4b5563 !important;
+}
+
+/* Scrollbar Dark */
+html.dark ::-webkit-scrollbar-track {
+  background: #111827;
+}
+
+html.dark ::-webkit-scrollbar-thumb {
+  background: #374151;
+}
+
+html.dark ::-webkit-scrollbar-thumb:hover {
+  background: #4b5563;
+}

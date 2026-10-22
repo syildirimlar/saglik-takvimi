@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SODSAN Personel, PDKS ve Maaş Hesaplama Otomasyonu</title>
+  <link rel="icon" type="image/png" href="assets/sodsan-favicon.png">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- Üst Başlık & Dönem Seçimi -->
+  <header class="app-header">
+    <div class="brand-section">
+      <img src="assets/sodsan-logo.png" alt="SODSAN Logo" class="brand-logo">
+      <div class="brand-title">
+        <h1>PDKS & Maaş Hesaplama Otomasyonu</h1>
+        <p>MAGIC FACE MF 835 Terminal & Muhasebe Entegrasyonu</p>
+      </div>
+    </div>
+
+    <div class="header-controls">
+      <div class="period-picker">
+        <label for="select-donem">Dönem:</label>
+        <select id="select-donem">
+          <option value="2025-09" selected>Eylül 2025</option>
+          <option value="2025-10">Ekim 2025</option>
+          <option value="2025-11">Kasım 2025</option>
+          <option value="2025-12">Aralık 2025</option>
+          <option value="2026-01">Ocak 2026</option>
+          <option value="2026-02">Şubat 2026</option>
+          <option value="2026-03">Mart 2026</option>
+          <option value="2026-04">Nisan 2026</option>
+          <option value="2026-05">Mayıs 2026</option>
+          <option value="2026-06">Haziran 2026</option>
+          <option value="2026-07">Temmuz 2026</option>
+          <option value="2026-08">Ağustos 2026</option>
+          <option value="2026-09">Eylül 2026</option>
+          <option value="2026-10">Ekim 2026</option>
+        </select>
+      </div>
+
+      <button id="btn-quick-hesapla" class="btn btn-primary btn-sm">⚡ Puantaj Hesapla</button>
+      <button id="btn-reset-db" class="btn btn-outline btn-sm" title="Bozuk verileri temizler ve Türkçe karakterlerle baştan yükler">🔄 Verileri Yenile</button>
+      <button id="btn-export-ods" class="btn btn-success btn-sm">📥 ODS İndir</button>
+      <button id="btn-export-xlsx" class="btn btn-outline btn-sm">📊 Excel İndir</button>
+    </div>
+  </header>
+
+  <!-- Navigasyon Sekmeleri -->
+  <nav class="nav-bar">
+    <div class="nav-tab active" data-tab="tab-genel-bakis">📊 Genel Bakış</div>
+    <div class="nav-tab" data-tab="tab-veri-aktarim">📥 PDKS Veri Aktarımı</div>
+    <div class="nav-tab" data-tab="tab-personel">👥 Personel Listesi</div>
+    <div class="nav-tab" data-tab="tab-puantaj">📅 Günlük & Aylık Puantaj</div>
+    <div class="nav-tab" data-tab="tab-maas">💰 Maaş & Muhasebe Bordrosu</div>
+    <div class="nav-tab" data-tab="tab-ayarlar">⚙️ Hesaplama Kuralları</div>
+    <div class="nav-tab" data-tab="tab-gecmis">📜 İşlem Geçmişi (Audit)</div>
+  </nav>
+
+  <!-- Ana İçerik -->
+  <main class="main-content">
+
+    <!-- SEKME 1: GENEL BAKIŞ -->
+    <div id="tab-genel-bakis" class="tab-pane active">
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-header">
+            <span class="kpi-title">Aktif Personel</span>
+            <span class="kpi-icon">👥</span>
+          </div>
+          <div class="kpi-value" id="kpi-personel-sayisi">0</div>
+          <div class="kpi-sub" id="kpi-toplam-personel">Kayıtlı: 0 personel</div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-header">
+            <span class="kpi-title">Toplam Fazla Mesai</span>
+            <span class="kpi-icon">⏱️</span>
+          </div>
+          <div class="kpi-value" id="kpi-toplam-mesai">0 saat</div>
+          <div class="kpi-sub" id="kpi-mesai-tutar">Hakediş: ₺0,00</div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-header">
+            <span class="kpi-title">Bankaya Yatacak</span>
+            <span class="kpi-icon">🏦</span>
+          </div>
+          <div class="kpi-value" id="kpi-banka-yatan">₺0,00</div>
+          <div class="kpi-sub" id="kpi-avans-tutar">Avanslar: ₺0,00</div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-header">
+            <span class="kpi-title">İncelenecek Durumlar</span>
+            <span class="kpi-icon">⚠️</span>
+          </div>
+          <div class="kpi-value" id="kpi-istisna-sayisi">0</div>
+          <div class="kpi-sub">Eksik basım ve gecikmeler</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">🚀 Hızlı Başlangıç & Veri Kaynağı Durumu</div>
+          <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+            <button id="btn-load-sample-files" class="btn btn-primary btn-sm">
+              📂 Kaynak Dosyaları Otomatik Yükle
+            </button>
+            <button id="btn-clean-reload" class="btn btn-outline btn-sm" title="Eski kayıtları silip Türkçe karakterlerle tertemiz baştan yükler">
+              🔄 Veritabanını Sıfırla & Baştan Yükle
+            </button>
+          </div>
+        </div>
+        <div class="card-body">
+          <p style="margin-bottom: 1rem; color: var(--text-muted);">
+            Sisteminizdeki <code>kaynak_dosyalar</code> klasöründeki gerçek dosyaları (MySQL DAT, PDF Raporu ve ODS Tablosu) tek tıkla yükleyip analizi başlatabilirsiniz.
+          </p>
+          <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+            <div id="status-dat" class="badge badge-gray">⚪ DAT Veritabanı: Bekleniyor</div>
+            <div id="status-pdf" class="badge badge-gray">⚪ PDKS PDF Raporu: Bekleniyor</div>
+            <div id="status-ods" class="badge badge-gray">⚪ Muhasebe ODS: Bekleniyor</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">📌 Seçili Dönem Bordro Özeti (<span id="txt-ozet-donem">Eylül 2025</span>)</div>
+          <button class="btn btn-outline btn-sm" onclick="app.navTo('tab-maas')">Bordro Detayına Git →</button>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="data-table" id="table-ozet-bordro">
+              <thead>
+                <tr>
+                  <th>Sıra</th>
+                  <th>Kart No</th>
+                  <th>Adı Soyadı</th>
+                  <th>Maaş</th>
+                  <th>Mesai (Saat)</th>
+                  <th>Mesai Ücreti</th>
+                  <th>Avans</th>
+                  <th>Banka Yatan</th>
+                  <th>Ulaşım</th>
+                  <th>Toplam Hak Ediş</th>
+                </tr>
+              </thead>
+              <tbody id="tbody-ozet-bordro">
+                <tr><td colspan="10" style="text-align: center; color: var(--text-muted);">Henüz puantaj ve maaş hesaplanmadı. "Veri Aktarımı" sekmesinden dosyaları yükleyiniz.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SEKME 2: PDKS VERİ AKTARIMI -->
+    <div id="tab-veri-aktarim" class="tab-pane">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">📥 Çoklu Kaynak Veri Aktarım Modülü</div>
+          <span class="badge badge-info">%100 Yerel ve Güvenli</span>
+        </div>
+        <div class="card-body">
+          <div class="import-grid">
+            <!-- 1. Perkotek DAT -->
+            <div class="import-box" id="drop-dat" onclick="document.getElementById('file-dat').click()">
+              <input type="file" id="file-dat" accept=".dat,.sql,.txt" style="display:none">
+              <div class="import-icon">🗄️</div>
+              <div class="import-title">Perkotek MySQL (.DAT)</div>
+              <div class="import-desc"><code>20261008_oto_yedek_perkotek.dat</code> dosyasını seçin veya sürükleyin. 66 personel ve 25.000+ ham hareket okunur.</div>
+              <div id="info-dat-result" class="badge badge-gray">Dosya Seçilmedi</div>
+            </div>
+
+            <!-- 2. PDKS PDF -->
+            <div class="import-box" id="drop-pdf" onclick="document.getElementById('file-pdf').click()">
+              <input type="file" id="file-pdf" accept=".pdf" style="display:none">
+              <div class="import-icon">📑</div>
+              <div class="import-title">PDKS Aylık Rapor (.PDF)</div>
+              <div class="import-desc"><code>01-30,09,2025.pdf</code> dosyasını seçin. 56 sayfalık kişi bazında giriş-çıkış ve resmi mesai raporu okunur.</div>
+              <div id="info-pdf-result" class="badge badge-gray">Dosya Seçilmedi</div>
+            </div>
+
+            <!-- 3. Muhasebe ODS / XLSX -->
+            <div class="import-box" id="drop-ods" onclick="document.getElementById('file-ods').click()">
+              <input type="file" id="file-ods" accept=".ods,.xlsx,.xls" style="display:none">
+              <div class="import-icon">📊</div>
+              <div class="import-title">Muhasebe Tablosu (.ODS / .XLSX)</div>
+              <div class="import-desc"><code>maaş hesaplama 2026.ods</code> dosyasını seçin. Önceki maaş, avans ve ulaşım şablonu yüklenir.</div>
+              <div id="info-ods-result" class="badge badge-gray">Dosya Seçilmedi</div>
+            </div>
+          </div>
+
+          <div id="import-progress-container" style="display:none; margin-top: 1.5rem;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 0.35rem; font-size: 0.85rem; font-weight: 600;">
+              <span id="import-status-text">İşleniyor...</span>
+              <span id="import-percent">0%</span>
+            </div>
+            <div style="background: #e2e8f0; border-radius: 9999px; height: 8px; overflow: hidden;">
+              <div id="import-progress-bar" style="background: var(--primary); height: 100%; width: 0%; transition: width 0.2s;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SEKME 3: PERSONEL LİSTESİ -->
+    <div id="tab-personel" class="tab-pane">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">👥 Personel Kartları & Terminal Bilgileri</div>
+          <div style="display: flex; gap: 0.5rem;">
+            <input type="text" id="filter-personel" class="search-input" placeholder="Ad, Soyad veya Kart No ara...">
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="data-table" id="table-personel">
+              <thead>
+                <tr>
+                  <th>Kart No</th>
+                  <th>Adı Soyadı</th>
+                  <th>Ünvan</th>
+                  <th>İşe Giriş Tarihi</th>
+                  <th>Kayıtlı Maaş</th>
+                  <th>Durum</th>
+                  <th>Ulaşım / Servis</th>
+                  <th>İşlemler</th>
+                </tr>
+              </thead>
+              <tbody id="tbody-personel">
+                <tr><td colspan="8" style="text-align: center; color: var(--text-muted);">Personel verisi bulunamadı. Lütfen DAT veya PDF yükleyiniz.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SEKME 4: GÜNLÜK & AYLIK PUANTAJ -->
+    <div id="tab-puantaj" class="tab-pane">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">📅 Kişi Bazında Giriş-Çıkış ve Puantaj Detayı</div>
+          <div style="display: flex; gap: 0.75rem; align-items: center;">
+            <label for="select-puantaj-personel" style="font-size: 0.85rem; font-weight: 600;">Personel Seç:</label>
+            <select id="select-puantaj-personel" style="padding: 0.4rem; border-radius: 6px; border: 1px solid var(--border); font-weight: 600;">
+              <option value="">Seçiniz...</option>
+            </select>
+          </div>
+        </div>
+        <div class="card-body">
+          <div id="puantaj-personel-ozet" style="background: #f8fafc; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+            <div><strong>Personel:</strong> <span id="puantaj-txt-ad">-</span> (<span id="puantaj-txt-kart">-</span>)</div>
+            <div><strong>Toplam Fazla Mesai:</strong> <span id="puantaj-txt-mesai" class="badge badge-warning">00:00</span></div>
+            <div><strong>Geç Gelme:</strong> <span id="puantaj-txt-gecikme" class="badge badge-danger">00:00</span></div>
+            <div><strong>Devamsızlık:</strong> <span id="puantaj-txt-devamsiz" class="badge badge-gray">0 gün</span></div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="data-table" id="table-gunluk-puantaj">
+              <thead>
+                <tr>
+                  <th>Tarih</th>
+                  <th>Gün</th>
+                  <th>Giriş</th>
+                  <th>Çıkış</th>
+                  <th>Vardiya</th>
+                  <th>Durumu</th>
+                  <th>Geç Gelme</th>
+                  <th>Erken Çıkma</th>
+                  <th>Fazla Mesai</th>
+                  <th>Uyarı / Not</th>
+                </tr>
+              </thead>
+              <tbody id="tbody-gunluk-puantaj">
+                <tr><td colspan="10" style="text-align: center; color: var(--text-muted);">Lütfen yukarıdan bir personel seçiniz.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SEKME 5: MAAŞ & MUHASEBE BORDROSU -->
+    <div id="tab-maas" class="tab-pane">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">💰 Muhasebe Maaş ve Hak Ediş Tablosu (21 Sütunlu Orijinal Şema)</div>
+          <div style="display: flex; gap: 0.5rem;">
+            <button id="btn-recalculate-all" class="btn btn-outline btn-sm">🔄 Tümünü Yeniden Hesapla</button>
+            <button id="btn-save-bordro" class="btn btn-primary btn-sm">💾 Bordroyu Kaydet</button>
+          </div>
+        </div>
+        <div class="card-body">
+          <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem;">
+            * Mavi ve sarı arka planlı hücreler düzenlenebilir (Avans, BES/İcra, Ulaşım Adet, Prim vb.). Değişiklik yaptığınızda anlık olarak Net Banka ve Toplam tutarlar güncellenir.
+          </p>
+          <div class="table-responsive" style="max-height: 600px;">
+            <table class="data-table" id="table-maas-bordro">
+              <thead>
+                <tr>
+                  <th>Sıra</th>
+                  <th>AD SOYAD</th>
+                  <th>MAAŞ</th>
+                  <th>AVANS</th>
+                  <th>MESAİ (SAAT)</th>
+                  <th>B.MESAİ ÜCRETİ (C/225*1.5*E)</th>
+                  <th>RESMİ BAYRAM (SAAT)</th>
+                  <th>RESMİ BAYRAM ÜCRETİ (C/225*2*G)</th>
+                  <th>BANKA YATAN</th>
+                  <th>BES - İCRA</th>
+                  <th>EK MESAİ (SAAT)</th>
+                  <th>EK MESAİ ÜCRETİ</th>
+                  <th>KESİNTİ</th>
+                  <th>ULAŞIM (AD)</th>
+                  <th>ULAŞIM ÜCRETİ</th>
+                  <th>PRİM</th>
+                  <th>SERVİS</th>
+                  <th>TOPLAM HAKEDİŞ</th>
+                  <th>MULTİMET</th>
+                  <th>AÇIKLAMALAR & NOTLAR</th>
+                  <th>ULAŞIM TÜRÜ</th>
+                </tr>
+              </thead>
+              <tbody id="tbody-maas-bordro">
+                <tr><td colspan="21" style="text-align: center; color: var(--text-muted);">Bordro verisi bulunamadı.</td></tr>
+              </tbody>
+              <tfoot id="tfoot-maas-bordro">
+                <!-- Toplamlar JavaScript ile eklenecek -->
+              </tfoot>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SEKME 6: AYARLAR -->
+    <div id="tab-ayarlar" class="tab-pane">
+      <div class="card" style="max-width: 800px;">
+        <div class="card-header">
+          <div class="card-title">⚙️ Puantaj ve Bordro Hesaplama Parametreleri</div>
+        </div>
+        <div class="card-body">
+          <form id="form-ayarlar">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+              <div>
+                <label style="display:block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.25rem;">Aylık Çalışma Saat Normu:</label>
+                <input type="number" id="setting-aylik-norm" value="225" class="search-input" style="width: 100%;">
+                <small style="color: var(--text-muted);">Standart 225 saat (Maaş / 225 saatlik ücret hesabı için).</small>
+              </div>
+
+              <div>
+                <label style="display:block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.25rem;">Normal Fazla Mesai Katsayısı:</label>
+                <input type="number" step="0.1" id="setting-mesai-carpani" value="1.5" class="search-input" style="width: 100%;">
+                <small style="color: var(--text-muted);">Hafta içi ve Cumartesi 1.5x katsayısı.</small>
+              </div>
+
+              <div>
+                <label style="display:block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.25rem;">Resmi Bayram Mesai Katsayısı:</label>
+                <input type="number" step="0.1" id="setting-bayram-carpani" value="2.0" class="search-input" style="width: 100%;">
+                <small style="color: var(--text-muted);">Resmi tatil günleri 2.0x katsayısı.</small>
+              </div>
+            </div>
+
+            <h4 style="margin: 1.5rem 0 0.75rem 0;">🚌 Ulaşım / Bilet Birim Fiyatları (TL)</h4>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+              <div>
+                <label style="display:block; font-size: 0.85rem; font-weight: 600;">MİNİBÜS:</label>
+                <input type="number" id="setting-ulasim-minibus" value="40" class="search-input" style="width: 100%;">
+              </div>
+              <div>
+                <label style="display:block; font-size: 0.85rem; font-weight: 600;">METRO:</label>
+                <input type="number" id="setting-ulasim-metro" value="40" class="search-input" style="width: 100%;">
+              </div>
+              <div>
+                <label style="display:block; font-size: 0.85rem; font-weight: 600;">OTOBÜS:</label>
+                <input type="number" id="setting-ulasim-otobus" value="52" class="search-input" style="width: 100%;">
+              </div>
+              <div>
+                <label style="display:block; font-size: 0.85rem; font-weight: 600;">MUDANYA OTOBÜS:</label>
+                <input type="number" id="setting-ulasim-mudanya-otobus" value="53" class="search-input" style="width: 100%;">
+              </div>
+              <div>
+                <label style="display:block; font-size: 0.85rem; font-weight: 600;">MUDANYA MİNİBÜS:</label>
+                <input type="number" id="setting-ulasim-mudanya-minibus" value="65" class="search-input" style="width: 100%;">
+              </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Kaydet ve Güncelle</button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- SEKME 7: AUDIT LOG -->
+    <div id="tab-gecmis" class="tab-pane">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">📜 Denetim İzi & Değişiklik Günlüğü</div>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="data-table" id="table-audit">
+              <thead>
+                <tr>
+                  <th>Tarih & Saat</th>
+                  <th>Kullanıcı</th>
+                  <th>İşlem Türü</th>
+                  <th>Detay</th>
+                  <th>Eski Değer</th>
+                  <th>Yeni Değer</th>
+                </tr>
+              </thead>
+              <tbody id="tbody-audit">
+                <tr><td colspan="6" style="text-align: center; color: var(--text-muted);">Henüz kayıt bulunmuyor.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Bildirim Toast Kutusu -->
+  <div id="toast-container"></div>
+
+  <!-- Scriptler (Tamamı Çevrimdışı ve Yerel) -->
+  <script src="js/vendor/xlsx.full.min.js"></script>
+  <script src="js/vendor/pdf.min.js"></script>
+  <script src="js/db.js"></script>
+  <script src="js/parsers/datParser.js"></script>
+  <script src="js/parsers/pdfParser.js"></script>
+  <script src="js/parsers/odsParser.js"></script>
+  <script src="js/engines/puantajEngine.js"></script>
+  <script src="js/engines/maasEngine.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

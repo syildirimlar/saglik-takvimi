@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <title>B2B Oturum Köprüsü</title>
+  <style>
+    body {
+      width: 320px;
+      margin: 0;
+      padding: 14px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #0f172a;
+      color: #f8fafc;
+      font-size: 13px;
+    }
+    h3 {
+      margin: 0 0 8px 0;
+      font-size: 14px;
+      color: #38bdf8;
+    }
+    .status-box {
+      padding: 10px;
+      border-radius: 6px;
+      background: #1e293b;
+      border: 1px solid #334155;
+      margin-bottom: 10px;
+    }
+    .btn {
+      width: 100%;
+      padding: 9px 12px;
+      background: #2563eb;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .btn:hover { background: #1d4ed8; }
+    .note {
+      margin-top: 8px;
+      font-size: 11px;
+      color: #94a3b8;
+      line-height: 1.4;
+    }
+  </style>
+</head>
+<body>
+  <h3>🔗 B2B Açık Oturum Köprüsü</h3>
+  <div id="statusBox" class="status-box">Aktif sekme kontrol ediliyor...</div>
+  <button id="syncBtn" class="btn">Oturum Durumunu Dashboard'a Gönder</button>
+  <div class="note">
+    🔒 Güvenlik: Şifre, cookie veya session token okunmaz. SMS/CAPTCHA ekranlarında müdahalenizi bekler.
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>

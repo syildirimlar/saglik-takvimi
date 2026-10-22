@@ -1,0 +1,21 @@
+{
+    "sources":  [
+                    {
+                        "id":  "src_phira",
+                        "name":  "Phira"
+                    }
+                ],
+    "source_products":  [
+                            {
+                                "product_name":  "Alfa Romeo 147 Front Bumper",
+                                "id":  "phira_1001",
+                                "source_id":  "src_phira"
+                            }
+                        ],
+    "product_prices":  [
+
+                       ],
+    "product_stock_history":  [
+
+                              ]
+}

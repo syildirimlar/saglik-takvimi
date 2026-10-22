@@ -1,0 +1,23 @@
+{
+  "name": "SODSAN Fabrika Portalı",
+  "short_name": "SODSAN Portal",
+  "description": "SODSAN Fabrika İçi Operasyon, Haberleşme, Lojistik, İK ve Bakım Portalı",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2563eb",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "assets/sodsan-favicon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "assets/sodsan-logo.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

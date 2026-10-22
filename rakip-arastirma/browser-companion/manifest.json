@@ -1,0 +1,24 @@
+{
+  "manifest_version": 3,
+  "name": "Rakip & B2B Açık Tarayıcı Oturumu Köprüsü (Companion)",
+  "version": "1.0.0",
+  "description": "Kullanıcının Chrome/Edge üzerinde kendi yetkisiyle giriş yaptığı B2B tedarikçi oturumlarındaki ürün, OEM, stok ve B2B fiyatlarını yerel Rakip Araştırma Sistemine aktarır. Kesinlikle şifre/cookie/token toplamaz ve CAPTCHA/SMS bypass yapmaz.",
+  "permissions": [
+    "activeTab",
+    "scripting"
+  ],
+  "host_permissions": [
+    "http://localhost:8765/*"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "B2B Oturum Köprüsü"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}

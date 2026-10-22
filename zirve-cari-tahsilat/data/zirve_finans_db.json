@@ -1,0 +1,21 @@
+{
+  "settings": {
+    "ownFirmName": "",
+    "ownFirmVkn": "",
+    "zirveXmlPath": "C:\\zirve",
+    "sqlServer": ".\\ZIRVESQL",
+    "sqlAuthType": "windows",
+    "sqlUser": "sa",
+    "sqlDatabase": "",
+    "lastSyncTime": null,
+    "rates": {
+      "USD": 36.5,
+      "EUR": 39.8
+    }
+  },
+  "cariler": [],
+  "hareketler": [],
+  "faturalar": [],
+  "ceksenetler": [],
+  "initialized": true
+}

@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zirve Cari Hesap, Fatura, Tahsilat ve Ödeme Yönetim Sistemi</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <!-- ÜST BAR -->
+    <header class="app-header">
+        <div class="brand-box">
+            <div class="brand-logo">Z</div>
+            <div class="brand-title">
+                <h1>ZİRVE CARİ & FİNANS</h1>
+                <p id="headerFirmSubtitle">Cari Hesaplar, Yaşlandırma & Nakit Akışı</p>
+            </div>
+        </div>
+
+        <div class="header-right">
+            <div class="rate-pill" title="Döviz Kurları (TL Karşılığı)">
+                <span>USD:</span>
+                <input type="number" step="0.01" id="rateUSD" value="36.50" onchange="App.updateRates()">
+                <span>EUR:</span>
+                <input type="number" step="0.01" id="rateEUR" value="39.80" onchange="App.updateRates()">
+            </div>
+
+            <button class="btn btn-primary btn-sm" onclick="document.getElementById('mainFileInput').click()">📥 Zirve'den Yükle</button>
+            <button class="btn btn-outline btn-sm" onclick="App.openQuickTransactionModal('TAHSILAT')">+ İşlem Gir</button>
+            <button class="btn btn-outline btn-sm" onclick="App.switchTab('zirve')">⚙️ Ayarlar</button>
+        </div>
+    </header>
+
+    <!-- SEKME MENÜSÜ -->
+    <nav class="nav-tabs">
+        <button class="nav-tab active" data-tab="dashboard" onclick="App.switchTab('dashboard')">
+            Genel Bakış
+        </button>
+        <button class="nav-tab" data-tab="cariler" onclick="App.switchTab('cariler')">
+            Cari Hesaplar <span class="nav-count" id="cntCariler">0</span>
+        </button>
+        <button class="nav-tab" data-tab="hareketler" onclick="App.switchTab('hareketler')">
+            Cari Hareketler <span class="nav-count" id="cntHareketler">0</span>
+        </button>
+        <button class="nav-tab" data-tab="faturalar" onclick="App.switchTab('faturalar')">
+            Faturalar <span class="nav-count" id="cntFaturalar">0</span>
+        </button>
+        <button class="nav-tab" data-tab="yaslandirma" onclick="App.switchTab('yaslandirma')">
+            Yaşlandırma & Takvim
+        </button>
+        <button class="nav-tab" data-tab="ceksenet" onclick="App.switchTab('ceksenet')">
+            Çek / Senet & Kasa <span class="nav-count" id="cntCekSenet">0</span>
+        </button>
+        <button class="nav-tab" data-tab="zirve" onclick="App.switchTab('zirve')">
+            Ayarlar
+        </button>
+    </nav>
+
+    <!-- ANA İÇERİK -->
+    <main class="main-container">
+
+        <!-- 1. GENEL BAKIŞ (DASHBOARD) -->
+        <section id="tab-dashboard" class="tab-panel active">
+
+            <!-- ZİRVE EXCEL & PDF HIZLI YÜKLEME ALANI -->
+            <div class="drop-zone-card" id="globalDropzone" onclick="document.getElementById('mainFileInput').click()">
+                <div class="drop-zone-icon">📥</div>
+                <div class="drop-zone-text">
+                    <div class="drop-zone-title">Zirve'den Aldığınız Excel veya PDF Dosyasını Buraya Bırakın</div>
+                    <div class="drop-zone-sub">Cari Bakiye Listesi, Cari Ekstre, Mizan veya Fatura Listesi (.xlsx, .xls, .pdf)</div>
+                </div>
+                <div class="drop-zone-buttons">
+                    <button type="button" class="btn btn-primary btn-sm" onclick="event.stopPropagation(); document.getElementById('mainFileInput').click()">
+                        Dosya Seç
+                    </button>
+                    <button type="button" class="btn btn-outline btn-sm" onclick="event.stopPropagation(); App.openModal('zirveExportHelpModal')">
+                        Nasıl Alınır?
+                    </button>
+                </div>
+                <input type="file" id="mainFileInput" accept=".xlsx,.xls,.csv,.pdf,.txt" style="display:none;" onchange="App.handleAnyFileSelected(this.files[0])">
+            </div>
+
+            <div class="kpi-grid" id="dashboardKpis"></div>
+
+            <div class="grid-2">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">En Yüksek Alacaklı Cariler (Tahsil Edilecek)</div>
+                        <button class="btn btn-outline btn-sm" onclick="App.filterCarilerByRole('ALACAKLIYIZ')">Tümünü Gör</button>
+                    </div>
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Cari Ünvan</th>
+                                    <th>Gecikme / Vade</th>
+                                    <th class="num">Net Cari Alacağımız</th>
+                                    <th>İşlem</th>
+                                </tr>
+                            </thead>
+                            <tbody id="dashTopAlacakBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">En Yüksek Borçlu Cariler (Ödenecek)</div>
+                        <button class="btn btn-outline btn-sm" onclick="App.filterCarilerByRole('BORCLUYUZ')">Tümünü Gör</button>
+                    </div>
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Cari Ünvan</th>
+                                    <th>Gecikme / Vade</th>
+                                    <th class="num">Net Cari Borcumuz</th>
+                                    <th>İşlem</th>
+                                </tr>
+                            </thead>
+                            <tbody id="dashTopBorcBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid-2">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">Yaklaşan & Vadesi Geçen Ajanda</div>
+                        <button class="btn btn-outline btn-sm" onclick="App.switchTab('yaslandirma')">Takvime Git</button>
+                    </div>
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Vade / Söz Tarihi</th>
+                                    <th>Tür</th>
+                                    <th>Cari / Açıklama</th>
+                                    <th class="num">Tutar</th>
+                                    <th>Durum</th>
+                                </tr>
+                            </thead>
+                            <tbody id="dashAgendaBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">Son Cari Hareketler</div>
+                        <button class="btn btn-outline btn-sm" onclick="App.switchTab('hareketler')">Tüm Hareketler</button>
+                    </div>
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Tarih</th>
+                                    <th>Cari</th>
+                                    <th>İşlem Türü</th>
+                                    <th class="num">Borç (B)</th>
+                                    <th class="num">Alacak (A)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="dashRecentHarBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. CARİ HESAPLAR (BORÇ / ALACAK ANA MERKEZİ) -->
+        <section id="tab-cariler" class="tab-panel">
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">Cari Hesap Bakiyeleri</div>
+                    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                        <button class="btn btn-purple btn-sm" onclick="document.getElementById('excelFileInput').click()">📂 Zirve'den Excel / PDF Yükle</button>
+                        <input type="file" id="excelFileInput" accept=".xlsx,.xls,.csv,.pdf,.txt" style="display:none;" onchange="App.handleAnyFileSelected(this.files[0])">
+                        <button class="btn btn-primary btn-sm" onclick="App.openCariModal()">+ Yeni Cari</button>
+                        <button class="btn btn-success btn-sm" onclick="App.openQuickTransactionModal('TAHSILAT')">+ Tahsilat</button>
+                        <button class="btn btn-danger btn-sm" onclick="App.openQuickTransactionModal('ODEME')">- Ödeme</button>
+                        <button class="btn btn-outline btn-sm" onclick="App.exportCarilerCsv()">Excel İndir</button>
+                    </div>
+                </div>
+
+                <div class="filter-bar">
+                    <input type="text" id="cariSearch" placeholder="Cari kodu, ünvan veya VKN ara..." style="min-width:260px;" oninput="App.renderCariler()">
+                    <select id="cariFilterStatus" onchange="App.renderCariler()">
+                        <option value="ALL">Tüm Cariler (Bakiyeli + Sıfır)</option>
+                        <option value="ALACAKLIYIZ">Sadece Alacaklı Olduklarımız (Tahsil Edilecek)</option>
+                        <option value="BORCLUYUZ">Sadece Borçlu Olduklarımız (Ödenecek)</option>
+                        <option value="GECIKEN">Vadesi Geçen Açık Bakiyeliler</option>
+                        <option value="KAPALI">Bakiyesi Sıfır (Kapalı) Olanlar</option>
+                    </select>
+                    <select id="cariFilterDoviz" onchange="App.renderCariler()">
+                        <option value="ALL">Tüm Para Birimleri</option>
+                        <option value="TRY">TRY (₺)</option>
+                        <option value="USD">USD ($)</option>
+                        <option value="EUR">EUR (€)</option>
+                    </select>
+                </div>
+
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Cari Kod</th>
+                                <th>Cari Ünvan / VKN</th>
+                                <th class="num">Toplam Borç (B)</th>
+                                <th class="num">Toplam Alacak (A)</th>
+                                <th class="num">Net Cari Bakiye</th>
+                                <th>Bakiye Yönü</th>
+                                <th>FIFO Gecikme / En Eski Açık Vade</th>
+                                <th>Ödeme Sözü / Not</th>
+                                <th>İşlemler</th>
+                            </tr>
+                        </thead>
+                        <tbody id="carilerTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- 3. CARİ HAREKETLER -->
+        <section id="tab-hareketler" class="tab-panel">
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">Cari Hesap Hareketleri</div>
+                    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                        <button class="btn btn-success btn-sm" onclick="App.openQuickTransactionModal('TAHSILAT')">+ Tahsilat</button>
+                        <button class="btn btn-danger btn-sm" onclick="App.openQuickTransactionModal('ODEME')">- Ödeme</button>
+                        <button class="btn btn-purple btn-sm" onclick="App.openQuickTransactionModal('DEVIR')">⇄ Devir / Dekont</button>
+                    </div>
+                </div>
+
+                <div class="filter-bar">
+                    <input type="text" id="harSearch" placeholder="Cari ünvan, evrak no veya açıklama ara..." style="min-width:250px;" oninput="App.renderHareketler()">
+                    <select id="harFilterType" onchange="App.renderHareketler()">
+                        <option value="ALL">Tüm İşlem Türleri</option>
+                        <option value="SATIS_FATURA">Satış Faturası</option>
+                        <option value="ALIS_FATURA">Alış Faturası</option>
+                        <option value="TAHSILAT">Tahsilat / Gelen Havale</option>
+                        <option value="ODEME">Ödeme / Gönderilen EFT</option>
+                        <option value="CEK_SENET">Çek / Senet</option>
+                        <option value="DEVIR">Devir / Açılış</option>
+                    </select>
+                    <input type="date" id="harDateStart" onchange="App.renderHareketler()" title="Başlangıç Tarihi">
+                    <input type="date" id="harDateEnd" onchange="App.renderHareketler()" title="Bitiş Tarihi">
+                    <button class="btn btn-outline btn-sm" onclick="App.clearHareketFilters()">Filtreyi Temizle</button>
+                </div>
+
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Tarih</th>
+                                <th>Vade Tarihi</th>
+                                <th>Evrak No</th>
+                                <th>Cari Hesap</th>
+                                <th>İşlem Türü</th>
+                                <th>Açıklama</th>
+                                <th class="num">Borç (B)</th>
+                                <th class="num">Alacak (A)</th>
+                                <th>Kaynak</th>
+                                <th>İşlem</th>
+                            </tr>
+                        </thead>
+                        <tbody id="hareketlerTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- 4. ALIŞ & SATIŞ FATURALARI -->
+        <section id="tab-faturalar" class="tab-panel">
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">Alış ve Satış Faturaları</div>
+                    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                        <button class="btn btn-primary btn-sm" onclick="App.openManualInvoiceModal()">+ Manuel Fatura Gir</button>
+                        <button class="btn btn-purple btn-sm" onclick="document.getElementById('xmlFileInput').click()">📂 e-Fatura XML Yükle</button>
+                        <input type="file" id="xmlFileInput" accept=".xml" multiple style="display:none" onchange="App.handleXmlFilesSelected(this.files)">
+                    </div>
+                </div>
+
+                <div class="dropzone" id="xmlDropzone" onclick="document.getElementById('xmlFileInput').click()">
+                    <strong>📄 Zirve e-Fatura / e-Arşiv XML Dosyalarını Buraya Sürükleyin veya Tıklayın</strong>
+                    <div style="font-size:12px; color:var(--text-muted); margin-top:4px;">
+                        Yüklenen her fatura otomatik olarak ilgili Cari Kartı açar/günceller ve Cari Hareketlere işlenir.
+                    </div>
+                </div>
+
+                <div class="filter-bar" style="margin-top:14px;">
+                    <input type="text" id="fatSearch" placeholder="Fatura no, cari ünvan veya kalem ara..." style="min-width:250px;" oninput="App.renderFaturalar()">
+                    <select id="fatFilterYon" onchange="App.renderFaturalar()">
+                        <option value="ALL">Tüm Faturalar (Alış + Satış)</option>
+                        <option value="SATIS">Satış Faturaları</option>
+                        <option value="ALIS">Alış Faturaları</option>
+                    </select>
+                    <select id="fatFilterDurum" onchange="App.renderFaturalar()">
+                        <option value="ALL">Tüm Durumlar</option>
+                        <option value="ACIK">Açık / Kısmi Açık Faturalar</option>
+                        <option value="GECIKMIS">Vadesi Geçmiş Açık Faturalar</option>
+                        <option value="KAPALI">Kapanmış Faturalar</option>
+                    </select>
+                </div>
+
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Fatura Tarihi</th>
+                                <th>Vade Tarihi</th>
+                                <th>Fatura No</th>
+                                <th>Yön</th>
+                                <th>Cari Ünvan</th>
+                                <th class="num">Fatura Tutarı</th>
+                                <th class="num">Cari Mahsup</th>
+                                <th class="num">Kalan Açık Tutar</th>
+                                <th>Durum (FIFO Cari)</th>
+                                <th>İşlem</th>
+                            </tr>
+                        </thead>
+                        <tbody id="faturalarTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- 5. YAŞLANDIRMA & ÖDEME TAKVİMİ -->
+        <section id="tab-yaslandirma" class="tab-panel">
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">Cari Yaşlandırma Raporu (FIFO)</div>
+                </div>
+                <p style="font-size:12px; color:var(--text-muted); margin-bottom:14px;">
+                    Bu rapor, tüm tahsilat ve ödemeler düşüldükten sonra kalan net cari bakiyelerin vade dilimlerine dağılımını gösterir.
+                </p>
+
+                <h4 style="margin-bottom:8px; font-size:13px; color:#34d399;">Tahsil Edilecek Cari Alacak Yaşlandırması</h4>
+                <div class="aging-grid" id="alacakAgingBoxes"></div>
+
+                <h4 style="margin-bottom:8px; font-size:13px; color:#f87171;">Ödenecek Cari Borç Yaşlandırması</h4>
+                <div class="aging-grid" id="borcAgingBoxes"></div>
+
+                <div class="table-wrap" style="margin-top:16px;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Cari Ünvan</th>
+                                <th>Yön</th>
+                                <th class="num">Vadesi Geçmiş 60+ Gün</th>
+                                <th class="num">Vadesi Geçmiş 31-60 Gün</th>
+                                <th class="num">Vadesi Geçmiş 1-30 Gün</th>
+                                <th class="num">Vadesi Gelmemiş (0-30 Gün)</th>
+                                <th class="num">Vadesi Gelmemiş (31+ Gün)</th>
+                                <th class="num">Toplam Net Bakiye</th>
+                            </tr>
+                        </thead>
+                        <tbody id="agingMatrixBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">Nakit Akışı & Ödeme Takvimi</div>
+                </div>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Vade / Planlanan Tarih</th>
+                                <th>Gün Durumu</th>
+                                <th>Kaynak</th>
+                                <th>Cari Hesap</th>
+                                <th>Açıklama / Evrak</th>
+                                <th class="num">Beklenen Tahsilat (+)</th>
+                                <th class="num">Yapılacak Ödeme (-)</th>
+                                <th>İşlem</th>
+                            </tr>
+                        </thead>
+                        <tbody id="cashflowCalendarBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- 6. ÇEK / SENET & KASA / BANKA -->
+        <section id="tab-ceksenet" class="tab-panel">
+            <div class="kpi-grid" id="treasuryKpis"></div>
+
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">Çek ve Senet Portföyü</div>
+                    <div style="display:flex; gap:8px;">
+                        <button class="btn btn-success btn-sm" onclick="App.openCekSenetModal('ALINAN')">+ Alınan Çek/Senet</button>
+                        <button class="btn btn-danger btn-sm" onclick="App.openCekSenetModal('VERILEN')">- Verilen Çek/Senet</button>
+                    </div>
+                </div>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Vade Tarihi</th>
+                                <th>Tür</th>
+                                <th>Cari Hesap</th>
+                                <th>Banka / Çek-Senet No</th>
+                                <th class="num">Tutar</th>
+                                <th>Durum</th>
+                                <th>İşlem</th>
+                            </tr>
+                        </thead>
+                        <tbody id="cekSenetTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- 7. ZİRVE SQL & E-FATURA BAĞLANTI MERKEZİ -->
+        <section id="tab-zirve" class="tab-panel">
+            <div class="grid-2">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">🔌 1. Zirve SQL Canlı Veritabanı Bağlantısı (Cari + Hareketler)</div>
+                        <button class="btn btn-outline btn-sm" onclick="App.discoverZirveSql()">🔍 SQL Servisini Yenile</button>
+                    </div>
+
+                    <div style="background:var(--bg-body); border:1px solid var(--border); border-radius:8px; padding:10px 14px; margin-bottom:14px; display:flex; gap:16px; align-items:center; flex-wrap:wrap;">
+                        <span style="font-size:12px; font-weight:700;">Zirve Konumu:</span>
+                        <label style="font-size:12px; display:flex; align-items:center; gap:6px; cursor:pointer;">
+                            <input type="radio" name="zirveLocation" value="local" checked onchange="App.setZirveLocation('local')">
+                            Bu Bilgisayarda Kurulu (<code>.\ZIRVESQL</code>)
+                        </label>
+                        <label style="font-size:12px; display:flex; align-items:center; gap:6px; cursor:pointer;">
+                            <input type="radio" name="zirveLocation" value="network" onchange="App.setZirveLocation('network')">
+                            Ağdaki Başka Bilgisayarda / Sunucuda
+                        </label>
+                        <button class="btn btn-outline btn-sm" id="btnScanNetwork" style="display:none; margin-left:auto;" onclick="App.scanNetworkForSql()">🌐 Ağda SQL Sunucusu Ara</button>
+                    </div>
+                    <div id="networkScanResultBox" style="display:none; margin-bottom:12px;"></div>
+
+                    <button class="btn btn-success" style="width:100%; font-size:14px; padding:12px 16px; margin-bottom:14px; justify-content:center; box-shadow:0 4px 14px rgba(16,185,129,0.35); font-weight:700;" onclick="App.autoScanAndConnect()">
+                        ⚡ TÜM VERİTABANLARINI OTOMATİK TARA VE CANLI DÖKÜMÜ GETİR (ÖNERİLEN)
+                    </button>
+
+                    <div id="autoScanResultBox" style="display:none; margin-bottom:14px;"></div>
+
+                    <p style="font-size:12px; color:var(--text-muted); margin-bottom:14px;">
+                        Yukarıdaki yeşil butona bastığınızda, sistem SQL Server'daki tüm veritabanlarını otomatik tarar, içinde firmanıza ait Cari ve Hareket dökümü olan veritabanını bulup anlık canlı dökümü getirir.
+                    </p>
+
+                    <div id="sqlDiscoveryResult" style="margin-bottom:14px;"></div>
+
+                    <div class="form-grid">
+                        <div class="form-group" style="grid-column: 1 / -1;">
+                            <label style="display:flex; justify-content:space-between;">
+                                <span>SQL Sunucu Adı (Instance)</span>
+                                <span style="font-size:11px; color:var(--text-muted); font-weight:normal;">Zirve SQL Örneğini Seçin</span>
+                            </label>
+                            <input type="text" id="sqlServerInput" value=".\ZIRVESQL" placeholder=".\ZIRVESQL veya localhost\ZIRVESQL">
+                            <div style="display:flex; gap:6px; margin-top:6px; flex-wrap:wrap; font-size:11px; align-items:center;">
+                                <span style="color:var(--text-muted);">Zirve Örnekleri:</span>
+                                <button type="button" class="btn btn-outline btn-sm" style="padding:2px 8px; font-size:11px;" onclick="App.setSqlServerName('.\\ZIRVESQL')">🎯 .\ZIRVESQL</button>
+                                <button type="button" class="btn btn-outline btn-sm" style="padding:2px 8px; font-size:11px;" onclick="App.setSqlServerName('.\\ZIRVENET')">.\ZIRVENET</button>
+                                <button type="button" class="btn btn-outline btn-sm" style="padding:2px 8px; font-size:11px;" onclick="App.setSqlServerName('.\\ZIRVE')">.\ZIRVE</button>
+                                <button type="button" class="btn btn-outline btn-sm" style="padding:2px 8px; font-size:11px;" onclick="App.setSqlServerName('(local)\\ZIRVESQL')">(local)\ZIRVESQL</button>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Yetkilendirme Türü</label>
+                            <select id="sqlAuthType" onchange="App.toggleSqlAuthInputs()">
+                                <option value="windows">Windows Yetkilendirmesi (Şifresiz)</option>
+                                <option value="sql">SQL Server (sa / Kullanıcı Adı & Şifre)</option>
+                            </select>
+                        </div>
+                        <div class="form-group sql-auth-field" style="display:none;">
+                            <label>SQL Kullanıcı Adı</label>
+                            <input type="text" id="sqlUserInput" value="sa">
+                        </div>
+                        <div class="form-group sql-auth-field" style="display:none;">
+                            <label>SQL Şifre</label>
+                            <input type="password" id="sqlPassInput" value="" placeholder="Zirve varsayılanı boş, 1 veya 1234">
+                        </div>
+                    </div>
+
+                    <div style="display:flex; gap:10px; margin-top:12px; align-items:flex-end; flex-wrap:wrap;">
+                        <button class="btn btn-outline" onclick="App.loadSqlDatabases()">1. Firma / Dönem Veritabanlarını Listele</button>
+                        <div class="form-group" style="flex:1; min-width:220px;">
+                            <label>Zirve Firma / Dönem Veritabanı Seçin</label>
+                            <select id="sqlDatabaseSelect" onchange="App.onDatabaseSelected()">
+                                <option value="">-- Önce Veritabanlarını Listeleyin --</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-outline btn-sm" onclick="App.inspectCurrentDatabaseTables()" title="Seçili veritabanındaki tüm tabloları ve kayıt sayılarını gösterir">🔍 Tabloları İncele</button>
+                        <button class="btn btn-success" onclick="App.syncFromZirveSql()">2. ⚡ Zirve'den Carileri ve Hareketleri Çek</button>
+                    </div>
+
+                    <!-- Manuel Tablo Seçimi / Eşleştirme Alanı -->
+                    <div id="tableMappingSection" style="display:none; margin-top:14px; background:rgba(15,23,42,0.6); padding:12px; border-radius:8px; border:1px solid var(--border);">
+                        <div style="font-weight:700; margin-bottom:8px; font-size:13px; color:#60a5fa;">📋 Veritabanı Tablo Eşleştirme Sihirbazı</div>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Cari Kart Tablosu (Örn: CARI, CARIKART)</label>
+                                <select id="sqlCustomCariTable">
+                                    <option value="">-- Otomatik Bul --</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Cari Hareket Tablosu (Örn: CARIHAR, CHAREKET)</label>
+                                <select id="sqlCustomCariHarTable">
+                                    <option value="">-- Otomatik Bul --</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div id="tableListBadgeArea" style="margin-top:10px; font-size:12px; max-height:160px; overflow-y:auto; line-height:1.8;"></div>
+                    </div>
+
+                    <div id="sqlSyncLogBox" style="margin-top:14px; font-size:12.5px;"></div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">📂 2. Zirve e-Fatura Klasörü Tarama & Veri Yedekleme</div>
+                    </div>
+                    <p style="font-size:12.5px; color:var(--text-muted); margin-bottom:12px;">
+                        Zirve e-Fatura entegratörünün bilgisayara indirdiği <code>C:\zirve</code> altındaki UBL-TR XML faturalarını otomatik tarayabilir ve Firma VKN bilginize göre Alış / Satış olarak ayırabilirsiniz.
+                    </p>
+
+                    <div class="form-grid" style="margin-bottom:12px;">
+                        <div class="form-group">
+                            <label>Kendi Şirket Ünvanınız</label>
+                            <input type="text" id="ownFirmName" value="SODSAN" onchange="App.saveSettings()">
+                        </div>
+                        <div class="form-group">
+                            <label>Kendi Şirket VKN / TCKN (Alış/Satış Yönü İçin)</label>
+                            <input type="text" id="ownFirmVkn" value="" placeholder="10 haneli VKN" onchange="App.saveSettings()">
+                        </div>
+                        <div class="form-group" style="grid-column: 1 / -1;">
+                            <label>Zirve e-Fatura XML Klasör Yolu</label>
+                            <div style="display:flex; gap:8px;">
+                                <input type="text" id="zirveXmlPath" value="C:\zirve" style="flex:1;">
+                                <button class="btn btn-purple" onclick="App.scanZirveXmlFolder()">📂 Klasördeki XML Faturaları Tara</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr style="border:none; border-top:1px solid var(--border); margin:16px 0;">
+
+                    <div class="card-title" style="margin-bottom:10px;">Yedekleme ve Veri Yönetimi</div>
+                    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                        <button class="btn btn-outline btn-sm" onclick="App.exportFullBackupJson()">⬇️ Tam Yedek İndir (.JSON)</button>
+                        <button class="btn btn-outline btn-sm" onclick="document.getElementById('backupInput').click()">⬆️ Yedek Geri Yükle (.JSON)</button>
+                        <input type="file" id="backupInput" accept=".json" style="display:none" onchange="App.importBackupJson(this.files[0])">
+                        <button class="btn btn-danger btn-sm" onclick="App.clearAllData()">🗑️ Tüm Verileri Sıfırla (Temiz Sayfa Aç)</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. UZAKTAN ERİŞİM & ŞİFRELİ BULUT KÖPRÜSÜ -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">☁️ 3. Uzaktan Erişim & Uçtan Uca Şifreli Bulut Köprüsü (Ofis Bilgisayarı Kapalıyken Bile Erişim)</div>
+                    <span class="badge badge-alacak">🔒 AES-256-GCM Uçtan Uca Şifreli</span>
+                </div>
+                <p style="font-size:12.5px; color:var(--text-muted); margin-bottom:14px;">
+                    Ofis bilgisayarınız açıkken Zirve SQL'den çekilen tüm cari bakiyeler ve hareketler <strong>sizin belirlediğiniz parola ile AES-256 standardında şifrelenerek</strong> bulut köprüsüne yedeklenir. Ofis bilgisayarınız <strong>kapandığı anda bile</strong> evdeki bilgisayarınızdan veya cep telefonunuzdan aynı <strong>Eşitleme Kodu + Şifreleme Parolası</strong> ile en son güncel verileri görebilir ve işlem yapabilirsiniz.
+                </p>
+
+                <div id="cloudStatusInfoBox" class="filter-bar" style="margin-bottom:14px;"></div>
+
+                <div class="form-grid" style="margin-bottom:14px;">
+                    <div class="form-group">
+                        <label>🔑 Gizli Şifreleme Parolası (AES-256 Anahtarı)</label>
+                        <input type="password" id="cloudSecretKeyInput" value="SODSAN2026" placeholder="Sadece sizin bildiğiniz şifre">
+                    </div>
+                    <div class="form-group">
+                        <label>☁️ Bulut Eşitleme Kodu (Diğer Cihazdan Bağlanmak İçin)</label>
+                        <input type="text" id="cloudCodeInput" placeholder="İlk yüklemede otomatik oluşur veya diğer cihazın kodunu girin">
+                    </div>
+                    <div class="form-group">
+                        <label>🔒 Uygulama Giriş PIN Şifresi (Opsiyonel Ekran Kilidi)</label>
+                        <div style="display:flex; gap:6px;">
+                            <input type="password" id="appPinInput" placeholder="Boş bırakılırsa sormaz" style="flex:1;">
+                            <button class="btn btn-outline btn-sm" onclick="CloudBridge.setAppPin()">PIN Kaydet</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                    <button class="btn btn-primary" onclick="CloudBridge.pushToCloud(true)">☁️ Şimdi Şifrele ve Buluta Yükle (Ofis PC)</button>
+                    <button class="btn btn-success" onclick="CloudBridge.pullFromCloud(true)">📥 Buluttaki En Son Verileri Çek (Uzaktan / Ev / Telefon)</button>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- MODAL 1: CARİ HESAP EKSTRESİ VE DETAY PANELİ -->
+    <div class="modal-backdrop" id="cariEkstreModal">
+        <div class="modal-box">
+            <div class="modal-header">
+                <div>
+                    <h3 id="ekstreCariTitle">Cari Hesap Ekstresi</h3>
+                    <div id="ekstreCariSub" style="font-size:12px; color:var(--text-muted);"></div>
+                </div>
+                <div class="no-print" style="display:flex; gap:8px;">
+                    <button class="btn btn-success btn-sm" id="btnEkstreTahsilat">+ Tahsilat Gir</button>
+                    <button class="btn btn-danger btn-sm" id="btnEkstreOdeme">- Ödeme Gir</button>
+                    <button class="btn btn-outline btn-sm" id="btnEkstreWhatsapp">💬 WhatsApp Mutabakat</button>
+                    <button class="btn btn-outline btn-sm" onclick="window.print()">🖨️ Yazdır / PDF</button>
+                    <button class="btn btn-outline btn-sm" onclick="App.closeModal('cariEkstreModal')">✕ Kapat</button>
+                </div>
+            </div>
+            <div class="modal-body">
+                <div class="kpi-grid" id="ekstreKpiRow" style="margin-bottom:14px;"></div>
+
+                <!-- Ödeme Sözü & Cari Notu -->
+                <div class="filter-bar no-print" style="margin-bottom:14px;">
+                    <div class="form-group" style="min-width:170px;">
+                        <label>Ödeme / Tahsilat Sözü Tarihi</label>
+                        <input type="date" id="ekstrePromiseDate">
+                    </div>
+                    <div class="form-group" style="min-width:140px;">
+                        <label>Söz Verilen Tutar (₺)</label>
+                        <input type="number" step="0.01" id="ekstrePromiseAmount" placeholder="0.00">
+                    </div>
+                    <div class="form-group" style="flex:1; min-width:220px;">
+                        <label>Cari Özel Takip Notu</label>
+                        <input type="text" id="ekstreCariNote" placeholder="Örn: Cuma günü havale geçecek, muhasebe ile görüşüldü...">
+                    </div>
+                    <button class="btn btn-primary btn-sm" onclick="App.saveCariPromise()">💾 Notu & Sözü Kaydet</button>
+                </div>
+
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Tarih</th>
+                                <th>Vade</th>
+                                <th>Evrak No</th>
+                                <th>İşlem Türü</th>
+                                <th>Açıklama</th>
+                                <th class="num">Borç (B)</th>
+                                <th class="num">Alacak (A)</th>
+                                <th class="num">Yürüyen Bakiye</th>
+                                <th>B/A</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ekstreTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 2: HIZLI TAHSİLAT / ÖDEME / DEKONT GİRİŞİ -->
+    <div class="modal-backdrop" id="transactionModal">
+        <div class="modal-box sm">
+            <div class="modal-header">
+                <h3 id="transModalTitle">Tahsilat / Ödeme Hareketi Gir</h3>
+                <button class="btn btn-outline btn-sm" onclick="App.closeModal('transactionModal')">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-grid">
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label>Cari Hesap Seçin</label>
+                        <select id="trCariId"></select>
+                    </div>
+                    <div class="form-group">
+                        <label>İşlem Yönü / Türü</label>
+                        <select id="trType" onchange="App.onTrTypeChange()">
+                            <option value="TAHSILAT">🟢 Müşteriden Tahsilat / Gelen Havale (Cari Alacaklanır)</option>
+                            <option value="ODEME">🔴 Tedarikçiye Ödeme / Gönderilen EFT (Cari Borçlanır)</option>
+                            <option value="SATIS_FATURA">🧾 Satış Faturası (Cari Borçlanır)</option>
+                            <option value="ALIS_FATURA">🧾 Alış Faturası (Cari Alacaklanır)</option>
+                            <option value="DEVIR_BORC">⇄ Devir Borç Fişi (Müşteri Borç Bakiyesi)</option>
+                            <option value="DEVIR_ALACAK">⇄ Devir Alacak Fişi (Tedarikçi Alacak Bakiyesi)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Ödeme Yöntemi / Kanal</label>
+                        <select id="trChannel">
+                            <option value="Banka Havale/EFT">Banka Havale / EFT</option>
+                            <option value="Nakit Kasa">Nakit Kasa</option>
+                            <option value="Kredi Kartı / POS">Kredi Kartı / POS</option>
+                            <option value="Çek">Çek</option>
+                            <option value="Senet">Senet</option>
+                            <option value="Cari Mahsup / Dekont">Cari Mahsup / Dekont</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>İşlem Tarihi</label>
+                        <input type="date" id="trDate">
+                    </div>
+                    <div class="form-group">
+                        <label>Vade Tarihi</label>
+                        <input type="date" id="trDueDate">
+                    </div>
+                    <div class="form-group">
+                        <label>Tutar</label>
+                        <input type="number" step="0.01" id="trAmount" placeholder="0.00">
+                    </div>
+                    <div class="form-group">
+                        <label>Para Birimi</label>
+                        <select id="trCurrency">
+                            <option value="TRY">TRY (₺)</option>
+                            <option value="USD">USD ($)</option>
+                            <option value="EUR">EUR (€)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Evrak / Dekont No</label>
+                        <input type="text" id="trDocNo" placeholder="Örn: MAK-2026-001">
+                    </div>
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label>Açıklama</label>
+                        <input type="text" id="trDesc" placeholder="Örn: Garanti Bankası gelen havale / Cari hesaba mahsuben">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" onclick="App.closeModal('transactionModal')">İptal</button>
+                <button class="btn btn-success" onclick="App.saveTransaction()">💾 Cari Hareketi Kaydet</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 3: YENİ CARİ KART -->
+    <div class="modal-backdrop" id="cariModal">
+        <div class="modal-box sm">
+            <div class="modal-header">
+                <h3>Cari Hesap Kartı</h3>
+                <button class="btn btn-outline btn-sm" onclick="App.closeModal('cariModal')">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Cari Kodu</label>
+                        <input type="text" id="cmKod" placeholder="120.01.001 veya 320.01.001">
+                    </div>
+                    <div class="form-group">
+                        <label>VKN / TCKN</label>
+                        <input type="text" id="cmVkn" placeholder="10 veya 11 haneli">
+                    </div>
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label>Cari Ünvan</label>
+                        <input type="text" id="cmUnvan" placeholder="Örn: ÖZKAN METAL SAN. TİC. LTD. ŞTİ.">
+                    </div>
+                    <div class="form-group">
+                        <label>Telefon (WhatsApp için)</label>
+                        <input type="text" id="cmTel" placeholder="0532...">
+                    </div>
+                    <div class="form-group">
+                        <label>Varsayılan Vade (Gün)</label>
+                        <input type="number" id="cmVade" value="30">
+                    </div>
+                    <div class="form-group">
+                        <label>Açılış Devir Borç (Müşteri Bize Borçluysa)</label>
+                        <input type="number" step="0.01" id="cmDevirBorc" value="0">
+                    </div>
+                    <div class="form-group">
+                        <label>Açılış Devir Alacak (Biz Tedarikçiye Borçluysak)</label>
+                        <input type="number" step="0.01" id="cmDevirAlacak" value="0">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" onclick="App.closeModal('cariModal')">İptal</button>
+                <button class="btn btn-primary" onclick="App.saveCariCard()">💾 Cari Kartı Kaydet</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 4: ÇEK / SENET GİRİŞİ -->
+    <div class="modal-backdrop" id="cekSenetModal">
+        <div class="modal-box sm">
+            <div class="modal-header">
+                <h3 id="csModalTitle">Çek / Senet Kaydı</h3>
+                <button class="btn btn-outline btn-sm" onclick="App.closeModal('cekSenetModal')">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-grid">
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label>İlgili Cari Hesap</label>
+                        <select id="csCariId"></select>
+                    </div>
+                    <div class="form-group">
+                        <label>Evrak Türü</label>
+                        <select id="csKind">
+                            <option value="ALINAN_CEK">🟢 Alınan Müşteri Çeki</option>
+                            <option value="ALINAN_SENET">🟢 Alınan Müşteri Senedi</option>
+                            <option value="VERILEN_CEK">🔴 Verilen Kendi Çekimiz</option>
+                            <option value="VERILEN_SENET">🔴 Verilen Borç Senedimiz</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Vade Tarihi</label>
+                        <input type="date" id="csDueDate">
+                    </div>
+                    <div class="form-group">
+                        <label>Banka / Şube</label>
+                        <input type="text" id="csBank" placeholder="Örn: İş Bankası Nilüfer Şb.">
+                    </div>
+                    <div class="form-group">
+                        <label>Çek / Senet No</label>
+                        <input type="text" id="csDocNo" placeholder="ÇK-884120">
+                    </div>
+                    <div class="form-group">
+                        <label>Tutar (₺)</label>
+                        <input type="number" step="0.01" id="csAmount" placeholder="0.00">
+                    </div>
+                    <div class="form-group">
+                        <label>Cari Hareketlere de Otomatik İşlensin mi?</label>
+                        <select id="csPostToCari">
+                            <option value="YES">Evet, Cari Hesaptan Düş (Önerilen)</option>
+                            <option value="NO">Hayır, Sadece Portföyde İzle</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" onclick="App.closeModal('cekSenetModal')">İptal</button>
+                <button class="btn btn-primary" onclick="App.saveCekSenet()">💾 Kaydet</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: ZİRVE'DEN EXCEL / PDF NASIL ALINIR REHBERİ -->
+    <div class="modal-backdrop" id="zirveExportHelpModal">
+        <div class="modal-box" style="max-width:650px;">
+            <div class="modal-header">
+                <h3>❓ Zirve'den Excel veya PDF Nasıl Alınır?</h3>
+                <button class="btn btn-outline btn-sm" onclick="App.closeModal('zirveExportHelpModal')">✕ Kapat</button>
+            </div>
+            <div class="modal-body" style="font-size:13px; line-height:1.7;">
+                <div style="background:rgba(59,130,246,0.1); border-left:4px solid #3b82f6; padding:12px; border-radius:4px; margin-bottom:14px;">
+                    <strong>İki farklı dosyadan birini yükleyebilirsiniz:</strong> Her ikisi de otomatik tanınır ve tüm tablolarınızı oluşturur.
+                </div>
+
+                <div style="margin-bottom:16px;">
+                    <h4 style="color:#10b981; margin-bottom:6px;">1. Yol: Cari Bakiye Listesi (Tüm Müşteri / Tedarikçi Bakiyeleri)</h4>
+                    <p style="color:var(--text-muted); margin-bottom:6px;">Tüm carilerinizin anlık borç, alacak ve net bakiye durumunu almak için:</p>
+                    <ol style="margin-left:20px; color:var(--text-main);">
+                        <li>Zirve programını açın ve <strong>Cari</strong> modülüne girin.</li>
+                        <li>Üst kısımdaki <strong>Cari Bakiye Listesi</strong> (veya <strong>Mizan</strong>) menüsüne tıklayın.</li>
+                        <li>Ekranda üstteki <strong>"Excel"</strong> veya <strong>"Yazdır / Excel'e Gönder"</strong> butonuna basın.</li>
+                        <li>Oluşan dosyayı bu ekrana sürükleyip bırakın!</li>
+                    </ol>
+                </div>
+
+                <hr style="border:none; border-top:1px solid var(--border); margin:14px 0;">
+
+                <div>
+                    <h4 style="color:#60a5fa; margin-bottom:6px;">2. Yol: Cari Ekstre / Hareketler (Faturalar, Vadeler ve Yaşlandırma)</h4>
+                    <p style="color:var(--text-muted); margin-bottom:6px;">Fatura bazlı vadesi geçen borçları (FIFO) ve nakit takvimini tam görmek için:</p>
+                    <ol style="margin-left:20px; color:var(--text-main);">
+                        <li>Zirve -> <strong>Cari</strong> -> <strong>Cari Ekstre</strong> (veya Toplu Ekstre) ekranına gelin.</li>
+                        <li>Tarih aralığını belirleyin (örneğin 01.01.2026 - Bugün).</li>
+                        <li>Üstteki <strong>"Excel'e Gönder"</strong> (veya Yazdır -> PDF olarak kaydet) butonuna basın.</li>
+                        <li>İnen dosyayı buraya bırakın! Sistem tüm vadeleri ve gecikmeleri anında çıkaracaktır.</li>
+                    </ol>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" onclick="App.closeModal('zirveExportHelpModal'); document.getElementById('mainFileInput').click();">📂 Anladım, Dosya Seç</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- YEREL OFFLINE KÜTÜPHANELER -->
+    <script src="js/xlsx.full.min.js"></script>
+    <script src="js/pdf.min.js"></script>
+    <script src="js/ubl_parser.js"></script>
+    <script src="js/excel_importer.js"></script>
+    <script src="js/cloud_bridge.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

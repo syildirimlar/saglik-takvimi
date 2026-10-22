@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SODSAN Mali İşler ve Muhasebe Takip Sistemi</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="icon" type="image/png" href="assets/sodsan-logo.png">
+</head>
+<body>
+
+    <div class="app-container">
+        
+        <!-- SOL YAN MENÜ (SIDEBAR) -->
+        <aside class="app-sidebar">
+            <div class="sidebar-header">
+                <img src="assets/sodsan-logo.png" alt="SODSAN Logo" class="brand-logo-img" onerror="this.style.display='none'">
+                <div class="brand-text">
+                    <h1>SODSAN</h1>
+                    <span>Mali İşler & Muhasebe</span>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <div class="nav-section-title">ANA OPERASYON</div>
+                
+                <button class="nav-tab active" data-tab="dashboard" onclick="App.switchTab('dashboard')">
+                    <span class="nav-icon">📊</span>
+                    <span>Ana Ekran (Kokpit)</span>
+                </button>
+
+                <button class="nav-tab" data-tab="tasks" onclick="App.switchTab('tasks')">
+                    <span class="nav-icon">📋</span>
+                    <span>Günlük Görev Sistemi</span>
+                    <span class="nav-count" id="cntTasks">0</span>
+                </button>
+
+                <button class="nav-tab" data-tab="invoices" onclick="App.switchTab('invoices')">
+                    <span class="nav-icon">🧾</span>
+                    <span>Fatura Takibi</span>
+                    <span class="nav-count" id="cntInvoices">0</span>
+                </button>
+
+                <button class="nav-tab" data-tab="payments" onclick="App.switchTab('payments')">
+                    <span class="nav-icon">💸</span>
+                    <span>Ödeme Yönetimi</span>
+                    <span class="nav-count" id="cntPayments">0</span>
+                </button>
+
+                <div class="nav-section-title mt-3">YASAL & KURUMSAL TAKVİM</div>
+
+                <button class="nav-tab" data-tab="calendar" onclick="App.switchTab('calendar')">
+                    <span class="nav-icon">📅</span>
+                    <span>2026 İnteraktif Takvim</span>
+                </button>
+
+                <button class="nav-tab" data-tab="taxes" onclick="App.switchTab('taxes')">
+                    <span class="nav-icon">🏛️</span>
+                    <span>Vergi & SGK Takvimi</span>
+                </button>
+
+                <button class="nav-tab" data-tab="advisor" onclick="App.switchTab('advisor')">
+                    <span class="nav-icon">🤝</span>
+                    <span>Mali Müşavir (8 ve 21)</span>
+                </button>
+
+                <button class="nav-tab" data-tab="payroll" onclick="App.switchTab('payroll')">
+                    <span class="nav-icon">👥</span>
+                    <span>Personel & Bordro</span>
+                </button>
+
+                <div class="nav-section-title mt-3">YÖNETİM & RAPORLAR</div>
+
+                <button class="nav-tab" data-tab="missing_info" onclick="App.switchTab('missing_info')">
+                    <span class="nav-icon">💡</span>
+                    <span>Eksik Bilgiler Modülü</span>
+                </button>
+
+                <button class="nav-tab" data-tab="reports" onclick="App.switchTab('reports')">
+                    <span class="nav-icon">📈</span>
+                    <span>Nakit & Çıkış Raporları</span>
+                </button>
+
+                <button class="nav-tab" data-tab="security" onclick="App.switchTab('security')">
+                    <span class="nav-icon">🛡️</span>
+                    <span>Denetim İzi & Arşiv</span>
+                </button>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div>
+                    <strong>SODSAN 2026</strong>
+                    <div class="text-xs">v1.0.0 Yerel Sürüm</div>
+                </div>
+                <span class="badge badge-success badge-xs">Aktif</span>
+            </div>
+        </aside>
+
+        <!-- SAĞ ANA ALAN -->
+        <main class="app-main">
+            
+            <!-- ÜST BAR (HEADER) -->
+            <header class="app-header">
+                <div class="header-left">
+                    <div class="global-search-box">
+                        <span class="search-icon-inside">🔍</span>
+                        <input type="text" id="globalSearchInput" placeholder="Sistem genelinde ara (Firma, görev, VKN, dekont)...">
+                        <div id="searchResultsDropdown" class="search-results-dropdown" style="display: none;"></div>
+                    </div>
+                </div>
+
+                <div class="header-right">
+                    <button class="btn btn-outline btn-sm" onclick="App.openExcelImportModal()" title="Excel dosyasını sisteme yükle">
+                        📥 Excel İçe Aktar
+                    </button>
+                    <button class="btn btn-outline btn-sm" onclick="ExcelService.exportFullWorkbook()" title="Tüm takvim ve kayıtları Excel olarak indir">
+                        📊 Excel Dışa Aktar
+                    </button>
+                    <button class="btn btn-primary btn-sm" onclick="App.openQuickTaskModal()">
+                        + Yeni Görev
+                    </button>
+                    <button class="btn btn-success btn-sm" onclick="App.openQuickInvoiceModal()">
+                        + Fatura
+                    </button>
+
+                    <div class="header-user-badge" onclick="App.switchTab('security')">
+                        <span id="headerUserAvatar">👔</span>
+                        <span id="headerUserName"><strong>Salih</strong> (Yönetici)</span>
+                    </div>
+
+                    <button class="btn btn-outline btn-sm relative" onclick="App.switchTab('dashboard')" title="Bildirimler">
+                        🔔
+                        <span class="badge badge-danger badge-xs" id="notificationBellBadge" style="display: none;">0</span>
+                    </button>
+                </div>
+            </header>
+
+            <!-- İÇERİK BÖLÜMÜ (VIEWS) -->
+            <div class="content-body">
+                <div id="dashboardView" class="view-container"></div>
+                <div id="tasksView" class="view-container" style="display: none;"></div>
+                <div id="invoicesView" class="view-container" style="display: none;"></div>
+                <div id="paymentsView" class="view-container" style="display: none;"></div>
+                <div id="taxesView" class="view-container" style="display: none;"></div>
+                <div id="advisorView" class="view-container" style="display: none;"></div>
+                <div id="payrollView" class="view-container" style="display: none;"></div>
+                <div id="calendarView" class="view-container" style="display: none;"></div>
+                <div id="missingInfoView" class="view-container" style="display: none;"></div>
+                <div id="reportsView" class="view-container" style="display: none;"></div>
+                <div id="securityView" class="view-container" style="display: none;"></div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- SCRIPT DOSYALARI -->
+    <script src="js/vendor/xlsx.full.min.js"></script>
+    <script src="js/data_seed.js"></script>
+    <script src="js/db.js"></script>
+    <script src="js/modules/dashboard.js"></script>
+    <script src="js/modules/tasks.js"></script>
+    <script src="js/modules/invoices.js"></script>
+    <script src="js/modules/payments.js"></script>
+    <script src="js/modules/taxes.js"></script>
+    <script src="js/modules/advisor.js"></script>
+    <script src="js/modules/payroll.js"></script>
+    <script src="js/modules/calendar.js"></script>
+    <script src="js/modules/missing_info.js"></script>
+    <script src="js/modules/reports.js"></script>
+    <script src="js/modules/audit_auth.js"></script>
+    <script src="js/modules/excel_service.js"></script>
+    <script src="js/app.js"></script>
+
+</body>
+</html>

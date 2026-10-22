@@ -1,0 +1,7 @@
+Asagidaki 3 kaynak dosyayi bu klasore yapistiriniz veya yukleyiniz:
+
+1. 20261008_oto_yedek_perkotek.dat
+2. 01-30,09,2025.pdf
+3. maas hesaplama 2026.ods
+
+Dosyalari buraya yukledikten sonra soylemeniz yeterlidir; sistem dosya iceriklerini okuyup gercek semayi analiz edecektir.

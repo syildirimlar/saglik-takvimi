@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>π's Pie — Yedek Parça Araştırma + B2B Kaynak Analiz Sistemi</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <!-- Üst Kural & Faz Politikası Bandı (Bölüm 1, 42, 50, 53) -->
+  <div class="phase-banner">
+    <div class="workflow-pills">
+      <span>PRENSİP:</span>
+      <span class="workflow-step">GERÇEK VERİ ZORUNLULUĞU ("VERİ YOKSA VERİ YOKTUR")</span>
+      <span>•</span>
+      <span class="workflow-step">LOCAL DB → LIVE SEARCH</span>
+      <span>•</span>
+      <span class="workflow-step">ANALİZ → GERÇEK TEST → ONAY → TAM TARAMA</span>
+    </div>
+    <div class="woo-lock-badge" title="WooCommerce entegrasyonu bu aşamada yapılmamaktadır; mimari ileride entegre edilebilecek şekilde hazırdır.">
+      🔒 WooCommerce Yazma Kilitli (Bağımsız Araştırma &amp; Katalog Modu)
+    </div>
+  </div>
+
+  <!-- Uygulama Üst Başlığı -->
+  <header class="app-header">
+    <div class="brand-area">
+      <div class="brand-logo">π</div>
+      <div class="brand-title">
+        <h1>π's Pie</h1>
+        <p>25 Bağımsız Kaynak Adapter • OEM &amp; Çapraz Referans Eşleştirme • Fiyat &amp; Stok Geçmişi • Yerel Katalog</p>
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <div class="backend-status-pill" title="Yerel sunucu (baslat.bat) durumu">
+        <span id="backendStatusDot" class="status-dot green"></span>
+        <span id="backendStatusText">Sunucu Kontrol Ediliyor...</span>
+      </div>
+      <button class="btn btn-primary btn-sm" id="btnOpenAddSourceModal">
+        + Yeni Kaynak Ekle
+      </button>
+      <button class="btn btn-secondary btn-sm" id="btnToggleTheme">
+        ☀️ Açık Mod
+      </button>
+    </div>
+  </header>
+
+  <!-- Sekme Navigasyonu -->
+  <nav class="nav-bar">
+    <button class="nav-tab active" data-tab="search">
+      🔍 π's Pie Araştır <span class="tab-badge" id="badge-search-count">0</span>
+    </button>
+    <button class="nav-tab" data-tab="sources">
+      🌐 Kaynak Yönetimi &amp; Analiz (25) <span class="tab-badge" id="badge-sources-count">25</span>
+    </button>
+    <button class="nav-tab" data-tab="weekly">
+      📅 Haftalık Güncelleme &amp; Arşiv
+    </button>
+    <button class="nav-tab" data-tab="jobs">
+      ⚙️ Tarama Job &amp; Queue <span class="tab-badge" id="badge-jobs-count">0</span>
+    </button>
+    <button class="nav-tab" data-tab="history">
+      📈 Fiyat / Stok Geçmişi &amp; Katalog DB <span class="tab-badge" id="badge-db-count">0</span>
+    </button>
+    <button class="nav-tab" data-tab="bulk">
+      📦 Toplu OEM &amp; Gelecek Modüller
+    </button>
+  </nav>
+
+  <!-- Ana İçerik Alanı -->
+  <main class="main-container">
+
+    <!-- Üst KPI Özeti (Gerçek Veritabanı Sayaçları - İlk Açılışta 0 Ürün) -->
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-label"><span>Tanımlı Kaynak / Adapter</span> <span>🌐</span></div>
+        <div class="kpi-value" id="kpi-total-sources">18</div>
+        <div class="kpi-sub" id="kpi-sources-sub">Hazır (READY): 0 • Analiz Bekleyen: 18</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label"><span>Yerel Katalog Ürünü (`source_products`)</span> <span>📦</span></div>
+        <div class="kpi-value" id="kpi-total-products">0</div>
+        <div class="kpi-sub">İlk açılışta 0 ürün (Demo/Mock veri içermez)</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label"><span>Fiyat &amp; Stok Değişim Kaydı</span> <span>📈</span></div>
+        <div class="kpi-value" id="kpi-total-history">0</div>
+        <div class="kpi-sub" id="kpi-history-sub">Fiyat Kaydı: 0 • Stok Kaydı: 0</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label"><span>Arama Logu &amp; Çapraz Ref.</span> <span>📊</span></div>
+        <div class="kpi-value" id="kpi-total-searches">0</div>
+        <div class="kpi-sub" id="kpi-xref-sub">Çapraz Referans (xref): 0</div>
+      </div>
+    </div>
+
+    <!-- =================================================================== -->
+    <!-- SEKME 1: ANA ARAMA EKRANI - "VW YEDEK PARÇA ARAŞTIR" (Bölüm 8,9,10,28-34) -->
+    <!-- =================================================================== -->
+    <section class="tab-pane active" id="tab-search">
+
+      <div class="search-hero">
+        <div class="panel-header" style="margin-bottom:10px;">
+          <div>
+            <div class="panel-title">🔍 π's Pie — ÜRÜN / OEM ARA (Önce Local Database → Yoksa Live Search)</div>
+            <div class="panel-subtitle">
+              <code>111201635</code>, <code>111 201 635</code>, <code>111-201-635</code>, <code>111.201.635</code> aynı normalize OEM olarak değerlendirilir. Önce yerel katalog aranır; bulunamazsa aktif kaynaklarda canlı arama (Live Search) yapılır ve bulunan gerçek ürünler kataloğa eklenir.
+            </div>
+          </div>
+          <div id="normalizedOemPreview" class="normalized-preview">
+            Orijinal: <b>-</b> &nbsp;|&nbsp; Normalize OEM: <b>-</b>
+          </div>
+        </div>
+
+        <div class="search-input-row">
+          <div class="search-box-wrap">
+            <span class="search-icon">🔍</span>
+            <input
+              type="text"
+              id="mainSearchInput"
+              placeholder="OEM / Ürün Kodu / Parça Numarası girin (Örn: 311 415 811 C, 113-129-729B, 113.905.225E, 211405371A, 111903137D)..."
+              autocomplete="off"
+            />
+          </div>
+          <button class="btn btn-primary btn-lg" id="btnSearchAllSources">
+            🚀 TÜM KAYNAKLARDA ARA
+          </button>
+          <button class="btn btn-secondary btn-lg" id="btnForceLiveSearch" title="Yerel katalogda olsa bile seçili aktif kaynaklarda canlı arama yapar">
+            ⚡ CANLI ARA (LIVE SEARCH)
+          </button>
+        </div>
+
+        <!-- Hızlı Gerçek OEM Arama Örnekleri -->
+        <div class="quick-oem-chips">
+          <span class="chip-label">⚡ Gerçek OEM Kodu İle Test Et:</span>
+          <button class="oem-chip" data-query="311 415 811 C">311 415 811 C</button>
+          <button class="oem-chip" data-query="113-129-729B">113-129-729B</button>
+          <button class="oem-chip" data-query="113.905.225E">113.905.225E</button>
+          <button class="oem-chip" data-query="211 405 371 A">211 405 371 A</button>
+          <button class="oem-chip" data-query="111 903 137 D">111 903 137 D</button>
+          <button class="oem-chip" data-query="113 831 128">113 831 128</button>
+          <button class="oem-chip" data-query="113 115 181 A">113 115 181 A</button>
+        </div>
+
+        <!-- Kaynak Grup Filtreleri (Bölüm 28) -->
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin:12px 0 8px 0;">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <span style="font-size:12.5px;font-weight:700;color:var(--text-secondary);">KAYNAK GRUPLARI:</span>
+            <button class="btn btn-secondary btn-sm src-group-filter-btn active" data-group="ALL">Tümü (18)</button>
+            <button class="btn btn-secondary btn-sm src-group-filter-btn" data-group="Klasik VW">Klasik VW (10)</button>
+            <button class="btn btn-secondary btn-sm src-group-filter-btn" data-group="Türkiye / B2B">Türkiye / B2B (6)</button>
+            <button class="btn btn-secondary btn-sm src-group-filter-btn" data-group="Genel Otomotiv">Genel Otomotiv (2)</button>
+          </div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-secondary btn-sm" id="btnSelectPriority1Sources">Sadece Öncelik 1 Kaynakları Seç</button>
+            <button class="btn btn-secondary btn-sm" id="btnSelectAllActiveSources">Tüm Aktifleri Seç</button>
+          </div>
+        </div>
+
+        <div class="source-selector-grid" id="searchSourceCheckboxes"></div>
+      </div>
+
+      <!-- Arama Kaynak Durumu & B2B Manuel Giriş / Doğrulama Bildirimleri -->
+      <div id="parallelExecutionStatus" class="panel" style="display:none;padding:12px 18px;margin-bottom:14px;"></div>
+      <div id="interventionAlertsContainer"></div>
+
+      <!-- Sonuç Tablosu (Bölüm 29, 32, 34, 40, 45) -->
+      <div class="panel">
+        <div class="table-toolbar">
+          <div>
+            <div class="panel-title">📊 Araştırma Sonuç Tablosu</div>
+            <div class="panel-subtitle" id="searchResultSummaryText">
+              Henüz arama yapılmadı. Yerel veritabanı başlangıçta boştur (0 ürün). Bir OEM numarası aratın veya "Kaynak Yönetimi &amp; Analiz" sekmesinden kaynak analizi ve gerçek test taraması başlatın.
+            </div>
+          </div>
+
+          <div class="filter-group">
+            <select id="resultSortSelect" class="form-select">
+              <option value="price_asc">💶 Fiyata Göre: Düşükten Yükseğe</option>
+              <option value="price_desc">💶 Fiyata Göre: Yüksekten Düşüğe</option>
+              <option value="confidence">🎯 Eşleşme Güvenine Göre (Exact → Low)</option>
+              <option value="priority">⭐ Kaynak Önceliğine Göre (Öncelik 1 → 3)</option>
+            </select>
+
+            <select id="resultConfidenceFilter" class="form-select">
+              <option value="ALL">Tüm Güven Seviyeleri</option>
+              <option value="Exact">Exact</option>
+              <option value="High">High</option>
+              <option value="Medium">Medium</option>
+              <option value="Low">Low</option>
+            </select>
+
+            <select id="resultStockFilter" class="form-select">
+              <option value="ALL">Tüm Stok Durumları</option>
+              <option value="INSTOCK">Yalnızca Stokta (In Stock)</option>
+              <option value="B2B_ONLY">Yalnızca B2B Fiyatı Olanlar</option>
+            </select>
+
+            <button class="btn btn-success btn-sm" id="btnExportSearchExcel">
+              📥 EXCEL'E AKTAR (.XLS - 23 Kolon)
+            </button>
+            <button class="btn btn-secondary btn-sm" id="btnExportSearchCsv">
+              📄 CSV İNDİR
+            </button>
+          </div>
+        </div>
+
+        <div class="table-wrapper">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Kaynak &amp; Veri Tipi</th>
+                <th>Kaynak Tipi</th>
+                <th>Ürün</th>
+                <th>Marka</th>
+                <th>Ürün Kodu</th>
+                <th>OEM</th>
+                <th>Rakip Parça No</th>
+                <th>Açıklama</th>
+                <th>Stok</th>
+                <th>Stok Miktarı</th>
+                <th>Public Fiyat</th>
+                <th>B2B Fiyat</th>
+                <th>Para Birimi</th>
+                <th>Eşleşme Güveni</th>
+                <th>Son Kontrol</th>
+                <th>İşlem &amp; Ürün Linki</th>
+              </tr>
+            </thead>
+            <tbody id="searchResultsTbody">
+              <tr>
+                <td colspan="16" style="text-align:center;padding:38px;color:var(--text-secondary);">
+                  Veritabanında henüz ürün yok (0 kayıt). Arama kutusuna gerçek bir OEM (örn. <code>311 415 811 C</code>) yazıp <b>TÜM KAYNAKLARDA ARA</b> butonuna basın veya <b>Kaynak Yönetimi</b> sekmesinden gerçek test taraması başlatın.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- =================================================================== -->
+    <!-- SEKME 2: KAYNAK YÖNETİMİ, KAYNAK ANALİZİ VE GERÇEK TEST TARAMASI -->
+    <!-- (Bölüm 2, 3, 4, 5, 6, 7, 23, 26, 27, 46, 47, 49, 54) -->
+    <!-- =================================================================== -->
+    <section class="tab-pane" id="tab-sources">
+
+      <div class="panel" style="margin-bottom:16px;">
+        <div class="panel-header">
+          <div>
+            <div class="panel-title">🌐 Kaynak Yönetim Sistemi ve Zorunlu Kurulum Sırası (25 Bağımsız Adapter)</div>
+            <div class="panel-subtitle">
+              Zorunlu sıra: <b>1. Kaynağı Analiz Et</b> → <b>2. Ön Test (20 Ürün)</b> → <b>3. Tam Katalog Taraması (Tümü)</b>. Hiçbir aşamada temsili/demo ürün üretilmez.
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <select id="sourcesGroupFilter" class="form-select">
+              <option value="ALL">Tüm Gruplar (25 Kaynak)</option>
+              <option value="Klasik VW">Klasik VW (10)</option>
+              <option value="Türkiye / B2B">Türkiye / B2B (7)</option>
+              <option value="Genel Otomotiv">Genel Otomotiv &amp; Üretici (8)</option>
+            </select>
+            <button class="btn btn-primary btn-sm" onclick="document.getElementById('btnOpenAddSourceModal').click()">
+              + Yeni Kaynak Ekle
+            </button>
+          </div>
+        </div>
+
+        <div class="table-wrapper">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Öncelik</th>
+                <th>Kaynak Adı &amp; URL</th>
+                <th>Grup &amp; Kaynak Tipi</th>
+                <th>Public / B2B</th>
+                <th>Aktif / Pasif</th>
+                <th>Login Durumu</th>
+                <th>Adapter &amp; Durumu</th>
+                <th>Ürün Sayısı</th>
+                <th>Son Analiz / Son Tarama / Son Hata</th>
+                <th>İşlemler (Analiz → Gerçek Test → Tam Tarama)</th>
+              </tr>
+            </thead>
+            <tbody id="sourcesTableTbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Seçili Kaynak Analiz Raporu ve Gerçek Test Taraması Sonuç Ekranı (Bölüm 5, 6, 27, 47) -->
+      <div id="sourceInspectionWorkspace" class="panel" style="display:none;">
+        <div class="panel-header">
+          <div>
+            <div class="panel-title" id="inspSourceTitle">🔬 Kaynak Analiz Raporu &amp; Gerçek Test Taraması</div>
+            <div class="panel-subtitle" id="inspSourceSubtitle"></div>
+          </div>
+          <div id="inspPostTestActions" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
+        </div>
+
+        <div id="inspReportGrid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;margin-bottom:16px;"></div>
+
+        <!-- Gerçek Test Taramasından Gelen Ürünlerin Tablosu -->
+        <div id="inspTestProductsSection" style="display:none;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
+            <div style="font-weight:700;font-size:14px;" id="inspTestProductsHeader">Gerçek Test Taraması Ürünleri</div>
+            <button class="btn btn-success btn-sm" id="btnExportTestScanExcel">📥 Test Ürünlerini Excel'e Aktar</button>
+          </div>
+          <div class="table-wrapper">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Source Product ID</th>
+                  <th>Ürün Adı</th>
+                  <th>Marka</th>
+                  <th>Ürün Kodu</th>
+                  <th>OEM / Normalize OEM</th>
+                  <th>Fiyat</th>
+                  <th>Stok Durumu</th>
+                  <th>Stok Miktarı</th>
+                  <th>Gerçek Ürün URL</th>
+                </tr>
+              </thead>
+              <tbody id="inspTestProductsTbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- =================================================================== -->
+    <!-- SEKME 3: HAFTALIK GÜNCELLEME & ARŞİV YÖNETİMİ (Bölüm 16, 17, 18, 20) -->
+    <!-- =================================================================== -->
+    <section class="tab-pane" id="tab-weekly">
+      <div class="panel" style="margin-bottom:16px;">
+        <div class="panel-header">
+          <div>
+            <div class="panel-title">📅 Haftalık Katalog Güncellemesi (Manuel Onaylı — Otomatik Başlamaz)</div>
+            <div class="panel-subtitle">
+              Bölüm 16 Kuralı: Sistem otomatik olarak tarama başlatmaz. Kapsamı ve kaynakları seçip <b>"Güncellemeyi Başlat"</b> butonuna bastığınızda çalışır.
+            </div>
+          </div>
+          <span class="badge badge-green" style="font-size:13px;padding:6px 12px;">🔔 Haftalık katalog güncellemesi hazır.</span>
+        </div>
+
+        <div class="kpi-grid" style="margin-bottom:16px;">
+          <div class="kpi-card">
+            <div class="kpi-label">Aktif Kaynak</div>
+            <div class="kpi-value" id="wkActiveSourcesCount">0</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Mevcut Katalog Ürünü</div>
+            <div class="kpi-value" id="wkCatalogProductsCount">0</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Tahmini Değişiklik Kontrolü</div>
+            <div class="kpi-value" id="wkEstimatedCheckCount">0 ürün</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Tahmini Süre</div>
+            <div class="kpi-value" id="wkEstimatedDuration">0 dk</div>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:18px;margin-bottom:18px;">
+          <!-- Güncelleme Kapsamı (Bölüm 17) -->
+          <div style="background:var(--bg-secondary);padding:16px;border-radius:10px;border:1px solid var(--border-color);">
+            <div style="font-weight:700;margin-bottom:10px;">1. Güncelleme Kapsamı Seçimi (Bölüm 17)</div>
+            <div style="display:grid;gap:8px;font-size:13px;">
+              <label><input type="checkbox" id="wkScopePrices" checked /> Fiyatları güncelle (`product_prices`)</label>
+              <label><input type="checkbox" id="wkScopeStocks" checked /> Stokları güncelle (`product_stock_history`)</label>
+              <label><input type="checkbox" id="wkScopeNewProducts" checked /> Yeni ürünleri ara</label>
+              <label><input type="checkbox" id="wkScopeProductInfo" /> Ürün bilgilerini güncelle</label>
+              <label><input type="checkbox" id="wkScopeDescriptions" /> Açıklamaları güncelle</label>
+              <label><input type="checkbox" id="wkScopeImages" /> Görselleri güncelle</label>
+            </div>
+          </div>
+
+          <!-- Kaynak Seçimi (Bölüm 18) -->
+          <div style="background:var(--bg-secondary);padding:16px;border-radius:10px;border:1px solid var(--border-color);">
+            <div style="font-weight:700;margin-bottom:10px;">2. Güncellenecek Kaynak Seçimi (Bölüm 18)</div>
+            <div id="weeklySourcesCheckList" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px;font-size:12.5px;max-height:190px;overflow-y:auto;"></div>
+          </div>
+        </div>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+          <div id="weeklyUpdateStatusText" style="font-size:13px;color:var(--text-secondary);">
+            Kullanıcı "Güncellemeyi Başlat" butonuna basmadan hiçbir tarama başlamaz.
+          </div>
+          <button class="btn btn-primary btn-lg" id="btnStartWeeklyUpdate">
+            🚀 Güncellemeyi Başlat
+          </button>
+        </div>
+      </div>
+
+      <!-- Bölüm 20: Arşivleme (180 Gün Görülmeyen Ürünler) -->
+      <div class="panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-title">🗄️ Arşivlenen Ürünler (Bölüm 20 — 180 Gün Görülmeyenler Silinmez, Archived İşaretlenir)</div>
+            <div class="panel-subtitle">
+              Uzun süre (180+ gün) kaynakta görülmeyen ürünler veritabanından fiziksel olarak silinmez; <code>Archived</code> olarak işaretlenir.
+            </div>
+          </div>
+          <button class="btn btn-secondary btn-sm" id="btnRunArchiveCheck">🔄 180 Gün Arşiv Kontrolü Çalıştır</button>
+        </div>
+        <div class="table-wrapper">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Kaynak</th>
+                <th>Source Product ID</th>
+                <th>Ürün Adı</th>
+                <th>OEM</th>
+                <th>İlk Görülme (First Seen)</th>
+                <th>Son Görülme (Last Seen)</th>
+                <th>Durum</th>
+              </tr>
+            </thead>
+            <tbody id="archivedProductsTbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- =================================================================== -->
+    <!-- SEKME 4: TARAMA JOB & QUEUE SİSTEMİ (Bölüm 21, 35, 48) -->
+    <!-- =================================================================== -->
+    <section class="tab-pane" id="tab-jobs">
+      <div class="panel" style="margin-bottom:16px;">
+        <div class="panel-header">
+          <div>
+            <div class="panel-title">⚙️ Tarama Job &amp; Queue Yönetimi (`scan_jobs` &amp; `scan_job_items`)</div>
+            <div class="panel-subtitle">
+              Durumlar: <code>Pending</code>, <code>Running</code>, <code>Paused</code>, <code>Completed</code>, <code>Failed</code>, <code>Cancelled</code>. Kullanıcı: Başlat, Duraklat, Devam Et, İptal Et.
+            </div>
+          </div>
+        </div>
+        <div id="scanJobsContainer"></div>
+      </div>
+
+      <!-- Kaynak Bazlı Hata Logları (Bölüm 35) -->
+      <div class="panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-title">⚠️ Kaynak Bazlı Hata Logları (Bölüm 35)</div>
+            <div class="panel-subtitle">Bir kaynak hata verdiğinde diğer kaynaklar durmaz; hata tarih, kaynak, URL ve mesaj ile loglanır.</div>
+          </div>
+        </div>
+        <div class="table-wrapper">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Tarih</th>
+                <th>Kaynak</th>
+                <th>URL</th>
+                <th>Hata Kodu</th>
+                <th>Hata Mesajı</th>
+              </tr>
+            </thead>
+            <tbody id="sourceErrorsTbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- =================================================================== -->
+    <!-- SEKME 5: FİYAT / STOK GEÇMİŞİ & YEREL KATALOG DB (Bölüm 12-15, 30, 33) -->
+    <!-- =================================================================== -->
+    <section class="tab-pane" id="tab-history">
+      <div class="panel" style="margin-bottom:16px;">
+        <div class="panel-header">
+          <div>
+            <div class="panel-title">🗄️ Yerel Katalog Veritabanı (`source_products`) &amp; Provenance Kayıtları</div>
+            <div class="panel-subtitle">
+              Ürün sabit verisi ile değişken fiyat (`product_prices`) ve stok (`product_stock_history`) verileri ayrı tablolarda tutulur.
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+            <div id="diskStorageStatusBadge" class="backend-status-pill" style="font-size:12px;padding:4px 10px;background:var(--bg-card);border:1px solid var(--border-color);border-radius:6px;" title="Taranan ve kaydedilen ürünlerin sunucu diskindeki kalıcı depolama durumu">
+              💾 Diske Kayıtlı: <b>data/catalog-db.json</b> (0 Ürün)
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="window.App.saveToDiskNow()" title="Veritabanını derhal sunucu diskine kaydet">💾 Diske Kaydet</button>
+            <button class="btn btn-success btn-sm" id="btnExportCatalogExcel">📥 Tüm Kataloğu Excel'e Aktar</button>
+            <button class="btn btn-secondary btn-sm" onclick="window.App.exportFullDatabaseJson()">💾 JSON Yedek İndir</button>
+            <button class="btn btn-danger btn-sm" onclick="window.App.resetDatabaseToDefault()">🗑️ Veritabanını Sıfırla (0 Ürün)</button>
+          </div>
+        </div>
+
+        <div class="table-wrapper" style="max-height:320px;overflow-y:auto;">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Kaynak</th>
+                <th>Source Product ID</th>
+                <th>Ürün Adı</th>
+                <th>Ürün Kodu</th>
+                <th>OEM / Norm. OEM</th>
+                <th>Güncel Fiyat</th>
+                <th>Güncel Stok</th>
+                <th>Veri Tipi</th>
+                <th>First Seen</th>
+                <th>Last Checked</th>
+                <th>Arama Sayısı</th>
+              </tr>
+            </thead>
+            <tbody id="catalogProductsTbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(420px,1fr));gap:16px;margin-bottom:16px;">
+        <!-- Fiyat Geçmişi Tablosu (Bölüm 14) -->
+        <div class="panel">
+          <div class="panel-header">
+            <div>
+              <div class="panel-title">💶 Fiyat Geçmişi (`product_prices` — Bölüm 14)</div>
+              <div class="panel-subtitle">Aynı fiyat tekrar tekrar yazılmaz; yalnızca ilk kayıtta veya fiyat değiştiğinde yeni history satırı oluşur.</div>
+            </div>
+          </div>
+          <div class="table-wrapper" style="max-height:260px;overflow-y:auto;">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Tarih</th>
+                  <th>Kaynak</th>
+                  <th>Ürün</th>
+                  <th>Public Fiyat</th>
+                  <th>B2B Fiyat</th>
+                  <th>Para Birimi</th>
+                </tr>
+              </thead>
+              <tbody id="priceHistoryTbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Stok Geçmişi Tablosu (Bölüm 15) -->
+        <div class="panel">
+          <div class="panel-header">
+            <div>
+              <div class="panel-title">📦 Stok Geçmişi (`product_stock_history` — Bölüm 15)</div>
+              <div class="panel-subtitle">Yalnızca stok durumu veya gerçek stok miktarı değiştiğinde history kaydı oluşur.</div>
+            </div>
+          </div>
+          <div class="table-wrapper" style="max-height:260px;overflow-y:auto;">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Tarih</th>
+                  <th>Kaynak</th>
+                  <th>Ürün</th>
+                  <th>Stok Durumu</th>
+                  <th>Stok Miktarı</th>
+                </tr>
+              </thead>
+              <tbody id="stockHistoryTbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(420px,1fr));gap:16px;">
+        <!-- Arama Logu (Bölüm 33) -->
+        <div class="panel">
+          <div class="panel-header">
+            <div>
+              <div class="panel-title">🕒 Arama Logu (`search_logs` — Bölüm 33)</div>
+              <div class="panel-subtitle">Aranan OEM, tarih, sorgulanan kaynaklar ve bulunan gerçek sonuç sayısı.</div>
+            </div>
+          </div>
+          <div class="table-wrapper" style="max-height:240px;overflow-y:auto;">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>OEM / Sorgu</th>
+                  <th>Normalize OEM</th>
+                  <th>Arama Tarihi</th>
+                  <th>Kaynaklar</th>
+                  <th>Mod</th>
+                  <th>Sonuç</th>
+                </tr>
+              </thead>
+              <tbody id="dbSearchLogsTbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Çapraz Referanslar (product_cross_references) -->
+        <div class="panel">
+          <div class="panel-header">
+            <div>
+              <div class="panel-title">🔗 Çapraz Referanslar (`product_cross_references`)</div>
+              <div class="panel-subtitle">Gerçek ürünlerden çıkarılan OEM ↔ Üretici / Rakip parça numarası ilişkileri.</div>
+            </div>
+          </div>
+          <div class="table-wrapper" style="max-height:240px;overflow-y:auto;">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Kaynak</th>
+                  <th>OEM</th>
+                  <th>Normalize OEM</th>
+                  <th>Alternatif / Rakip Kod</th>
+                  <th>Marka</th>
+                </tr>
+              </thead>
+              <tbody id="dbXrefTbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =================================================================== -->
+    <!-- SEKME 6: TOPLU OEM ARAŞTIRMASI & GELECEK MODÜLLER (Bölüm 42 & 43) -->
+    <!-- =================================================================== -->
+    <section class="tab-pane" id="tab-bulk">
+      <div class="panel" style="margin-bottom:16px;">
+        <div class="panel-header">
+          <div>
+            <div class="panel-title">📦 Toplu OEM Araştırması (CSV / Liste)</div>
+            <div class="panel-subtitle">Her satıra bir OEM numarası girin veya CSV yükleyin. Önce yerel katalog taranır, eksik olanlar için canlı kaynaklar sorgulanır.</div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <input type="file" id="bulkOemFileInput" accept=".csv,.txt" style="display:none;" />
+            <button class="btn btn-secondary btn-sm" onclick="document.getElementById('bulkOemFileInput').click()">📂 CSV / TXT Yükle</button>
+            <button class="btn btn-primary btn-sm" id="btnRunBulkOemSearch">🚀 Toplu Araştırmayı Başlat</button>
+            <button class="btn btn-success btn-sm" id="btnExportBulkExcel">📥 Sonuçları Excel'e Aktar</button>
+          </div>
+        </div>
+
+        <textarea id="bulkOemTextarea" class="form-textarea" rows="5" placeholder="Her satıra bir OEM yazın (Örn:&#10;311 415 811 C&#10;113-129-729B&#10;113.905.225E)"></textarea>
+
+        <div id="bulkProgressWrap" style="display:none;margin-top:12px;">
+          <div style="font-size:12.5px;margin-bottom:4px;" id="bulkProgressText">Hazırlanıyor...</div>
+          <div class="progress-bar-outer"><div class="progress-bar-inner" id="bulkProgressBar" style="width:0%"></div></div>
+        </div>
+
+        <div class="table-wrapper" style="margin-top:14px;">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Sorgulanan OEM</th>
+                <th>Normalize OEM</th>
+                <th>Kaynak</th>
+                <th>Ürün Adı</th>
+                <th>Marka</th>
+                <th>Ürün Kodu</th>
+                <th>Fiyat</th>
+                <th>Stok</th>
+                <th>Eşleşme Güveni</th>
+              </tr>
+            </thead>
+            <tbody id="bulkResultsTbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Bölüm 42 & 43: İleride WooCommerce & Fatura/OCR Hazırlık Mimarisi -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:16px;">
+        <div class="panel">
+          <div class="panel-title">🔌 İleride WooCommerce Entegrasyon Mimarisi (Bölüm 42 — Şu Aşamada Kapalı)</div>
+          <p style="font-size:12.5px;color:var(--text-secondary);margin-top:6px;">
+            Veritabanındaki <code>source_products</code>, <code>product_prices</code>, <code>product_stock_history</code> ve <code>product_cross_references</code> tabloları ileride WooCommerce REST API v3 alanlarına (SKU, Regular Price, Manage Stock, Meta: <code>_oem_number</code>, <code>_cross_references</code>) doğrudan eşlenecek şekilde tasarlanmıştır. Kullanıcı onayı olmadan WooCommerce'e hiçbir veri yazılmaz.
+          </p>
+        </div>
+        <div class="panel">
+          <div class="panel-title">📄 İleride Tedarikçi Faturası / OCR Modülü (Bölüm 43 — Modüler Yuva)</div>
+          <p style="font-size:12.5px;color:var(--text-secondary);margin-top:6px;">
+            Gelecek fazda tedarikçi faturası veya ürün fotoğrafından okunan <code>ürün kodu</code>, <code>OEM</code>, <code>marka</code>, <code>miktar</code> ve <code>fiyat</code> bilgileri doğrudan yazılmak yerine önce <b>"Önerilen ürün kayıtları"</b> olarak onaya sunulacaktır.
+          </p>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- MODAL 1: + YENİ KAYNAK EKLE (Bölüm 26 & 37) -->
+  <div class="modal-backdrop" id="addSourceModalBackdrop">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>+ Yeni Kaynak Ekle (Bölüm 26 &amp; 37)</h3>
+        <button class="btn btn-secondary btn-sm" id="btnCloseAddSourceModal">✕ Kapat</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-grid">
+          <div>
+            <label class="form-label">Kaynak Adı *</label>
+            <input type="text" id="nsName" class="form-input" placeholder="Örn: Klasik Parça B2B" />
+          </div>
+          <div>
+            <label class="form-label">Grup</label>
+            <select id="nsGroup" class="form-select" style="width:100%;">
+              <option value="Klasik VW">Klasik VW</option>
+              <option value="Türkiye / B2B">Türkiye / B2B</option>
+              <option value="Genel Otomotiv">Genel Otomotiv</option>
+            </select>
+          </div>
+          <div>
+            <label class="form-label">Kaynak Tipi &amp; Public/B2B</label>
+            <select id="nsType" class="form-select" style="width:100%;">
+              <option value="Public Web">Public Web (Açık Web)</option>
+              <option value="B2B / Login Required">B2B / Login Required</option>
+              <option value="Public / Catalog / OEM Reference">Public / Catalog / OEM Reference</option>
+            </select>
+          </div>
+          <div>
+            <label class="form-label">Öncelik</label>
+            <select id="nsPriority" class="form-select" style="width:100%;">
+              <option value="1">Öncelik 1 (Yüksek)</option>
+              <option value="2" selected>Öncelik 2 (Normal)</option>
+              <option value="3">Öncelik 3 (Düşük)</option>
+            </select>
+          </div>
+          <div>
+            <label class="form-label">Ana URL *</label>
+            <input type="url" id="nsBaseUrl" class="form-input" placeholder="https://..." />
+          </div>
+          <div>
+            <label class="form-label">Login URL (B2B ise)</label>
+            <input type="url" id="nsLoginUrl" class="form-input" placeholder="https://.../login" />
+          </div>
+          <div>
+            <label class="form-label">Kategori URL</label>
+            <input type="url" id="nsCategoryUrl" class="form-input" placeholder="https://.../kategori" />
+          </div>
+          <div>
+            <label class="form-label">Ürün URL Şablonu</label>
+            <input type="url" id="nsProductUrl" class="form-input" placeholder="https://.../urun/" />
+          </div>
+        </div>
+        <div style="margin-top:10px;">
+          <label class="form-label">Notlar</label>
+          <input type="text" id="nsNotes" class="form-input" placeholder="Adapter ve site yapısı notları..." />
+        </div>
+        <div style="margin-top:14px;display:flex;justify-content:flex-end;gap:10px;">
+          <button class="btn btn-primary" id="btnSaveAndAnalyzeNewSource">Kaynağı Ekle &amp; Kaynak Analizine Geç</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 2: B2B GÜVENLİ GİRİŞ / YETKİLİ TARAYICI OTURUMU (Bölüm 23, 24, 25, 44) -->
+  <div class="modal-backdrop" id="b2bAuthModalBackdrop">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="b2bModalTitle">🔐 B2B Kaynak Girişi &amp; Oturum Doğrulama</h3>
+        <button class="btn btn-secondary btn-sm" id="btnCloseB2bAuthModal">✕ Kapat</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="b2bModalSourceId" />
+        <p style="font-size:12.5px;color:var(--text-secondary);margin-bottom:12px;">
+          <b>Güvenlik Kuralı (Bölüm 23-25 &amp; 44):</b> Şifreler açık metin olarak saklanmaz, loglara veya Excel'e kesinlikle aktarılmaz. SMS OTP / CAPTCHA / Cloudflare / Angular JWT korumalı portallarda tarayıcınızda giriş yaptıktan sonra <b>Oturum Cookie veya Bearer Token</b> bilgisini aşağıya yapıştırarak doğrudan yetkili oturum bağlayabilirsiniz.
+        </p>
+        <div class="form-grid">
+          <div>
+            <label class="form-label">Müşteri / Bayi Kodu (Basario, Özçete vb. için)</label>
+            <input type="text" id="b2bCustomerCode" class="form-input" placeholder="Örn: 120.01.001 (Opsiyonel)" autocomplete="off" />
+          </div>
+          <div>
+            <label class="form-label">Kullanıcı Kodu / E-Posta *</label>
+            <input type="text" id="b2bUsername" class="form-input" placeholder="Kullanıcı adı veya e-posta" autocomplete="off" />
+          </div>
+          <div>
+            <label class="form-label">Şifre / Parola</label>
+            <input type="password" id="b2bPassword" class="form-input" placeholder="••••••••" autocomplete="off" />
+          </div>
+          <div>
+            <label class="form-label">Görsel Doğrulama / Captcha Kodu (Varsa)</label>
+            <input type="text" id="b2bCaptcha" class="form-input" placeholder="Varsa Captcha kodu" autocomplete="off" />
+          </div>
+        </div>
+        <div style="margin-top:10px;">
+          <label class="form-label">Tarayıcı Oturum Cookie veya Bearer Token (CAPTCHA / WAF / PWA Korumalı Siteler İçin Önerilen)</label>
+          <input type="text" id="b2bSessionCookie" class="form-input" placeholder="Tarayıcıda giriş yaptıktan sonra F12 -> Console'da document.cookie çıktısını veya Bearer Token'ı yapıştırın" autocomplete="off" />
+        </div>
+        <div id="b2bAuthStatusBox" style="display:none;margin-top:10px;padding:10px;border-radius:8px;font-size:12px;border:1px solid var(--border-color);background:var(--bg-secondary);"></div>
+        <div style="margin-top:14px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+          <a href="#" target="_blank" rel="noopener" id="b2bOpenLoginPageLink" class="btn btn-secondary btn-sm">
+            🌐 Sitenin Login Sayfasını Tarayıcıda Aç (Manuel / OTP Giriş)
+          </a>
+          <button class="btn btn-success" id="btnConfirmB2bLogin">
+            ✓ Sunucuda Doğrula &amp; Oturumu Aktifleştir
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 3: ÜRÜN PROVENANCE & TEKNİK DETAYLAR (Bölüm 41 & 45) -->
+  <div class="modal-backdrop" id="productDetailModalBackdrop">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="prodDetailModalTitle">🔍 Ürün Provenance &amp; Teknik Detaylar</h3>
+        <button class="btn btn-secondary btn-sm" id="btnCloseProdDetailModal">✕ Kapat</button>
+      </div>
+      <div class="modal-body" id="prodDetailModalBody"></div>
+    </div>
+  </div>
+
+  <script src="js/live-products-data.js?v=4.1"></script>
+  <script src="js/oem-engine.js?v=4.1"></script>
+  <script src="js/db-seed.js?v=4.1"></script>
+  <script src="js/connectors.js?v=4.1"></script>
+  <script src="js/excel-export.js?v=4.1"></script>
+  <script src="js/app.js?v=4.1"></script>
+</body>
+</html>
