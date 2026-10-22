@@ -151,16 +151,9 @@ export function getCurrentUserEmployee() {
   return employees.find(e => e.userId === user.id || e.id === user.id || e.name.toLowerCase() === user.name.toLowerCase()) || null;
 }
 
-// Başlangıç Demo Kullanıcıları
+// Başlangıç Kullanıcıları (Deneme isimleri temizlenmiştir)
 export const DEFAULT_USERS = [
-  { id: "u_admin", username: "admin", name: "Sistem Yöneticisi", role: "ADMIN", departmentId: "dep_yonetim", phone: "5551112233", pin: "1234" },
-  { id: "u_ik", username: "ik_elif", name: "Elif Hanım (İK)", role: "IK", departmentId: "dep_ik", phone: "5552223344", pin: "1234" },
-  { id: "u_ahmet", username: "usta_ahmet", name: "Ahmet Usta (Kesim)", role: "USTA", departmentId: "dep_kesim", phone: "5553334455", pin: "1234" },
-  { id: "u_mehmet", username: "usta_mehmet", name: "Mehmet Usta (Montaj)", role: "USTA", departmentId: "dep_montaj", phone: "5554445566", pin: "1234" },
-  { id: "u_ali", username: "forklift_ali", name: "Ali K. (Forklift)", role: "FORKLIFT", departmentId: "dep_sevkiyat", phone: "5555556677", pin: "1234" },
-  { id: "u_kemal", username: "bakim_kemal", name: "Kemal Usta (Bakım)", role: "BAKIM", departmentId: "dep_bakim", phone: "5556667788", pin: "1234" },
-  { id: "u_hasan", username: "depo_hasan", name: "Hasan Bey (Hammadde)", role: "USTA", departmentId: "dep_hammadde", phone: "5557778899", pin: "1234" },
-  { id: "u_can", username: "personel_can", name: "Can Demir (Operatör)", role: "PERSONEL", departmentId: "dep_kesim", phone: "5558889900", pin: "1234" }
+  { id: "u_admin", username: "admin", name: "Sistem Yöneticisi", role: "ADMIN", departmentId: "dep_yonetim", phone: "5551112233", pin: "1234" }
 ];
 
 // Başlangıç Personel Listesi (İzin Bakiye Takibi için - Boş başlangıç)
@@ -381,6 +374,22 @@ export class StateManager {
         // Dış Servis Ekipleri Rehberi
         if (!Array.isArray(parsed.externalServices) || parsed.externalServices.length === 0) {
           parsed.externalServices = [...DEFAULT_EXTERNAL_SERVICES];
+          stateChanged = true;
+        }
+
+        // Sahte/Örnek Kullanıcıları (Deneme İsimlerini) Sistemden Otomatik Temizle
+        const demoUserIds = new Set(["u_ik", "u_ahmet", "u_mehmet", "u_ali", "u_kemal", "u_hasan", "u_can"]);
+        if (Array.isArray(parsed.users)) {
+          const beforeUserCount = parsed.users.length;
+          parsed.users = parsed.users.filter(u => !demoUserIds.has(u.id));
+          if (parsed.users.length === 0) {
+            parsed.users = [...DEFAULT_USERS];
+          }
+          if (parsed.users.length !== beforeUserCount) {
+            stateChanged = true;
+          }
+        } else {
+          parsed.users = [...DEFAULT_USERS];
           stateChanged = true;
         }
 
