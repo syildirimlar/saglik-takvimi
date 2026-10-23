@@ -64,6 +64,9 @@ class App {
       }
     });
 
+    // Başlangıçta aktif sekmeyi netleştir ve görünümü senkronize et
+    this.switchTab(this.activeTab);
+
     console.log("SODSAN Fabrika Portalı Başlatıldı.");
   }
 
@@ -177,6 +180,13 @@ class App {
     const tabBtns = document.querySelectorAll(".nav-tab-btn, .mobile-tab-btn");
     tabBtns.forEach(btn => {
       btn.addEventListener("click", (e) => {
+        if (e.target.closest(".reorder-actions") || e.target.closest(".btn-move-tab-up") || e.target.closest(".btn-move-tab-down")) {
+          return;
+        }
+        const navList = document.getElementById("sidebar-nav-list");
+        if (navList && navList.classList.contains("reorder-active") && btn.classList.contains("nav-tab-btn")) {
+          return;
+        }
         const tabTarget = e.currentTarget.getAttribute("data-tab");
         if (tabTarget) {
           this.switchTab(tabTarget);
@@ -432,9 +442,11 @@ class App {
     if (!navList) return;
     const tabBtns = navList.querySelectorAll(".nav-tab-btn");
     const order = Array.from(tabBtns).map(btn => btn.getAttribute("data-tab")).filter(Boolean);
-    const key = this.getMenuOrderStorageKey();
-    localStorage.setItem(key, JSON.stringify(order));
-    localStorage.setItem("sodsan_menu_order_general", JSON.stringify(order));
+    if (order.length >= 7) {
+      const key = this.getMenuOrderStorageKey();
+      localStorage.setItem(key, JSON.stringify(order));
+      localStorage.setItem("sodsan_menu_order_general", JSON.stringify(order));
+    }
   }
 
   applySavedMenuOrder() {
@@ -463,10 +475,29 @@ class App {
       "tab-admin"
     ];
 
-    const targetOrder = (Array.isArray(order) && order.length > 0) ? order : defaultOrder;
+    // Bozuk veya eksik sıralama varsa temizle ve tüm modülleri garantiye al
+    let finalOrder = [];
+    if (Array.isArray(order) && order.length >= 6) {
+      order.forEach(id => {
+        if (defaultOrder.includes(id) && !finalOrder.includes(id)) {
+          finalOrder.push(id);
+        }
+      });
+    }
 
-    // Hedef sıraya göre butonları sırala
-    targetOrder.forEach(tabId => {
+    // Eksik kalan tüm modülleri mutlaka ekle (Hiçbir modül kaybolamaz)
+    defaultOrder.forEach(id => {
+      if (!finalOrder.includes(id)) {
+        finalOrder.push(id);
+      }
+    });
+
+    // Kullanıcının şartı: "her ihtimalde de ilk önce operasyon takvimini en üste getir"
+    finalOrder = finalOrder.filter(id => id !== "tab-calendar");
+    finalOrder.unshift("tab-calendar");
+
+    // Sıralamayı DOM'a uygula
+    finalOrder.forEach(tabId => {
       const btn = navList.querySelector(`.nav-tab-btn[data-tab="${tabId}"]`);
       if (btn) {
         navList.appendChild(btn);
