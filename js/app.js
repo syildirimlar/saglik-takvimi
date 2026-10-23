@@ -9,6 +9,7 @@ import { ForkliftModule } from './forklift.js?v=3.9';
 import { BreakdownModule } from './breakdown.js?v=3.9';
 import { ProductionModule } from './production.js?v=4.9';
 import { AdminModule } from './admin.js?v=4.3';
+import { CateringShuttleModule } from './catering_shuttle.js';
 
 class App {
   constructor() {
@@ -21,6 +22,7 @@ class App {
     this.breakdown = new BreakdownModule();
     this.production = new ProductionModule();
     this.admin = new AdminModule();
+    this.cateringShuttle = new CateringShuttleModule();
     this.activeTab = "tab-calendar"; // Operasyon Takvimi her halükarda en üstte ve ilk sırada açılsın
   }
 
@@ -48,7 +50,8 @@ class App {
       { name: "forklift", inst: this.forklift },
       { name: "breakdown", inst: this.breakdown },
       { name: "production", inst: this.production },
-      { name: "admin", inst: this.admin }
+      { name: "admin", inst: this.admin },
+      { name: "cateringShuttle", inst: this.cateringShuttle }
     ];
 
     modules.forEach(m => {

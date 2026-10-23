@@ -351,6 +351,23 @@ export const DEFAULT_EXTERNAL_SERVICES = [
   }
 ];
 
+// Yemek Şirketi & Aylık Menü Yapılandırması
+export const DEFAULT_CATERING_CONFIG = {
+  companyName: "Yemek Şirketi",
+  websiteUrl: "",
+  username: "",
+  password: "",
+  menuUrl: "",
+  menuImage: "",
+  menuMonth: "Ekim 2026",
+  menuDays: [],
+  updatedAt: null,
+  updatedBy: ""
+};
+
+// Personel Servis Güzergahları & Araç/Şoför Listesi (Sahte veri yoktur)
+export const DEFAULT_SHUTTLE_ROUTES = [];
+
 // Sesli Uyarı Çalıcı (Web Audio API - harici dosya gerektirmez)
 export function playAlertSound(type = "call") {
   try {
@@ -532,6 +549,29 @@ export class StateManager {
           notifyCalendar: parsed.telegramConfig.notifyCalendar !== false,
           notifyProduction: parsed.telegramConfig.notifyProduction !== false
         };
+      }
+
+      // Yemek Şirketi & Menü Yapılandırması
+      if (!parsed.cateringConfig || typeof parsed.cateringConfig !== "object") {
+        parsed.cateringConfig = JSON.parse(JSON.stringify(DEFAULT_CATERING_CONFIG));
+      } else {
+        parsed.cateringConfig = {
+          companyName: parsed.cateringConfig.companyName || "Yemek Şirketi",
+          websiteUrl: parsed.cateringConfig.websiteUrl || "",
+          username: parsed.cateringConfig.username || "",
+          password: parsed.cateringConfig.password || "",
+          menuUrl: parsed.cateringConfig.menuUrl || "",
+          menuImage: parsed.cateringConfig.menuImage || "",
+          menuMonth: parsed.cateringConfig.menuMonth || "Ekim 2026",
+          menuDays: Array.isArray(parsed.cateringConfig.menuDays) ? parsed.cateringConfig.menuDays : [],
+          updatedAt: parsed.cateringConfig.updatedAt || null,
+          updatedBy: parsed.cateringConfig.updatedBy || ""
+        };
+      }
+
+      // Personel Servis Güzergahları
+      if (!Array.isArray(parsed.shuttleRoutes)) {
+        parsed.shuttleRoutes = [];
       }
 
       // Varsayılan olarak oturum açılmamış başlar (Giriş ekranı zorunlu)

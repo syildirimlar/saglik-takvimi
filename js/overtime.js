@@ -171,34 +171,20 @@ export class OvertimeModule {
     // İK Alt Sekme Geçiş Butonları (İzinler vs Fazla Mesai)
     const subtabBtnLeave = document.getElementById("subtab-btn-leave");
     const subtabBtnOvertime = document.getElementById("subtab-btn-overtime");
-    const subpaneLeave = document.getElementById("subpane-leave");
-    const subpaneOvertime = document.getElementById("subpane-overtime");
 
-    if (subtabBtnLeave && subtabBtnOvertime && subpaneLeave && subpaneOvertime) {
+    if (subtabBtnLeave) {
       subtabBtnLeave.addEventListener("click", () => {
-        subtabBtnLeave.classList.add("bg-white", "text-blue-700", "shadow-sm");
-        subtabBtnLeave.classList.remove("text-slate-600");
-        subtabBtnOvertime.classList.remove("bg-white", "text-blue-700", "shadow-sm");
-        subtabBtnOvertime.classList.add("text-slate-600");
-
-        subpaneLeave.classList.remove("hidden");
-        subpaneOvertime.classList.add("hidden");
-
-        if (window.portalApp && window.portalApp.leave) {
-          window.portalApp.leave.render();
+        if (window.portalApp && window.portalApp.cateringShuttle) {
+          window.portalApp.cateringShuttle.switchIkSubtab("leave");
         }
       });
+    }
 
+    if (subtabBtnOvertime) {
       subtabBtnOvertime.addEventListener("click", () => {
-        subtabBtnOvertime.classList.add("bg-white", "text-blue-700", "shadow-sm");
-        subtabBtnOvertime.classList.remove("text-slate-600");
-        subtabBtnLeave.classList.remove("bg-white", "text-blue-700", "shadow-sm");
-        subtabBtnLeave.classList.add("text-slate-600");
-
-        subpaneOvertime.classList.remove("hidden");
-        subpaneLeave.classList.add("hidden");
-
-        this.render();
+        if (window.portalApp && window.portalApp.cateringShuttle) {
+          window.portalApp.cateringShuttle.switchIkSubtab("overtime");
+        }
       });
     }
 
