@@ -1,5 +1,5 @@
 // SODSAN Fabrika Portalı - Ana Uygulama Yöneticisi (app.js)
-import { appState, ROLES, getRoleInfo } from './data.js?v=4.2';
+import { appState, ROLES, getRoleInfo } from './data.js?v=4.6';
 import { CalendarModule } from './calendar.js?v=3.9';
 import { ProductsModule } from './products.js';
 import { SuppliesModule } from './supplies.js';
@@ -7,6 +7,7 @@ import { LeaveModule } from './leave.js';
 import { OvertimeModule } from './overtime.js';
 import { ForkliftModule } from './forklift.js?v=3.9';
 import { BreakdownModule } from './breakdown.js?v=3.9';
+import { ProductionModule } from './production.js?v=4.6';
 import { AdminModule } from './admin.js?v=4.3';
 
 class App {
@@ -18,8 +19,9 @@ class App {
     this.overtime = new OvertimeModule();
     this.forklift = new ForkliftModule();
     this.breakdown = new BreakdownModule();
+    this.production = new ProductionModule();
     this.admin = new AdminModule();
-    this.activeTab = "tab-products";
+    this.activeTab = "tab-production"; // Varsayılan olarak Haftalık Üretim & Kalıp Planı açılsın
   }
 
   init() {
@@ -43,6 +45,7 @@ class App {
     this.overtime.init();
     this.forklift.init();
     this.breakdown.init();
+    this.production.init();
     this.admin.init();
 
     console.log("SODSAN Fabrika Portalı Başlatıldı.");
@@ -181,6 +184,7 @@ class App {
     });
 
     // İlgili modülün render'ını tazele
+    if (tabId === "tab-production") this.production.render();
     if (tabId === "tab-products") this.products.render();
     if (tabId === "tab-supplies") this.supplies.render();
     if (tabId === "tab-leave") {
