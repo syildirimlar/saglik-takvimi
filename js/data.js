@@ -249,77 +249,256 @@ export const DEFAULT_COMPANIES = [
   "Yataş A.Ş."
 ];
 
-// Tanımlı Makina & Hat Parkuru (Gerçek Fabrika Enjeksiyon ve Kompresör Parkuru)
+// Tanımlı Makina & Hat Parkuru (Gerçek Fabrika Enjeksiyon ve Üretim Parkuru)
 export const DEFAULT_MACHINES = [
   {
     id: "mac_ur9hr2fee",
     name: "ENJEKSİYON 1050",
-    code: "",
+    code: "ENJ-1050",
     departmentId: "dep_1792617714014",
-    location: "",
-    notes: "",
+    location: "1400 Üretim",
+    notes: "1050 Ton Büyük Gövde & Kolçak Enjeksiyon Presi",
     status: "Aktif",
     addedAt: "2026-10-22"
   },
   {
     id: "mac_ealni0wrm",
     name: "ENJEKSİYON 130",
-    code: "",
+    code: "ENJ-130",
     departmentId: "dep_1792617714014",
-    location: "",
-    notes: "",
+    location: "1400 Üretim",
+    notes: "130 Ton Hızlı Tapa & Burç Enjeksiyon Presi",
     status: "Aktif",
     addedAt: "2026-10-22"
   },
   {
     id: "mac_fxhbk1bqn",
     name: "ENJEKSİYON 1400",
-    code: "",
+    code: "ENJ-1400",
     departmentId: "dep_1792617714014",
-    location: "",
-    notes: "",
+    location: "1400 Üretim",
+    notes: "1400 Ton Sırt Karkas & Büyük Parça Enjeksiyon Presi",
     status: "Aktif",
     addedAt: "2026-10-22"
   },
   {
     id: "mac_gakua6pxy",
     name: "ENJEKSİYON 1500",
-    code: "",
+    code: "ENJ-1500",
     departmentId: "dep_1792617873852",
-    location: "",
-    notes: "",
+    location: "1500 Vakum & Enjeksiyon",
+    notes: "1500 Ton Oturak Şasesi & Monoblok Enjeksiyon Presi",
     status: "Aktif",
     addedAt: "2026-10-22"
   },
   {
+    id: "mac_inj800",
+    name: "ENJEKSİYON 800",
+    code: "ENJ-800",
+    departmentId: "dep_1792617714014",
+    location: "1400 Üretim",
+    notes: "800 Ton Mekanizma Kapağı ve Orta Boy Kalıp Presi",
+    status: "Aktif",
+    addedAt: "2026-10-23"
+  },
+  {
+    id: "mac_inj650",
+    name: "ENJEKSİYON 650",
+    code: "ENJ-650",
+    departmentId: "dep_1792617714014",
+    location: "1400 Üretim",
+    notes: "650 Ton Yan Kolçak ve Yıldız Ayak Presi",
+    status: "Aktif",
+    addedAt: "2026-10-23"
+  },
+  {
+    id: "mac_inj450",
+    name: "ENJEKSİYON 450",
+    code: "ENJ-450",
+    departmentId: "dep_1792617714014",
+    location: "1400 Üretim",
+    notes: "450 Ton Plastik Aksesuar ve Küçük Kalıp Presi",
+    status: "Aktif",
+    addedAt: "2026-10-23"
+  },
+  {
+    id: "mac_inj250",
+    name: "ENJEKSİYON 250",
+    code: "ENJ-250",
+    departmentId: "dep_1792617714014",
+    location: "1400 Üretim",
+    notes: "250 Ton Hassas Parça ve Klips Enjeksiyonu",
+    status: "Aktif",
+    addedAt: "2026-10-23"
+  },
+  {
+    id: "mac_vkm01",
+    name: "VAKUM PRES HATTI 01",
+    code: "VKM-01",
+    departmentId: "dep_1792617873852",
+    location: "1500 Vakum",
+    notes: "Otomatik Termoform Vakum Şekillendirme Hattı",
+    status: "Aktif",
+    addedAt: "2026-10-23"
+  },
+  {
+    id: "mac_vkm02",
+    name: "VAKUM PRES HATTI 02",
+    code: "VKM-02",
+    departmentId: "dep_1792617873852",
+    location: "1500 Vakum",
+    notes: "Yüksek Isılı İkinci Vakum Presleme İstasyonu",
+    status: "Aktif",
+    addedAt: "2026-10-23"
+  },
+  {
+    id: "mac_dsm01",
+    name: "DÖŞEME & MONTAJ HATTI",
+    code: "DSM-01",
+    departmentId: "dep_1792617771756",
+    location: "1500 Döşeme",
+    notes: "Pnömatik Çakma ve İskelet Kılıflama Hattı",
+    status: "Aktif",
+    addedAt: "2026-10-23"
+  },
+  {
     id: "mac_ful1pjcg3",
     name: "HAVA KURUTUCU",
-    code: "",
+    code: "KRT-01",
     departmentId: "dep_1792617860390",
-    location: "",
-    notes: "",
+    location: "1500 Sevkiyat / Kompresör Dairesi",
+    notes: "Endüstriyel Basınçlı Hava Soğutmalı Kurutucu",
     status: "Aktif",
     addedAt: "2026-10-22"
   },
   {
     id: "mac_kompresor",
     name: "Kompresör1",
-    code: "",
+    code: "KMP-01",
     departmentId: "dep_1792617860390",
     location: "Kompresör Dairesi",
-    notes: "",
+    notes: "Ana Vidalı Hava Kompresörü",
     status: "Aktif",
     addedAt: "2026-10-22"
   },
   {
     id: "mac_1792696272439_732",
     name: "Kompresör2",
-    code: "",
+    code: "KMP-02",
     departmentId: "dep_1792617860390",
     location: "Kompresör Dairesi",
-    notes: "",
+    notes: "Yedek Vidalı Hava Kompresörü",
     status: "Aktif",
     addedAt: "2026-10-22"
+  }
+];
+
+// Haftalık Üretim Programı & Kalıp Baskı Planları
+export const DEFAULT_PRODUCTION_PLANS = [
+  {
+    id: "plan_1050_1",
+    weekNumber: 43,
+    weekStart: "2026-10-19",
+    weekEnd: "2026-10-25",
+    machineId: "mac_ur9hr2fee",
+    machineName: "ENJEKSİYON 1050",
+    moldCode: "KLP-1050-01",
+    moldName: "Ergonomik Kolçak Sağ/Sol Kalıbı",
+    productName: "Ofis Koltuk Kolçağı (Siyah Polipropilen)",
+    targetQuantity: 4000,
+    producedQuantity: 2850,
+    unit: "Adet",
+    day: "Pazartesi - Salı",
+    cavityCount: "2 Gözlü (Sağ + Sol)",
+    rawMaterial: "Polipropilen C702 (%30 Cam Elyaf)",
+    cycleTimeSec: 42,
+    operatorName: "Ayhan Usta",
+    status: "Üretimde",
+    notes: "Kalıp sıcaklığı 55°C, enjeksiyon basıncı 110 bar."
+  },
+  {
+    id: "plan_1400_1",
+    weekNumber: 43,
+    weekStart: "2026-10-19",
+    weekEnd: "2026-10-25",
+    machineId: "mac_fxhbk1bqn",
+    machineName: "ENJEKSİYON 1400",
+    moldCode: "KLP-1400-02",
+    moldName: "Fileli Sırt Karkas Kalıbı (Geniş Tip)",
+    productName: "Müdür Koltuğu Sırt Gövdesi",
+    targetQuantity: 3200,
+    producedQuantity: 2150,
+    unit: "Adet",
+    day: "Salı - Çarşamba",
+    cavityCount: "1 Gözlü",
+    rawMaterial: "PA6 Siyah Orijinal Hammadde",
+    cycleTimeSec: 58,
+    operatorName: "Eray Usta",
+    status: "Üretimde",
+    notes: "Sıcak yolluk nozulları kontrol edilecek."
+  },
+  {
+    id: "plan_1500_1",
+    weekNumber: 43,
+    weekStart: "2026-10-19",
+    weekEnd: "2026-10-25",
+    machineId: "mac_gakua6pxy",
+    machineName: "ENJEKSİYON 1500",
+    moldCode: "KLP-1500-01",
+    moldName: "Monoblok Oturak Taban Şasesi Kalıbı",
+    productName: "Konferans Koltuğu Oturak İskeleti",
+    targetQuantity: 5000,
+    producedQuantity: 4600,
+    unit: "Adet",
+    day: "Çarşamba - Perşembe",
+    cavityCount: "1 Gözlü",
+    rawMaterial: "C702 Kopolimer PP",
+    cycleTimeSec: 64,
+    operatorName: "Abdurrahman Usta",
+    status: "Üretimde",
+    notes: "Basılan ürünler 1500 Döşeme hattına sevk edilecek."
+  },
+  {
+    id: "plan_130_1",
+    weekNumber: 43,
+    weekStart: "2026-10-19",
+    weekEnd: "2026-10-25",
+    machineId: "mac_ealni0wrm",
+    machineName: "ENJEKSİYON 130",
+    moldCode: "KLP-130-04",
+    moldName: "Ayak Pimi & Teker Yuvası Tapa Kalıbı",
+    productName: "Yıldız Ayak Plastik Burç ve Tapaları",
+    targetQuantity: 15000,
+    producedQuantity: 11200,
+    unit: "Adet",
+    day: "Hafta Boyu",
+    cavityCount: "8 Gözlü",
+    rawMaterial: "Moblen Polipropilen",
+    cycleTimeSec: 22,
+    operatorName: "Raşit Usta",
+    status: "Üretimde",
+    notes: "Otomatik yolluk kırıcı devrede olacak."
+  },
+  {
+    id: "plan_800_1",
+    weekNumber: 43,
+    weekStart: "2026-10-19",
+    weekEnd: "2026-10-25",
+    machineId: "mac_inj800",
+    machineName: "ENJEKSİYON 800",
+    moldCode: "KLP-800-03",
+    moldName: "Senkron Mekanizma Koruma Kapağı Kalıbı",
+    productName: "Mekanizma Alt Gövde Muhafazası",
+    targetQuantity: 2500,
+    producedQuantity: 0,
+    unit: "Adet",
+    day: "Cuma - Cumartesi",
+    cavityCount: "2 Gözlü",
+    rawMaterial: "ABS Antrasit",
+    cycleTimeSec: 38,
+    operatorName: "Esma Usta",
+    status: "Kalıp Bağlanıyor",
+    notes: "Kalıp bakımı yeni tamamlandı, vinç ile montaj yapılıyor."
   }
 ];
 
@@ -332,7 +511,8 @@ export const DEFAULT_TELEGRAM_CONFIG = {
   notifyForkliftEnRoute: true,
   notifyForkliftDone: true,
   notifyBreakdown: true,
-  notifyCalendar: true
+  notifyCalendar: true,
+  notifyProduction: true
 };
 
 // Dışarıdan Hizmet Alınan Servis & Bakım Ekipleri Rehberi
@@ -477,6 +657,11 @@ export class StateManager {
         parsed.forkliftRequests = JSON.parse(JSON.stringify(DEFAULT_FORKLIFT_REQUESTS));
       }
 
+      // Haftalık Üretim & Kalıp Baskı Planları
+      if (!Array.isArray(parsed.productionPlans) || parsed.productionPlans.length === 0) {
+        parsed.productionPlans = JSON.parse(JSON.stringify(DEFAULT_PRODUCTION_PLANS));
+      }
+
       // Diğer diziler
       if (!Array.isArray(parsed.supplies)) parsed.supplies = [];
       if (!Array.isArray(parsed.leaveRequests)) parsed.leaveRequests = [];
@@ -507,7 +692,8 @@ export class StateManager {
           notifyForkliftEnRoute: parsed.telegramConfig.notifyForkliftEnRoute !== false,
           notifyForkliftDone: parsed.telegramConfig.notifyForkliftDone !== false,
           notifyBreakdown: parsed.telegramConfig.notifyBreakdown !== false,
-          notifyCalendar: parsed.telegramConfig.notifyCalendar !== false
+          notifyCalendar: parsed.telegramConfig.notifyCalendar !== false,
+          notifyProduction: parsed.telegramConfig.notifyProduction !== false
         };
       }
 
@@ -538,6 +724,7 @@ export class StateManager {
         overtimeRequests: [],
         breakdowns: [],
         forkliftRequests: JSON.parse(JSON.stringify(DEFAULT_FORKLIFT_REQUESTS)),
+        productionPlans: JSON.parse(JSON.stringify(DEFAULT_PRODUCTION_PLANS)),
         calendarEvents: [],
         companies: [...DEFAULT_COMPANIES],
         machines: JSON.parse(JSON.stringify(DEFAULT_MACHINES)),
@@ -701,6 +888,74 @@ export class StateManager {
     if (!Array.isArray(this.state.externalServices)) return;
     this.state.externalServices = this.state.externalServices.filter(s => s.id !== id);
     this.saveState();
+  }
+
+  // Haftalık Üretim & Kalıp Baskı Metotları
+  addProductionPlan(plan) {
+    if (!Array.isArray(this.state.productionPlans)) {
+      this.state.productionPlans = [];
+    }
+    const newPlan = {
+      id: "plan_" + Date.now() + "_" + Math.random().toString(36).substr(2, 6),
+      weekNumber: plan.weekNumber || 43,
+      weekStart: plan.weekStart || "2026-10-19",
+      weekEnd: plan.weekEnd || "2026-10-25",
+      machineId: plan.machineId || "",
+      machineName: plan.machineName || "",
+      moldCode: plan.moldCode || "",
+      moldName: plan.moldName || "",
+      productName: plan.productName || "",
+      targetQuantity: Number(plan.targetQuantity) || 0,
+      producedQuantity: Number(plan.producedQuantity) || 0,
+      unit: plan.unit || "Adet",
+      day: plan.day || "Hafta Boyu",
+      cavityCount: plan.cavityCount || "1 Gözlü",
+      rawMaterial: plan.rawMaterial || "",
+      cycleTimeSec: Number(plan.cycleTimeSec) || 0,
+      operatorName: plan.operatorName || "",
+      status: plan.status || "Planlandı",
+      notes: plan.notes || "",
+      createdAt: new Date().toISOString(),
+      createdBy: this.state.currentUser ? this.state.currentUser.name : "Sistem Yöneticisi"
+    };
+    this.state.productionPlans.unshift(newPlan);
+    this.saveState();
+    return newPlan;
+  }
+
+  updateProductionPlan(id, updates) {
+    if (!Array.isArray(this.state.productionPlans)) return null;
+    const plan = this.state.productionPlans.find(p => p.id === id);
+    if (!plan) return null;
+    Object.assign(plan, updates);
+    this.saveState();
+    return plan;
+  }
+
+  deleteProductionPlan(id) {
+    if (!Array.isArray(this.state.productionPlans)) return false;
+    const initialLen = this.state.productionPlans.length;
+    this.state.productionPlans = this.state.productionPlans.filter(p => p.id !== id);
+    if (this.state.productionPlans.length !== initialLen) {
+      this.saveState();
+      return true;
+    }
+    return false;
+  }
+
+  logProductionCount(id, addCount, operatorName) {
+    if (!Array.isArray(this.state.productionPlans)) return null;
+    const plan = this.state.productionPlans.find(p => p.id === id);
+    if (!plan) return null;
+    const count = Number(addCount) || 0;
+    plan.producedQuantity = Math.max(0, (Number(plan.producedQuantity) || 0) + count);
+    if (plan.producedQuantity >= plan.targetQuantity && plan.status !== "Tamamlandı") {
+      plan.status = "Tamamlandı";
+    } else if (plan.producedQuantity > 0 && plan.status === "Planlandı") {
+      plan.status = "Üretimde";
+    }
+    this.saveState();
+    return plan;
   }
 
   // Tüm kullanıcıları (Ustalar, İdari, Bakım, Saha) otomatik çalışan listesine senkronize eder

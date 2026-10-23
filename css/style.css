@@ -416,3 +416,62 @@ html.dark ::-webkit-scrollbar-thumb {
 html.dark ::-webkit-scrollbar-thumb:hover {
   background: #4b5563;
 }
+
+/* ==================== YAZDIRMA (PRINT) STİLLERİ ==================== */
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    font-size: 11pt !important;
+  }
+
+  .top-header,
+  .mobile-bottom-bar,
+  .desktop-nav,
+  #screen-auth-login,
+  .modal-backdrop,
+  #cal-month-title,
+  #active-breakdowns-banner,
+  #btn-prod-view-matrix,
+  #btn-prod-view-cards,
+  #btn-open-quick-machine,
+  #btn-open-add-production-plan,
+  #btn-print-production-plan,
+  #prod-prev-week,
+  #prod-current-week,
+  #prod-next-week,
+  #filter-prod-machine,
+  #filter-prod-status,
+  button {
+    display: none !important;
+  }
+
+  .tab-pane {
+    display: block !important;
+  }
+
+  #tab-production {
+    padding-bottom: 0 !important;
+  }
+
+  .app-container {
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+  }
+
+  th, td {
+    border: 1px solid #cbd5e1 !important;
+    padding: 6px 8px !important;
+  }
+
+  th {
+    background-color: #f1f5f9 !important;
+    color: #0f172a !important;
+  }
+}

@@ -248,7 +248,12 @@
 
     <!-- ==================== ANA SEKMELER (NAV TABS) ==================== -->
     <nav class="desktop-nav bg-white rounded-xl border border-slate-200 p-1 flex items-center gap-1 shadow-sm overflow-x-auto">
-      <button class="nav-tab-btn active" data-tab="tab-products">
+      <button class="nav-tab-btn active bg-blue-50/60" data-tab="tab-production">
+        <span class="text-base">⚙️</span>
+        <span class="font-extrabold text-blue-900">Haftalık Üretim & Kalıp</span>
+        <span class="bg-blue-600 text-white text-[9px] font-black px-1.5 py-0.2 rounded-full">Canlı</span>
+      </button>
+      <button class="nav-tab-btn" data-tab="tab-products">
         <span class="text-base">📦</span>
         <span>Gelen & Giden Ürünler</span>
       </button>
@@ -276,8 +281,147 @@
       </button>
     </nav>
 
+    <!-- ==================== SEKME: HAFTALIK ÜRETİM & KALIP BASKI PROGRAMI ==================== -->
+    <section id="tab-production" class="tab-pane space-y-4 pb-16">
+      
+      <!-- Üst Hafta ve Kontrol Çubuğu -->
+      <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-3">
+        <!-- Hafta Navigasyonu -->
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center text-xl shadow-md shadow-blue-600/20">
+            ⚙️
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="text-[10px] font-black uppercase tracking-widest text-blue-600 bg-blue-50 px-2 py-0.5 rounded">FABRİKA OPERASYON</span>
+              <span id="prod-week-title" class="text-sm sm:text-base font-black text-slate-900">2026 Yılı - 43. Hafta</span>
+            </div>
+            <p id="prod-week-range" class="text-xs text-slate-500 font-medium mt-0.5">19 Ekim - 25 Ekim 2026 (Bu Hafta)</p>
+          </div>
+        </div>
+
+        <!-- Hafta Değiştir Butonları -->
+        <div class="flex items-center gap-1.5">
+          <button id="prod-prev-week" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs px-3 py-2 rounded-xl transition flex items-center gap-1 cursor-pointer">
+            <span>&larr;</span> <span class="hidden sm:inline">Önceki Hafta</span>
+          </button>
+          <button id="prod-current-week" class="bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs px-3 py-2 rounded-xl transition shadow-sm cursor-pointer">
+            Bu Hafta
+          </button>
+          <button id="prod-next-week" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs px-3 py-2 rounded-xl transition flex items-center gap-1 cursor-pointer">
+            <span class="hidden sm:inline">Sonraki Hafta</span> <span>&rarr;</span>
+          </button>
+        </div>
+
+        <!-- Aksiyon Butonları -->
+        <div class="flex flex-wrap items-center gap-2">
+          <!-- Görünüm Değiştirici -->
+          <div class="bg-slate-100 p-1 rounded-xl flex items-center gap-1 border border-slate-200">
+            <button id="btn-prod-view-matrix" class="bg-blue-600 text-white font-bold text-xs px-3 py-1.5 rounded-lg transition flex items-center gap-1 shadow-sm cursor-pointer">
+              <span>📊</span> <span class="hidden sm:inline">Matris Çizelge</span>
+            </button>
+            <button id="btn-prod-view-cards" class="bg-slate-100 text-slate-700 hover:bg-slate-200 font-bold text-xs px-3 py-1.5 rounded-lg transition flex items-center gap-1 cursor-pointer">
+              <span>📋</span> <span class="hidden sm:inline">İş Emri Kartları</span>
+            </button>
+          </div>
+
+          <!-- Hızlı Makine Üret Butonu -->
+          <button id="btn-open-quick-machine" class="bg-amber-500 hover:bg-amber-600 text-white font-extrabold text-xs py-2 px-3 rounded-xl shadow-sm transition flex items-center gap-1.5 cursor-pointer" title="Yeni Makine / Enjeksiyon Presi Üret">
+            <span>⚡</span> <span>Makine Üret / Ekle</span>
+          </button>
+
+          <!-- Yeni Plan Ekle Butonu -->
+          <button id="btn-open-add-production-plan" class="bg-blue-600 hover:bg-blue-700 active:scale-98 text-white font-extrabold text-xs py-2 px-3.5 rounded-xl shadow-sm transition flex items-center gap-1.5 cursor-pointer">
+            <span>+</span> <span>Kalıp Baskı Planı Ekle</span>
+          </button>
+
+          <!-- Yazdır Butonu -->
+          <button id="btn-print-production-plan" class="bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs py-2 px-3 rounded-xl shadow-sm transition flex items-center gap-1.5 cursor-pointer" title="Haftalık Programı Yazdır">
+            <span>🖨️</span> <span class="hidden md:inline">Yazdır / Panoya As</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- KPI Özet İstatistikleri -->
+      <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+        <!-- 1. Hedef Baskı -->
+        <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm">
+          <div class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Haftalık Hedef Baskı</div>
+          <div id="prod-kpi-target" class="text-lg sm:text-xl font-black text-slate-900 mt-1">0 Adet</div>
+          <div class="text-[10px] text-slate-400 mt-0.5">Tüm kayıtlı kalıplar toplamı</div>
+        </div>
+
+        <!-- 2. Gerçekleşen Baskı -->
+        <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm">
+          <div class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Gerçekleşen Baskı</div>
+          <div id="prod-kpi-produced" class="text-lg sm:text-xl font-black text-blue-700 mt-1">0 Adet</div>
+          <div class="text-[10px] text-slate-400 mt-0.5">Makinelerden basılan adet</div>
+        </div>
+
+        <!-- 3. Hedef Ulaşma Oranı -->
+        <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm col-span-2 sm:col-span-1">
+          <div class="flex items-center justify-between text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+            <span>Başarı Oranı</span>
+            <span id="prod-kpi-percent" class="text-blue-700 font-extrabold">%0</span>
+          </div>
+          <div class="w-full bg-slate-100 rounded-full h-2 mt-2.5 overflow-hidden">
+            <div id="prod-kpi-progress-bar" class="bg-blue-600 h-2 rounded-full transition-all duration-500" style="width: 0%"></div>
+          </div>
+          <div class="text-[10px] text-slate-400 mt-1">Haftalık tamamlama yüzdesi</div>
+        </div>
+
+        <!-- 4. Aktif Baskıdaki Makineler -->
+        <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm">
+          <div class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Baskıdaki Kalıp</div>
+          <div id="prod-kpi-active" class="text-lg sm:text-xl font-black text-emerald-600 mt-1">0 Makine</div>
+          <div class="text-[10px] text-slate-400 mt-0.5">Şu an aktif çalışan</div>
+        </div>
+
+        <!-- 5. Kalıp Bağlama & Hazırlık -->
+        <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm">
+          <div class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Kalıp Değişimi</div>
+          <div id="prod-kpi-setup" class="text-lg sm:text-xl font-black text-amber-600 mt-1">0 Kalıp</div>
+          <div class="text-[10px] text-slate-400 mt-0.5">Bağlanma & ayar aşamasında</div>
+        </div>
+      </div>
+
+      <!-- Filtreler Şeridi -->
+      <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-3">
+        <div class="flex flex-wrap items-center gap-3">
+          <div>
+            <label class="text-[10px] font-bold text-slate-500 uppercase block mb-0.5">Makine Filtresi:</label>
+            <select id="filter-prod-machine" class="text-xs bg-slate-50 border border-slate-200 rounded-lg py-1.5 px-2.5 font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <option value="ALL">Tüm Kayıtlı Makineler</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="text-[10px] font-bold text-slate-500 uppercase block mb-0.5">Kalıp Durumu:</label>
+            <select id="filter-prod-status" class="text-xs bg-slate-50 border border-slate-200 rounded-lg py-1.5 px-2.5 font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <option value="ALL">Tüm Durumlar</option>
+              <option value="Üretimde">⚙️ Baskıda / Üretimde</option>
+              <option value="Kalıp Bağlanıyor">🔧 Kalıp Bağlanıyor</option>
+              <option value="Planlandı">⏳ Planlandı</option>
+              <option value="Tamamlandı">✅ Tamamlandı</option>
+              <option value="Durduruldu">🚨 Durduruldu / Arıza</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="text-xs text-slate-400">
+          <span class="inline-flex items-center gap-1 font-medium"><span class="w-2 h-2 rounded-full bg-emerald-500"></span> Canlı Fabrika Takibi</span>
+        </div>
+      </div>
+
+      <!-- Dinamik İçerik Alanı (Matris veya Kartlar) -->
+      <div id="prod-view-container">
+        <!-- JavaScript (production.js) tarafından doldurulur -->
+      </div>
+
+    </section>
+
     <!-- ==================== SEKME 1: GELEN & GİDEN ÜRÜNLER FEED ==================== -->
-    <section id="tab-products" class="tab-pane space-y-4 pb-16">
+    <section id="tab-products" class="tab-pane hidden space-y-4 pb-16">
       <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-3">
         <!-- Filtreler -->
         <div class="flex flex-wrap items-center gap-2.5">
@@ -914,7 +1058,11 @@
 
   <!-- ==================== MOBİL ALT GEZİNME ÇUBUĞU ==================== -->
   <nav class="mobile-bottom-bar fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 py-1.5 px-1 flex justify-around items-center z-40 shadow-lg">
-    <button class="mobile-tab-btn flex flex-col items-center text-xs text-blue-600 font-bold flex-1" data-tab="tab-products">
+    <button class="mobile-tab-btn flex flex-col items-center text-xs text-blue-600 font-bold flex-1" data-tab="tab-production">
+      <span class="text-base sm:text-lg">⚙️</span>
+      <span class="text-[9px] sm:text-[10px]">Üretim</span>
+    </button>
+    <button class="mobile-tab-btn flex flex-col items-center text-xs text-slate-500 font-semibold flex-1" data-tab="tab-products">
       <span class="text-base sm:text-lg">📦</span>
       <span class="text-[9px] sm:text-[10px]">Ürünler</span>
     </button>
@@ -941,6 +1089,268 @@
   </nav>
 
   <!-- ==================== MODALLAR ==================== -->
+
+  <!-- MODAL: Kalıp Baskı Planı Ekle -->
+  <div id="modal-add-production-plan" class="modal-backdrop">
+    <div class="modal-card p-5 max-w-lg">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+        <div class="flex items-center gap-2">
+          <span class="text-xl">⚙️</span>
+          <div>
+            <h3 class="text-base font-extrabold text-slate-900">Kalıp Baskı Planı Ekle</h3>
+            <p class="text-xs text-slate-500">Kayıtlı makineye kalıp atayın ve hedef baskı adedini belirleyin</p>
+          </div>
+        </div>
+        <button data-close-modal class="text-slate-400 hover:text-slate-600 font-bold text-lg cursor-pointer">✕</button>
+      </div>
+
+      <form id="form-add-production-plan" class="space-y-3.5">
+        <!-- Makine Seçimi -->
+        <div>
+          <label class="text-xs font-bold text-slate-700 block mb-1">Kalıp Bağlanacak Makine: *</label>
+          <select id="plan-machine-select" required class="w-full text-xs font-bold bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-800">
+            <!-- JS ile doldurulur -->
+          </select>
+        </div>
+
+        <!-- Kalıp Adı ve Kodu -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="text-xs font-bold text-slate-700 block mb-1">Kalıp Adı / Tanımı: *</label>
+            <input type="text" id="plan-mold-name" required placeholder="Örn: Ergonomik Kolçak Kalıbı" class="w-full text-xs border border-slate-200 rounded-xl p-2.5 font-medium">
+          </div>
+          <div>
+            <label class="text-xs font-bold text-slate-700 block mb-1">Kalıp Kodu / No:</label>
+            <input type="text" id="plan-mold-code" placeholder="Örn: KLP-1050-01" class="w-full text-xs border border-slate-200 rounded-xl p-2.5 font-mono">
+          </div>
+        </div>
+
+        <!-- Basılacak Parça ve Hedef Adet -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="text-xs font-bold text-slate-700 block mb-1">Basılacak Parça / Ürün:</label>
+            <input type="text" id="plan-product-name" placeholder="Örn: Koltuk Kolçağı (Siyah)" class="w-full text-xs border border-slate-200 rounded-xl p-2.5 font-medium">
+          </div>
+          <div>
+            <label class="text-xs font-bold text-slate-700 block mb-1">Hedef Baskı Adedi: *</label>
+            <div class="relative">
+              <input type="number" id="plan-target-qty" required min="1" step="1" placeholder="Örn: 5000" class="w-full text-xs font-black border border-slate-200 rounded-xl p-2.5 pr-14 text-slate-900">
+              <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">Adet</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Planlanan Gün ve Göz Sayısı -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="text-xs font-bold text-slate-700 block mb-1">Planlanan Gün / Vardiya:</label>
+            <select id="plan-day-select" class="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl p-2.5 font-medium text-slate-800">
+              <option value="Hafta Boyu">Hafta Boyu (Sürekli)</option>
+              <option value="Pazartesi">Pazartesi</option>
+              <option value="Salı">Salı</option>
+              <option value="Çarşamba">Çarşamba</option>
+              <option value="Perşembe">Perşembe</option>
+              <option value="Cuma">Cuma</option>
+              <option value="Cumartesi">Cumartesi</option>
+              <option value="Pazar">Pazar</option>
+              <option value="Pazartesi - Salı">Pazartesi - Salı</option>
+              <option value="Çarşamba - Perşembe">Çarşamba - Perşembe</option>
+              <option value="Cuma - Cumartesi">Cuma - Cumartesi</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-xs font-bold text-slate-700 block mb-1">Kalıp Göz Sayısı:</label>
+            <select id="plan-cavity-count" class="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl p-2.5 font-medium text-slate-800">
+              <option value="1 Gözlü">1 Gözlü</option>
+              <option value="2 Gözlü (Sağ + Sol)">2 Gözlü (Sağ + Sol Takım)</option>
+              <option value="4 Gözlü">4 Gözlü</option>
+              <option value="8 Gözlü">8 Gözlü</option>
+              <option value="16 Gözlü">16 Gözlü</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Hammadde ve Çevrim Süresi -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="text-xs font-bold text-slate-700 block mb-1">Hammadde Cinsi & Katkı:</label>
+            <input type="text" id="plan-raw-material" placeholder="Örn: Polipropilen C702 (%30 Cam Elyaf)" class="w-full text-xs border border-slate-200 rounded-xl p-2.5">
+          </div>
+          <div>
+            <label class="text-xs font-bold text-slate-700 block mb-1">Çevrim Süresi (sn):</label>
+            <input type="number" id="plan-cycle-time" min="1" placeholder="Örn: 45 sn" class="w-full text-xs border border-slate-200 rounded-xl p-2.5">
+          </div>
+        </div>
+
+        <!-- Sorumlu Usta ve Başlangıç Durumu -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="text-xs font-bold text-slate-700 block mb-1">Sorumlu Usta / Operatör:</label>
+            <select id="plan-operator-select" class="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl p-2.5 font-medium text-slate-800">
+              <!-- JS ile doldurulur -->
+            </select>
+          </div>
+          <div>
+            <label class="text-xs font-bold text-slate-700 block mb-1">Başlangıç Durumu:</label>
+            <select id="plan-status-select" class="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl p-2.5 font-bold text-slate-800">
+              <option value="Planlandı">⏳ Planlandı</option>
+              <option value="Kalıp Bağlanıyor">🔧 Kalıp Bağlanıyor</option>
+              <option value="Üretimde">⚙️ Baskıda / Üretimde</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Notlar -->
+        <div>
+          <label class="text-xs font-bold text-slate-700 block mb-1">Operasyon Notu / Kalıp Sıcaklığı:</label>
+          <input type="text" id="plan-notes" placeholder="Örn: Kalıp sıcaklığı 60°C, yolluk kontrol edilecek." class="w-full text-xs border border-slate-200 rounded-xl p-2.5">
+        </div>
+
+        <!-- Butonlar -->
+        <div class="pt-2 flex justify-end gap-2 border-t border-slate-100">
+          <button type="button" data-close-modal class="text-xs font-bold text-slate-500 py-2.5 px-4 rounded-xl hover:bg-slate-100 cursor-pointer">Vazgeç</button>
+          <button type="submit" class="bg-blue-600 hover:bg-blue-700 active:scale-98 text-white font-black text-xs py-2.5 px-5 rounded-xl shadow-sm flex items-center gap-1.5 cursor-pointer">
+            <span>💾</span> <span>Planı Kaydet & Başlat</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: Hızlı Makine Üret / Ekle -->
+  <div id="modal-quick-machine" class="modal-backdrop">
+    <div class="modal-card p-5 max-w-lg">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+        <div class="flex items-center gap-2">
+          <span class="text-xl">⚡</span>
+          <div>
+            <h3 class="text-base font-extrabold text-slate-900">Makine Üret / Parkura Ekle</h3>
+            <p class="text-xs text-slate-500">Fabrika makine parkuruna yeni enjeksiyon presi veya üretim hattı ekleyin</p>
+          </div>
+        </div>
+        <button data-close-modal class="text-slate-400 hover:text-slate-600 font-bold text-lg cursor-pointer">✕</button>
+      </div>
+
+      <!-- Hızlı Tek Tık Şablonlar -->
+      <div class="mb-4 bg-slate-50 p-3 rounded-xl border border-slate-200">
+        <span class="text-[11px] font-bold text-slate-600 uppercase block mb-1.5">⚡ Hızlı Seçim Şablonları (Tek Tıkla Doldur):</span>
+        <div class="flex flex-wrap gap-1.5">
+          <button type="button" data-preset-machine="ENJEKSİYON 2000" data-preset-code="ENJ-2000" class="text-[11px] font-bold bg-white hover:bg-blue-50 text-slate-700 hover:text-blue-700 px-2.5 py-1 rounded-lg border border-slate-200 transition cursor-pointer">
+            + Enjeksiyon 2000
+          </button>
+          <button type="button" data-preset-machine="ENJEKSİYON 350" data-preset-code="ENJ-350" class="text-[11px] font-bold bg-white hover:bg-blue-50 text-slate-700 hover:text-blue-700 px-2.5 py-1 rounded-lg border border-slate-200 transition cursor-pointer">
+            + Enjeksiyon 350
+          </button>
+          <button type="button" data-preset-machine="VAKUM PRES HATTI 03" data-preset-code="VKM-03" class="text-[11px] font-bold bg-white hover:bg-blue-50 text-slate-700 hover:text-blue-700 px-2.5 py-1 rounded-lg border border-slate-200 transition cursor-pointer">
+            + Vakum Pres 03
+          </button>
+          <button type="button" data-preset-machine="CNC SÜNGER KESİM ROBOTU" data-preset-code="CNC-01" class="text-[11px] font-bold bg-white hover:bg-blue-50 text-slate-700 hover:text-blue-700 px-2.5 py-1 rounded-lg border border-slate-200 transition cursor-pointer">
+            + CNC Sünger Kesim
+          </button>
+          <button type="button" data-preset-machine="OTOMATİK RULO PAKETLEME" data-preset-code="PKT-01" class="text-[11px] font-bold bg-white hover:bg-blue-50 text-slate-700 hover:text-blue-700 px-2.5 py-1 rounded-lg border border-slate-200 transition cursor-pointer">
+            + Paketleme Presi
+          </button>
+        </div>
+      </div>
+
+      <form id="form-quick-machine" class="space-y-3.5">
+        <div>
+          <label class="text-xs font-bold text-slate-700 block mb-1">Makine / Hat Adı: *</label>
+          <input type="text" id="quick-machine-name" required placeholder="Örn: ENJEKSİYON 2000 veya VAKUM HATTI" class="w-full text-xs font-bold border border-slate-200 rounded-xl p-2.5 text-slate-900">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="text-xs font-bold text-slate-700 block mb-1">Makine Kodu / Plaka:</label>
+            <input type="text" id="quick-machine-code" placeholder="Örn: ENJ-2000" class="w-full text-xs font-mono border border-slate-200 rounded-xl p-2.5">
+          </div>
+          <div>
+            <label class="text-xs font-bold text-slate-700 block mb-1">Bağlı Departman:</label>
+            <select id="quick-machine-dept" class="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl p-2.5 font-medium text-slate-800">
+              <!-- JS ile doldurulur -->
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="text-xs font-bold text-slate-700 block mb-1">Konum / Hat Yeri:</label>
+          <input type="text" id="quick-machine-location" placeholder="Örn: 1400 Üretim Sahası, Hat 3" class="w-full text-xs border border-slate-200 rounded-xl p-2.5">
+        </div>
+
+        <div>
+          <label class="text-xs font-bold text-slate-700 block mb-1">Makine Notu & Kapasitesi:</label>
+          <input type="text" id="quick-machine-notes" placeholder="Örn: 2000 Ton Hidrolik Klempli Büyük Şase Presi" class="w-full text-xs border border-slate-200 rounded-xl p-2.5">
+        </div>
+
+        <div class="pt-2 flex justify-end gap-2 border-t border-slate-100">
+          <button type="button" data-close-modal class="text-xs font-bold text-slate-500 py-2.5 px-4 rounded-xl hover:bg-slate-100 cursor-pointer">Vazgeç</button>
+          <button type="submit" class="bg-amber-500 hover:bg-amber-600 text-white font-black text-xs py-2.5 px-5 rounded-xl shadow-sm flex items-center gap-1.5 cursor-pointer">
+            <span>⚡</span> <span>Makineyi Parkura Kaydet</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: Hızlı Baskı Sayacı Girişi (Operatör) -->
+  <div id="modal-log-production-count" class="modal-backdrop">
+    <div class="modal-card p-5 max-w-sm">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-3">
+        <div class="flex items-center gap-2">
+          <span class="text-xl">🔢</span>
+          <div>
+            <h3 class="text-sm font-extrabold text-slate-900">Baskı Sayacı Ekle</h3>
+            <p class="text-[11px] text-slate-500">Makinada basılan adetleri sisteme işleyin</p>
+          </div>
+        </div>
+        <button data-close-modal class="text-slate-400 hover:text-slate-600 font-bold text-lg cursor-pointer">✕</button>
+      </div>
+
+      <form id="form-log-production-count" class="space-y-3.5">
+        <input type="hidden" id="log-plan-id">
+
+        <!-- Bilgi Özeti -->
+        <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-1 text-xs">
+          <div class="flex justify-between">
+            <span class="text-slate-400">Makine:</span>
+            <span id="log-plan-machine" class="font-black text-slate-900">-</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-slate-400">Kalıp:</span>
+            <span id="log-plan-mold" class="font-bold text-blue-700">-</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-slate-400">Hedef:</span>
+            <span id="log-plan-target" class="font-bold text-slate-800">-</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-slate-400">Şu An Basılan:</span>
+            <span id="log-plan-current" class="font-black text-emerald-600">-</span>
+          </div>
+        </div>
+
+        <div>
+          <label class="text-xs font-bold text-slate-800 block mb-1">Şimdi Basılan Adet (+): *</label>
+          <input type="number" id="log-count-input" required min="1" step="1" placeholder="Örn: 500" class="w-full text-base font-black border-2 border-emerald-500 rounded-xl p-3 text-slate-900 focus:outline-none">
+        </div>
+
+        <!-- Hızlı Adet Ekleme Tuşları -->
+        <div class="flex items-center gap-1.5 pt-1">
+          <button type="button" onclick="document.getElementById('log-count-input').value = 250" class="text-xs font-bold bg-slate-100 hover:bg-slate-200 py-1 px-2.5 rounded-lg border border-slate-200 text-slate-700 cursor-pointer">+250</button>
+          <button type="button" onclick="document.getElementById('log-count-input').value = 500" class="text-xs font-bold bg-slate-100 hover:bg-slate-200 py-1 px-2.5 rounded-lg border border-slate-200 text-slate-700 cursor-pointer">+500</button>
+          <button type="button" onclick="document.getElementById('log-count-input').value = 1000" class="text-xs font-bold bg-slate-100 hover:bg-slate-200 py-1 px-2.5 rounded-lg border border-slate-200 text-slate-700 cursor-pointer">+1.000</button>
+          <button type="button" onclick="document.getElementById('log-count-input').value = 2000" class="text-xs font-bold bg-slate-100 hover:bg-slate-200 py-1 px-2.5 rounded-lg border border-slate-200 text-slate-700 cursor-pointer">+2.000</button>
+        </div>
+
+        <div class="pt-2 flex justify-end gap-2 border-t border-slate-100">
+          <button type="button" data-close-modal class="text-xs font-bold text-slate-500 py-2.5 px-3 rounded-xl hover:bg-slate-100 cursor-pointer">Vazgeç</button>
+          <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white font-black text-xs py-2.5 px-5 rounded-xl shadow-sm flex items-center gap-1 cursor-pointer">
+            <span>✅</span> <span>Baskıyı Ekle</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
 
   <!-- MODAL 1: Ürün Hareketi Ekle -->
   <div id="modal-add-product" class="modal-backdrop">
@@ -2369,7 +2779,7 @@
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js?v=27').catch(err => {
+        navigator.serviceWorker.register('sw.js?v=28').catch(err => {
           console.log('SW registration failed:', err);
         });
       });
@@ -2377,6 +2787,6 @@
   </script>
 
   <!-- ES Modül Girişi -->
-  <script type="module" src="js/app.js?v=4.6"></script>
+  <script type="module" src="js/app.js?v=4.7"></script>
 </body>
 </html>
