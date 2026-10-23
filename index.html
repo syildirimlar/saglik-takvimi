@@ -92,7 +92,7 @@
         <!-- Beni Bu Cihazda Hatırla -->
         <div class="flex items-center justify-between pt-1">
           <label class="flex items-center gap-2 cursor-pointer text-xs text-slate-600 dark:text-slate-400 select-none">
-            <input type="checkbox" id="login-remember-me" checked class="w-4 h-4 text-blue-600 rounded border-slate-300">
+            <input type="checkbox" id="login-remember-me" class="w-4 h-4 text-blue-600 rounded border-slate-300">
             <span class="font-medium">Bu cihazda oturumu açık tut</span>
           </label>
         </div>
@@ -2779,7 +2779,7 @@
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js?v=28').catch(err => {
+        navigator.serviceWorker.register('sw.js?v=29').catch(err => {
           console.log('SW registration failed:', err);
         });
       });
@@ -2787,6 +2787,6 @@
   </script>
 
   <!-- ES Modül Girişi -->
-  <script type="module" src="js/app.js?v=4.7"></script>
+  <script type="module" src="js/app.js?v=4.8"></script>
 </body>
 </html>

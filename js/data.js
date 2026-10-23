@@ -697,10 +697,8 @@ export class StateManager {
         };
       }
 
-      // İlk kullanıcı olarak Admin
-      if (!parsed.currentUser) {
-        parsed.currentUser = parsed.users.find(u => u.username === "admin") || parsed.users[0];
-      }
+      // Varsayılan olarak oturum açılmamış başlar (Giriş ekranı zorunlu)
+      parsed.currentUser = null;
 
       // Güncel veriyi V2 olarak kaydet
       try {
@@ -730,7 +728,7 @@ export class StateManager {
         machines: JSON.parse(JSON.stringify(DEFAULT_MACHINES)),
         externalServices: [...DEFAULT_EXTERNAL_SERVICES],
         activityLogs: [],
-        currentUser: DEFAULT_USERS[0],
+        currentUser: null,
         telegramConfig: JSON.parse(JSON.stringify(DEFAULT_TELEGRAM_CONFIG))
       };
     }

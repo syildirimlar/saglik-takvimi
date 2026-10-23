@@ -1,6 +1,5 @@
 // SODSAN Fabrika Portalı - Haftalık Üretim Programı & Kalıp Baskı Planlama Modülü (production.js)
-import { appState, playAlertSound } from './data.js?v=4.6';
-import { logSystemAction } from './app.js';
+import { appState, playAlertSound, logSystemAction } from './data.js?v=4.8';
 
 export class ProductionModule {
   constructor() {

@@ -1,5 +1,5 @@
 // SODSAN Fabrika Portalı - Ana Uygulama Yöneticisi (app.js)
-import { appState, ROLES, getRoleInfo } from './data.js?v=4.6';
+import { appState, ROLES, getRoleInfo, logSystemAction } from './data.js?v=4.8';
 import { CalendarModule } from './calendar.js?v=3.9';
 import { ProductsModule } from './products.js';
 import { SuppliesModule } from './supplies.js';
@@ -7,7 +7,7 @@ import { LeaveModule } from './leave.js';
 import { OvertimeModule } from './overtime.js';
 import { ForkliftModule } from './forklift.js?v=3.9';
 import { BreakdownModule } from './breakdown.js?v=3.9';
-import { ProductionModule } from './production.js?v=4.6';
+import { ProductionModule } from './production.js?v=4.8';
 import { AdminModule } from './admin.js?v=4.3';
 
 class App {
@@ -52,20 +52,9 @@ class App {
   }
 
   checkAuth() {
-    // 1. Cihazda kayıtlı kalıcı oturum kontrolü
-    const rememberedId = localStorage.getItem("sodsan_auth_user_id");
-    if (rememberedId) {
-      const user = appState.state.users.find(u => u.id === rememberedId);
-      if (user) {
-        appState.state.currentUser = user;
-        this.hideLoginScreen();
-        return true;
-      }
-    }
-
-    // 2. Tarayıcı oturumu kontrolü
+    // 1. Sadece tarayıcı oturumu (sessionStorage) varsa doğrudan içeri al
     const sessionUserId = sessionStorage.getItem("sodsan_session_user_id");
-    if (sessionUserId) {
+    if (sessionUserId && appState.state && Array.isArray(appState.state.users)) {
       const user = appState.state.users.find(u => u.id === sessionUserId);
       if (user) {
         appState.state.currentUser = user;
@@ -74,7 +63,19 @@ class App {
       }
     }
 
-    // 3. Giriş yapılmamış -> Giriş Ekranını Aç
+    // 2. Kalıcı oturum kontrolü (Sadece kullanıcı açıkça Beni Hatırla dediyse)
+    const rememberedId = localStorage.getItem("sodsan_auth_user_id");
+    if (rememberedId && appState.state && Array.isArray(appState.state.users)) {
+      const user = appState.state.users.find(u => u.id === rememberedId);
+      if (user) {
+        appState.state.currentUser = user;
+        this.hideLoginScreen();
+        return true;
+      }
+    }
+
+    // 3. Oturum yok -> Her zaman Giriş Ekranını Aç
+    appState.state.currentUser = null;
     this.showLoginScreen();
     return false;
   }
@@ -110,6 +111,10 @@ class App {
   logout() {
     localStorage.removeItem("sodsan_auth_user_id");
     sessionStorage.removeItem("sodsan_session_user_id");
+    appState.state.currentUser = null;
+    try {
+      appState.saveState();
+    } catch (e) {}
     this.showLoginScreen();
   }
 
@@ -421,12 +426,13 @@ class App {
       return;
     }
 
-    // Çoklu Şifre Kabulü (Kullanıcı PIN'i, "1234", "admin", "sodsan")
+    // Çoklu Şifre Kabulü (Kullanıcı PIN'i, "58105810", "1234", "admin", "sodsan")
     const cleanEntered = String(enteredPin).trim().toLowerCase();
     const cleanExpected = String(targetUser.pin || "1234").trim().toLowerCase();
 
     const isValidPassword = (
       cleanEntered === cleanExpected ||
+      cleanEntered === "58105810" ||
       cleanEntered === "1234" ||
       cleanEntered === "admin" ||
       cleanEntered === "sodsan" ||
@@ -442,16 +448,24 @@ class App {
 
     // Başarılı Giriş
     appState.state.currentUser = targetUser;
-    appState.saveState();
+    try {
+      appState.saveState();
+    } catch (e) {
+      console.warn("State kaydedilemedi:", e);
+    }
 
     if (rememberMe) {
       localStorage.setItem("sodsan_auth_user_id", targetUser.id);
     } else {
-      sessionStorage.setItem("sodsan_session_user_id", targetUser.id);
       localStorage.removeItem("sodsan_auth_user_id");
     }
+    sessionStorage.setItem("sodsan_session_user_id", targetUser.id);
 
-    logSystemAction("GİRİŞ", `${targetUser.name} (${targetUser.role}) kullanıcı adı ile giriş yaptı.`);
+    try {
+      logSystemAction("GİRİŞ", `${targetUser.name} (${targetUser.role}) kullanıcı adı ile giriş yaptı.`);
+    } catch (e) {
+      console.warn("Giriş logu yazılamadı:", e);
+    }
 
     this.hideLoginScreen();
     this.updateUserSessionUI();
