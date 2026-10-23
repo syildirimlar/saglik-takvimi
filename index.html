@@ -133,24 +133,13 @@
         
         <!-- Logo & Başlık -->
         <div class="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-          <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center p-1.5 shadow-md shadow-blue-600/20 flex-shrink-0">
-              <img src="assets/sodsan-favicon.png" alt="SODSAN" class="h-full w-full object-contain brightness-0 invert">
-            </div>
-            <div>
-              <div class="flex items-center gap-1.5">
-                <span class="font-black text-sm tracking-tight text-slate-900 dark:text-white">SODSAN</span>
-                <span class="text-[9px] font-black bg-blue-600 text-white px-1.5 py-0.2 rounded">PORTAL</span>
-              </div>
-              <div class="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1 mt-0.5">
-                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                <span>Canlı Fabrika Sistemi</span>
-              </div>
-            </div>
+          <div class="flex items-center gap-2.5">
+            <img src="assets/sodsan-logo.png" alt="SODSAN" class="h-8 w-auto max-w-[150px] object-contain block dark:brightness-125">
+            <span class="text-[9px] font-black bg-blue-600 text-white px-1.5 py-0.5 rounded tracking-wider">PORTAL</span>
           </div>
 
           <!-- Mobilde Kapatma Butonu -->
-          <button id="btn-close-sidebar" class="lg:hidden p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-lg font-bold">
+          <button id="btn-close-sidebar" class="lg:hidden p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-lg font-bold cursor-pointer" title="Menüyü Kapat">
             ✕
           </button>
         </div>
@@ -165,40 +154,55 @@
           </button>
         </div>
 
-        <!-- Dikey Navigasyon Menüsü -->
-        <div class="px-3 pt-3 pb-1 text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">
-          FABRİKA BÖLÜMLERİ
+        <!-- Dikey Navigasyon Menüsü Başlığı & Sıralama Kontrolleri -->
+        <div class="px-3 pt-3 pb-1 flex items-center justify-between text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">
+          <span>FABRİKA BÖLÜMLERİ</span>
+          <button id="btn-toggle-menu-reorder" class="text-[10px] font-bold text-blue-600 dark:text-blue-400 hover:text-blue-800 flex items-center gap-1 cursor-pointer py-0.5 px-1.5 rounded hover:bg-blue-50 dark:hover:bg-blue-950/50 transition" title="Bölümleri yukarı/aşağı taşıyarak kendinize göre sıralayın">
+            <span>↕️</span> <span id="label-reorder-mode">Sırala</span>
+          </button>
         </div>
 
-        <nav class="p-2 space-y-1 overflow-y-auto flex-1">
-          <!-- 1. Haftalık Üretim & Kalıp -->
-          <button class="nav-tab-btn active w-full" data-tab="tab-production">
+        <nav id="sidebar-nav-list" class="p-2 space-y-1 overflow-y-auto flex-1">
+          <!-- 1. Operasyon Takvimi (Her halükarda en üstte!) -->
+          <button class="nav-tab-btn active w-full" data-tab="tab-calendar">
+            <span class="text-lg">📅</span>
+            <div class="flex-1 text-left min-w-0">
+              <div class="text-xs font-bold leading-tight">Operasyon Takvimi</div>
+              <div class="text-[10px] text-slate-400 dark:text-slate-500 font-normal truncate">Aylık Bakım, Sevkiyat & İzin</div>
+            </div>
+            <span class="badge-tab text-[10px] font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950 px-1.5 py-0.5 rounded">Aylık</span>
+            <div class="reorder-actions hidden items-center gap-0.5 ml-1">
+              <button type="button" class="btn-move-tab-up p-1 text-[11px] hover:bg-slate-200 dark:hover:bg-slate-700 rounded text-slate-500 hover:text-blue-600 transition" title="Yukarı Taşı">▲</button>
+              <button type="button" class="btn-move-tab-down p-1 text-[11px] hover:bg-slate-200 dark:hover:bg-slate-700 rounded text-slate-500 hover:text-blue-600 transition" title="Aşağı Taşı">▼</button>
+            </div>
+          </button>
+
+          <!-- 2. Haftalık Üretim & Kalıp -->
+          <button class="nav-tab-btn w-full" data-tab="tab-production">
             <span class="text-lg">⚙️</span>
             <div class="flex-1 text-left min-w-0">
               <div class="text-xs font-bold leading-tight">Haftalık Üretim & Kalıp</div>
               <div class="text-[10px] text-slate-400 dark:text-slate-500 font-normal truncate">Kalıp Baskı Matrisi</div>
             </div>
-            <span class="bg-blue-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded">Canlı</span>
+            <span class="badge-tab bg-blue-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded">Canlı</span>
+            <div class="reorder-actions hidden items-center gap-0.5 ml-1">
+              <button type="button" class="btn-move-tab-up p-1 text-[11px] hover:bg-slate-200 dark:hover:bg-slate-700 rounded text-slate-500 hover:text-blue-600 transition" title="Yukarı Taşı">▲</button>
+              <button type="button" class="btn-move-tab-down p-1 text-[11px] hover:bg-slate-200 dark:hover:bg-slate-700 rounded text-slate-500 hover:text-blue-600 transition" title="Aşağı Taşı">▼</button>
+            </div>
           </button>
 
-          <!-- 2. Makine Parkuru & Arıza -->
+          <!-- 3. Makine Parkuru & Arıza -->
           <button class="nav-tab-btn w-full" data-tab="tab-breakdown">
             <span class="text-lg">🛠️</span>
             <div class="flex-1 text-left min-w-0">
               <div class="text-xs font-bold leading-tight">Makine Parkuru & Arıza</div>
               <div class="text-[10px] text-slate-400 dark:text-slate-500 font-normal truncate">Makineler, Presler & Bakım</div>
             </div>
-            <span id="breakdown-active-count" class="bg-red-600 text-white text-[10px] font-black px-1.5 py-0.2 rounded-full hidden">0</span>
-          </button>
-
-          <!-- 3. Operasyon Takvimi -->
-          <button class="nav-tab-btn w-full" data-tab="tab-calendar">
-            <span class="text-lg">📅</span>
-            <div class="flex-1 text-left min-w-0">
-              <div class="text-xs font-bold leading-tight">Operasyon Takvimi</div>
-              <div class="text-[10px] text-slate-400 dark:text-slate-500 font-normal truncate">Aylık Bakım, Sevkiyat & İzin</div>
+            <span id="breakdown-active-count" class="badge-tab bg-red-600 text-white text-[10px] font-black px-1.5 py-0.2 rounded-full hidden">0</span>
+            <div class="reorder-actions hidden items-center gap-0.5 ml-1">
+              <button type="button" class="btn-move-tab-up p-1 text-[11px] hover:bg-slate-200 dark:hover:bg-slate-700 rounded text-slate-500 hover:text-blue-600 transition" title="Yukarı Taşı">▲</button>
+              <button type="button" class="btn-move-tab-down p-1 text-[11px] hover:bg-slate-200 dark:hover:bg-slate-700 rounded text-slate-500 hover:text-blue-600 transition" title="Aşağı Taşı">▼</button>
             </div>
-            <span class="text-[10px] font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950 px-1.5 py-0.5 rounded">Aylık</span>
           </button>
 
           <!-- 4. Gelen & Giden Ürünler -->
@@ -207,6 +211,10 @@
             <div class="flex-1 text-left min-w-0">
               <div class="text-xs font-bold leading-tight">Gelen & Giden Ürünler</div>
               <div class="text-[10px] text-slate-400 dark:text-slate-500 font-normal truncate">İrsaliye & Stok Hareketleri</div>
+            </div>
+            <div class="reorder-actions hidden items-center gap-0.5 ml-1">
+              <button type="button" class="btn-move-tab-up p-1 text-[11px] hover:bg-slate-200 dark:hover:bg-slate-700 rounded text-slate-500 hover:text-blue-600 transition" title="Yukarı Taşı">▲</button>
+              <button type="button" class="btn-move-tab-down p-1 text-[11px] hover:bg-slate-200 dark:hover:bg-slate-700 rounded text-slate-500 hover:text-blue-600 transition" title="Aşağı Taşı">▼</button>
             </div>
           </button>
 
@@ -217,6 +225,10 @@
               <div class="text-xs font-bold leading-tight">Sarf Malzeme Talepleri</div>
               <div class="text-[10px] text-slate-400 dark:text-slate-500 font-normal truncate">Bölüm İhtiyaçları & Tedarik</div>
             </div>
+            <div class="reorder-actions hidden items-center gap-0.5 ml-1">
+              <button type="button" class="btn-move-tab-up p-1 text-[11px] hover:bg-slate-200 dark:hover:bg-slate-700 rounded text-slate-500 hover:text-blue-600 transition" title="Yukarı Taşı">▲</button>
+              <button type="button" class="btn-move-tab-down p-1 text-[11px] hover:bg-slate-200 dark:hover:bg-slate-700 rounded text-slate-500 hover:text-blue-600 transition" title="Aşağı Taşı">▼</button>
+            </div>
           </button>
 
           <!-- 6. İK: İzin & Fazla Mesai -->
@@ -225,6 +237,10 @@
             <div class="flex-1 text-left min-w-0">
               <div class="text-xs font-bold leading-tight">İK: İzin & Mesai</div>
               <div class="text-[10px] text-slate-400 dark:text-slate-500 font-normal truncate">Personel İzinleri & Mesai</div>
+            </div>
+            <div class="reorder-actions hidden items-center gap-0.5 ml-1">
+              <button type="button" class="btn-move-tab-up p-1 text-[11px] hover:bg-slate-200 dark:hover:bg-slate-700 rounded text-slate-500 hover:text-blue-600 transition" title="Yukarı Taşı">▲</button>
+              <button type="button" class="btn-move-tab-down p-1 text-[11px] hover:bg-slate-200 dark:hover:bg-slate-700 rounded text-slate-500 hover:text-blue-600 transition" title="Aşağı Taşı">▼</button>
             </div>
           </button>
 
@@ -235,12 +251,12 @@
               <div class="text-xs font-bold leading-tight">Forklift Operasyonu</div>
               <div class="text-[10px] text-slate-400 dark:text-slate-500 font-normal truncate">Çağrılar & Saha Taşıma</div>
             </div>
-            <span id="forklift-active-count" class="bg-amber-500 text-white text-[10px] font-black px-1.5 py-0.2 rounded-full">0</span>
+            <span id="forklift-active-count" class="badge-tab bg-amber-500 text-white text-[10px] font-black px-1.5 py-0.2 rounded-full">0</span>
+            <div class="reorder-actions hidden items-center gap-0.5 ml-1">
+              <button type="button" class="btn-move-tab-up p-1 text-[11px] hover:bg-slate-200 dark:hover:bg-slate-700 rounded text-slate-500 hover:text-blue-600 transition" title="Yukarı Taşı">▲</button>
+              <button type="button" class="btn-move-tab-down p-1 text-[11px] hover:bg-slate-200 dark:hover:bg-slate-700 rounded text-slate-500 hover:text-blue-600 transition" title="Aşağı Taşı">▼</button>
+            </div>
           </button>
-
-          <div class="pt-2 px-1 text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">
-            SİSTEM
-          </div>
 
           <!-- 8. Admin Paneli -->
           <button class="nav-tab-btn w-full" data-tab="tab-admin">
@@ -249,7 +265,11 @@
               <div class="text-xs font-bold leading-tight">Yönetim & İK Paneli</div>
               <div class="text-[10px] text-slate-400 dark:text-slate-500 font-normal truncate">Kullanıcılar, Roller & Yedek</div>
             </div>
-            <span class="text-[10px] font-bold text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950 px-1.5 py-0.5 rounded">Admin</span>
+            <span class="badge-tab text-[10px] font-bold text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950 px-1.5 py-0.5 rounded">Admin</span>
+            <div class="reorder-actions hidden items-center gap-0.5 ml-1">
+              <button type="button" class="btn-move-tab-up p-1 text-[11px] hover:bg-slate-200 dark:hover:bg-slate-700 rounded text-slate-500 hover:text-blue-600 transition" title="Yukarı Taşı">▲</button>
+              <button type="button" class="btn-move-tab-down p-1 text-[11px] hover:bg-slate-200 dark:hover:bg-slate-700 rounded text-slate-500 hover:text-blue-600 transition" title="Aşağı Taşı">▼</button>
+            </div>
           </button>
         </nav>
       </div>
@@ -290,17 +310,18 @@
       
       <!-- Üst Bilgi ve Sayfa Başlık Çubuğu -->
       <header class="top-header sticky top-0 z-30 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-4 sm:px-6 py-2.5 flex items-center justify-between gap-3 shadow-xs">
-        <!-- Sol: Mobil Menü Butonu & Sayfa Başlığı -->
+        <!-- Sol: Mobil Menü Butonu, Logo & Sayfa Başlığı -->
         <div class="flex items-center gap-3 min-w-0">
           <button id="btn-toggle-sidebar" class="lg:hidden p-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-200 text-base font-black transition cursor-pointer" title="Menüyü Aç">
             ☰
           </button>
+          <img src="assets/sodsan-logo.png" alt="SODSAN" class="h-6 w-auto object-contain block lg:hidden">
           <div>
             <h1 id="current-page-title" class="text-sm sm:text-base font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-1.5 truncate">
-              ⚙️ Haftalık Üretim & Kalıp Baskı Matrisi
+              📅 Fabrika Operasyon & Planlama Takvimi
             </h1>
             <p id="current-page-desc" class="text-[11px] text-slate-500 dark:text-slate-400 hidden sm:block truncate">
-              Kayıtlı makinelere ait haftalık kalıp baskı adetleri ve üretim çizelgesi
+              Aylık bakım günleri, sevkiyat randevuları ve onaylı personel izinleri
             </p>
           </div>
         </div>
@@ -2831,7 +2852,7 @@
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js?v=32').catch(err => {
+        navigator.serviceWorker.register('sw.js?v=33').catch(err => {
           console.log('SW registration failed:', err);
         });
       });
@@ -2839,6 +2860,6 @@
   </script>
 
   <!-- ES Modül Girişi -->
-  <script type="module" src="js/app.js?v=5.1"></script>
+  <script type="module" src="js/app.js?v=5.2"></script>
 </body>
 </html>

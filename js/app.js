@@ -21,12 +21,13 @@ class App {
     this.breakdown = new BreakdownModule();
     this.production = new ProductionModule();
     this.admin = new AdminModule();
-    this.activeTab = "tab-production"; // Varsayılan olarak Haftalık Üretim & Kalıp Planı açılsın
+    this.activeTab = "tab-calendar"; // Operasyon Takvimi her halükarda en üstte ve ilk sırada açılsın
   }
 
   init() {
     this.initTheme();
     this.initTabs();
+    this.initMenuReorder();
     this.initModals();
     this.initAuth();
     this.initPwa();
@@ -159,10 +160,13 @@ class App {
       } else {
         btn.style.display = "none";
         if (this.activeTab === "tab-admin") {
-          this.switchTab("tab-products");
+          this.switchTab("tab-calendar");
         }
       }
     });
+
+    // Kullanıcının / Birimin özel menü sıralamasını uygula
+    this.applySavedMenuOrder();
   }
 
   initTabs() {
@@ -322,6 +326,149 @@ class App {
 
     // Mobilde menü açıksa kapat
     this.closeMobileSidebar();
+  }
+
+  initMenuReorder() {
+    const navList = document.getElementById("sidebar-nav-list");
+    const toggleBtn = document.getElementById("btn-toggle-menu-reorder");
+    const labelReorder = document.getElementById("label-reorder-mode");
+    if (!navList) return;
+
+    // 1. Kayıtlı sıralamayı yükle ve DOM'a uygula
+    this.applySavedMenuOrder();
+
+    // 2. Sıralama Modu Aç/Kapat Butonu
+    if (toggleBtn) {
+      toggleBtn.addEventListener("click", () => {
+        const isReordering = navList.classList.toggle("reorder-active");
+        if (labelReorder) {
+          labelReorder.textContent = isReordering ? "Bitti ✓" : "Sırala ↕️";
+        }
+        toggleBtn.classList.toggle("bg-emerald-600", isReordering);
+        toggleBtn.classList.toggle("text-white", isReordering);
+
+        document.querySelectorAll(".reorder-actions").forEach(el => {
+          if (isReordering) {
+            el.classList.remove("hidden");
+            el.classList.add("flex");
+          } else {
+            el.classList.add("hidden");
+            el.classList.remove("flex");
+          }
+        });
+      });
+    }
+
+    // 3. Yukarı / Aşağı butonları dinleyicileri
+    navList.addEventListener("click", (e) => {
+      const btnUp = e.target.closest(".btn-move-tab-up");
+      const btnDown = e.target.closest(".btn-move-tab-down");
+
+      if (btnUp) {
+        e.stopPropagation();
+        e.preventDefault();
+        const tabItem = btnUp.closest(".nav-tab-btn");
+        const prev = tabItem.previousElementSibling;
+        if (prev && prev.classList.contains("nav-tab-btn")) {
+          navList.insertBefore(tabItem, prev);
+          this.saveCurrentMenuOrder();
+        }
+      } else if (btnDown) {
+        e.stopPropagation();
+        e.preventDefault();
+        const tabItem = btnDown.closest(".nav-tab-btn");
+        const next = tabItem.nextElementSibling;
+        if (next && next.classList.contains("nav-tab-btn")) {
+          navList.insertBefore(next, tabItem);
+          this.saveCurrentMenuOrder();
+        }
+      }
+    });
+
+    // 4. HTML5 Sürükle & Bırak (Masaüstü için Drag and Drop)
+    let draggedItem = null;
+    navList.querySelectorAll(".nav-tab-btn").forEach(item => {
+      item.setAttribute("draggable", "true");
+
+      item.addEventListener("dragstart", (e) => {
+        draggedItem = item;
+        item.classList.add("opacity-50", "ring-2", "ring-blue-500");
+        e.dataTransfer.effectAllowed = "move";
+      });
+
+      item.addEventListener("dragend", () => {
+        item.classList.remove("opacity-50", "ring-2", "ring-blue-500");
+        draggedItem = null;
+        this.saveCurrentMenuOrder();
+      });
+
+      item.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "move";
+      });
+
+      item.addEventListener("drop", (e) => {
+        e.preventDefault();
+        if (draggedItem && draggedItem !== item) {
+          const rect = item.getBoundingClientRect();
+          const next = (e.clientY - rect.top) / (rect.bottom - rect.top) > 0.5;
+          navList.insertBefore(draggedItem, next ? item.nextSibling : item);
+          this.saveCurrentMenuOrder();
+        }
+      });
+    });
+  }
+
+  getMenuOrderStorageKey() {
+    const user = appState.state.currentUser;
+    return user ? `sodsan_menu_order_${user.id}` : "sodsan_menu_order_default";
+  }
+
+  saveCurrentMenuOrder() {
+    const navList = document.getElementById("sidebar-nav-list");
+    if (!navList) return;
+    const tabBtns = navList.querySelectorAll(".nav-tab-btn");
+    const order = Array.from(tabBtns).map(btn => btn.getAttribute("data-tab")).filter(Boolean);
+    const key = this.getMenuOrderStorageKey();
+    localStorage.setItem(key, JSON.stringify(order));
+    localStorage.setItem("sodsan_menu_order_general", JSON.stringify(order));
+  }
+
+  applySavedMenuOrder() {
+    const navList = document.getElementById("sidebar-nav-list");
+    if (!navList) return;
+
+    const key = this.getMenuOrderStorageKey();
+    let saved = localStorage.getItem(key) || localStorage.getItem("sodsan_menu_order_general");
+    let order = null;
+
+    if (saved) {
+      try {
+        order = JSON.parse(saved);
+      } catch (e) {}
+    }
+
+    // Varsayılan sıralama: Operasyon Takvimi her halükarda en başta!
+    const defaultOrder = [
+      "tab-calendar",
+      "tab-production",
+      "tab-breakdown",
+      "tab-products",
+      "tab-supplies",
+      "tab-leave",
+      "tab-forklift",
+      "tab-admin"
+    ];
+
+    const targetOrder = (Array.isArray(order) && order.length > 0) ? order : defaultOrder;
+
+    // Hedef sıraya göre butonları sırala
+    targetOrder.forEach(tabId => {
+      const btn = navList.querySelector(`.nav-tab-btn[data-tab="${tabId}"]`);
+      if (btn) {
+        navList.appendChild(btn);
+      }
+    });
   }
 
   initModals() {
