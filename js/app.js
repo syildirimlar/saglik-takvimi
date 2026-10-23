@@ -37,16 +37,28 @@ class App {
       this.updateUserSessionUI();
     }
 
-    // Modülleri Başlat
-    this.calendar.init();
-    this.products.init();
-    this.supplies.init();
-    this.leave.init();
-    this.overtime.init();
-    this.forklift.init();
-    this.breakdown.init();
-    this.production.init();
-    this.admin.init();
+    // Modülleri Bağımsız Hata Korumasıyla Başlat
+    const modules = [
+      { name: "calendar", inst: this.calendar },
+      { name: "products", inst: this.products },
+      { name: "supplies", inst: this.supplies },
+      { name: "leave", inst: this.leave },
+      { name: "overtime", inst: this.overtime },
+      { name: "forklift", inst: this.forklift },
+      { name: "breakdown", inst: this.breakdown },
+      { name: "production", inst: this.production },
+      { name: "admin", inst: this.admin }
+    ];
+
+    modules.forEach(m => {
+      try {
+        if (m.inst && typeof m.inst.init === "function") {
+          m.inst.init();
+        }
+      } catch (err) {
+        console.error(`Modül başlatma hatası (${m.name}):`, err);
+      }
+    });
 
     console.log("SODSAN Fabrika Portalı Başlatıldı.");
   }
@@ -379,6 +391,9 @@ class App {
               this.overtime.render();
               this.forklift.render();
               this.breakdown.render();
+              if (this.production && typeof this.production.render === "function") {
+                this.production.render();
+              }
             }
           });
         });
@@ -470,6 +485,16 @@ class App {
     this.hideLoginScreen();
     this.updateUserSessionUI();
     this.switchTab(this.activeTab);
+
+    // Giriş sonrası modül içeriklerini ve yetki görünümlerini tazele
+    try {
+      if (this.production && typeof this.production.render === "function") this.production.render();
+      if (this.breakdown && typeof this.breakdown.render === "function") this.breakdown.render();
+      if (this.products && typeof this.products.render === "function") this.products.render();
+      if (this.calendar && typeof this.calendar.render === "function") this.calendar.render();
+    } catch (e) {
+      console.warn("Giriş sonrası modül tazeleme uyarısı:", e);
+    }
   }
 
   showLoginError(msg) {

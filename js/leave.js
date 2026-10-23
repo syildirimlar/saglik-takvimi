@@ -294,9 +294,10 @@ export class LeaveModule {
     appState.saveState();
 
     const depObj = appState.state.departments.find(d => d.id === departmentId) || { name: "" };
+    const uName = appState.state.currentUser ? appState.state.currentUser.name : "Yetkili";
     logSystemAction(
       "PERSONEL_EKLE",
-      `${appState.state.currentUser.name}, "${name}" (${depObj.name}) isimli yeni personeli izin çizelgesine ekledi.`,
+      `${uName}, "${name}" (${depObj.name}) isimli yeni personeli izin çizelgesine ekledi.`,
       { name, department: depObj.name, totalLeave, hireDate }
     );
 
@@ -335,7 +336,8 @@ export class LeaveModule {
       return;
     }
 
-    const isHrOrAdmin = appState.state.currentUser.role === "IK" || appState.state.currentUser.role === "ADMIN";
+    const user = appState.state.currentUser;
+    const isHrOrAdmin = user ? (user.role === "IK" || user.role === "ADMIN") : true;
 
     container.innerHTML = items.map(req => {
       const dep = appState.state.departments.find(d => d.id === req.departmentId) || { name: "", icon: "🏢" };
@@ -429,9 +431,10 @@ export class LeaveModule {
     let hrNote = prompt(`İşlem: ${newStatus}\nLütfen İK notu ekleyin (opsiyonel):`);
     if (hrNote === null) return; // İptal edildi
 
+    const uName = appState.state.currentUser ? appState.state.currentUser.name : "İK Yöneticisi";
     req.status = newStatus;
-    req.processedBy = appState.state.currentUser.name;
-    req.hrNotes = `${appState.state.currentUser.name}: ${hrNote || 'İşlem tamamlandı.'}`;
+    req.processedBy = uName;
+    req.hrNotes = `${uName}: ${hrNote || 'İşlem tamamlandı.'}`;
 
     // Eğer Onaylandı ise ve Yıllık İzin ise çalışanın kalan iznini düşür
     if (newStatus === "Onaylandı" && req.leaveType === "Yıllık İzin") {
@@ -446,7 +449,7 @@ export class LeaveModule {
 
     logSystemAction(
       "İZİN_ONAYI",
-      `${appState.state.currentUser.name}, "${req.employeeName}" personelinin izin talebini [${newStatus}] olarak güncelledi.`,
+      `${uName}, "${req.employeeName}" personelinin izin talebini [${newStatus}] olarak güncelledi.`,
       { employee: req.employeeName, status: newStatus, hrNote }
     );
 
@@ -575,7 +578,8 @@ export class LeaveModule {
         if (!target) return;
 
         if (confirm(`"${target.name}" personelini izin çizelgesinden silmek istediğinize emin misiniz?`)) {
-          logSystemAction("PERSONEL_SİLME", `${appState.state.currentUser.name}, "${target.name}" isimli personeli çizelgeden sildi.`);
+          const uName = appState.state.currentUser ? appState.state.currentUser.name : "Yetkili";
+          logSystemAction("PERSONEL_SİLME", `${uName}, "${target.name}" isimli personeli çizelgeden sildi.`);
           appState.state.employees = appState.state.employees.filter(emp => emp.id !== empId);
           appState.saveState();
           this.populateEmployeeSelect();
@@ -667,13 +671,15 @@ export class LeaveModule {
     }
 
     const employee = appState.state.employees.find(e => e.id === empId);
+    const uName = appState.state.currentUser ? appState.state.currentUser.name : "Personel";
+    const userDeptId = appState.state.currentUser ? appState.state.currentUser.departmentId : "";
 
     const newRequest = {
       id: "leave_" + Date.now(),
       employeeId: empId,
       employeeName: employee ? employee.name : "Personel",
-      departmentId: employee ? employee.departmentId : appState.state.currentUser.departmentId,
-      requestedBy: appState.state.currentUser.name,
+      departmentId: employee ? employee.departmentId : userDeptId,
+      requestedBy: uName,
       leaveType,
       startDate,
       endDate,
@@ -689,7 +695,7 @@ export class LeaveModule {
 
     logSystemAction(
       "İZİN_TALEBİ",
-      `${appState.state.currentUser.name}, "${newRequest.employeeName}" personeli adına ${newRequest.daysCount} günlük ${newRequest.leaveType} talebi gönderdi.`,
+      `${uName}, "${newRequest.employeeName}" personeli adına ${newRequest.daysCount} günlük ${newRequest.leaveType} talebi gönderdi.`,
       { employee: newRequest.employeeName, leaveType, daysCount, startDate, endDate }
     );
 
@@ -987,9 +993,10 @@ export class LeaveModule {
     appState.saveState();
     appState.syncUsersToEmployees();
 
+    const uName = appState.state.currentUser ? appState.state.currentUser.name : "Yetkili";
     logSystemAction(
       "TOPLU_PERSONEL_YÜKLEME",
-      `${appState.state.currentUser.name}, Excel dosyasından ${addedCount} yeni personel ekledi, ${updatedCount} personeli güncelledi.`,
+      `${uName}, Excel dosyasından ${addedCount} yeni personel ekledi, ${updatedCount} personeli güncelledi.`,
       { addedCount, updatedCount }
     );
 

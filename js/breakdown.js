@@ -162,6 +162,12 @@ export class BreakdownModule {
     if (btnOpenRegFromPark) btnOpenRegFromPark.addEventListener("click", openRegisterModal);
     if (btnOpenRegFromBreakdown) btnOpenRegFromBreakdown.addEventListener("click", openRegisterModal);
 
+    const btnProdAddMachine = document.getElementById("btn-prod-add-machine");
+    if (btnProdAddMachine) btnProdAddMachine.addEventListener("click", openRegisterModal);
+
+    const btnModalMachineFromPlan = document.getElementById("btn-open-modal-machine-from-plan");
+    if (btnModalMachineFromPlan) btnModalMachineFromPlan.addEventListener("click", openRegisterModal);
+
     if (formRegisterMachine) {
       formRegisterMachine.addEventListener("submit", (e) => {
         e.preventDefault();
@@ -275,9 +281,10 @@ export class BreakdownModule {
       notes
     });
 
+    const uName = appState.state.currentUser ? appState.state.currentUser.name : "Yetkili";
     logSystemAction(
       "DIŞ_SERVİS_EKLE",
-      `${appState.state.currentUser.name}, "${compName}" (${specialty}) dış servis ekibini rehbere kaydetti.`,
+      `${uName}, "${compName}" (${specialty}) dış servis ekibini rehbere kaydetti.`,
       { company: compName, phone, specialty }
     );
 
@@ -500,13 +507,18 @@ export class BreakdownModule {
 
     if (confirm(`"${name}" makinesini fabrika makine parkurundan silmek istediğinize emin misiniz?`)) {
       deleteMachine(id);
+      const uName = appState.state.currentUser ? appState.state.currentUser.name : "Yetkili";
       logSystemAction(
         "MAKİNE_SİLME",
-        `${appState.state.currentUser.name}, "${name}" makinesini makine parkurundan sildi.`,
+        `${uName}, "${name}" makinesini makine parkurundan sildi.`,
         { machineId: id, machineName: name }
       );
       this.populateMachineSelect();
       this.render();
+      if (window.portalApp && window.portalApp.production) {
+        window.portalApp.production.populateMachineDropdowns();
+        window.portalApp.production.render();
+      }
     }
   }
 
@@ -517,7 +529,7 @@ export class BreakdownModule {
     // Oturumdaki kullanıcının adını göster
     const reporterEl = document.getElementById("breakdown-reporter-name");
     if (reporterEl) {
-      reporterEl.textContent = appState.state.currentUser.name;
+      reporterEl.textContent = appState.state.currentUser ? appState.state.currentUser.name : "Fabrika Çalışanı";
     }
 
     if (preSelectedMachine) {
@@ -570,6 +582,7 @@ export class BreakdownModule {
     const faultType = faultTypeSelect.value;
     const deptId = deptSelect.value;
     const currentUser = appState.state.currentUser;
+    const uName = currentUser ? currentUser.name : "Fabrika Personeli";
 
     if (!location || !description) {
       alert("Lütfen makina konumu ve arıza açıklamasını eksiksiz giriniz.");
@@ -584,7 +597,7 @@ export class BreakdownModule {
       faultType: faultType,
       urgency: urgency, // Kritik, Yüksek, Normal
       description: description,
-      reportedBy: currentUser.name,
+      reportedBy: uName,
       reportedTime: new Date().toISOString(),
       status: "Bekliyor", // Bekliyor, Müdahale Ediliyor, Parça Bekleniyor, Giderildi
       assignedTechnician: null,
@@ -612,7 +625,7 @@ export class BreakdownModule {
     // Sistem Günlüğü
     logSystemAction(
       "ARIZA_BİLDİRİMİ",
-      `${currentUser.name}, [${urgency.toUpperCase()}] aciliyetinde arıza bildirdi: "${machineName}" (${location}) - ${faultType}. Açıklama: ${description}`,
+      `${uName}, [${urgency.toUpperCase()}] aciliyetinde arıza bildirdi: "${machineName}" (${location}) - ${faultType}. Açıklama: ${description}`,
       { breakdownId: newBreakdown.id, machine: machineName, urgency: urgency }
     );
 
@@ -675,9 +688,10 @@ export class BreakdownModule {
       if (bDept) bDept.value = departmentId;
     }
 
+    const uName = appState.state.currentUser ? appState.state.currentUser.name : "Yetkili";
     logSystemAction(
       "MAKİNE_EKLEME",
-      `${appState.state.currentUser.name}, "${name}" (${code || 'KODSUZ'}) makinesini fabrika makine parkına kaydetti.`,
+      `${uName}, "${name}" (${code || 'KODSUZ'}) makinesini fabrika makine parkına kaydetti.`,
       { machineName: name, code, departmentId }
     );
 
@@ -687,6 +701,10 @@ export class BreakdownModule {
     document.getElementById("modal-register-machine").classList.remove("show");
 
     this.render();
+    if (window.portalApp && window.portalApp.production) {
+      window.portalApp.production.populateMachineDropdowns();
+      window.portalApp.production.render();
+    }
     alert(`"${name}" makinesi başarıyla fabrika parkına kaydedildi.`);
   }
 
@@ -715,9 +733,10 @@ export class BreakdownModule {
     });
 
     if (updated) {
+      const uName = appState.state.currentUser ? appState.state.currentUser.name : "Yetkili";
       logSystemAction(
         "MAKİNE_DÜZENLEME",
-        `${appState.state.currentUser.name}, "${name}" makinesinin bilgilerini güncelledi.`,
+        `${uName}, "${name}" makinesinin bilgilerini güncelledi.`,
         { machineId: id, name, status: updated.status }
       );
 
@@ -725,6 +744,10 @@ export class BreakdownModule {
       document.getElementById("modal-edit-machine").classList.remove("show");
       this.populateMachineSelect();
       this.render();
+      if (window.portalApp && window.portalApp.production) {
+        window.portalApp.production.populateMachineDropdowns();
+        window.portalApp.production.render();
+      }
       alert(`"${name}" makinesinin bilgileri başarıyla güncellendi.`);
     }
   }
@@ -797,18 +820,19 @@ Zaman: ${timeStr}
     if (!brk) return;
 
     const currentUser = appState.state.currentUser;
+    const uName = currentUser ? currentUser.name : "Teknisyen";
     const note = prompt(`Müdahale başlatılıyor. Lütfen ilk tespitinizi veya tahmini sürenizi yazınız:`, "Hatta gidildi, inceleniyor.");
     if (note === null) return;
 
     brk.status = "Müdahale Ediliyor";
-    brk.assignedTechnician = currentUser.name;
-    brk.technicianNotes = `${currentUser.name}: ${note}`;
+    brk.assignedTechnician = uName;
+    brk.technicianNotes = `${uName}: ${note}`;
     appState.saveState();
 
     logSystemAction(
       "ARIZA_MÜDAHALE",
-      `${currentUser.name}, "${brk.machineName}" arızasına müdahaleyi başlattı. İlk not: ${note}`,
-      { breakdownId: brk.id, machine: brk.machineName, technician: currentUser.name }
+      `${uName}, "${brk.machineName}" arızasına müdahaleyi başlattı. İlk not: ${note}`,
+      { breakdownId: brk.id, machine: brk.machineName, technician: uName }
     );
 
     this.render();
@@ -819,16 +843,17 @@ Zaman: ${timeStr}
     if (!brk) return;
 
     const currentUser = appState.state.currentUser;
+    const uName = currentUser ? currentUser.name : "Teknisyen";
     const partNote = prompt(`Hangi parça bekleniyor? Lütfen satın alma / tedarik detayını yazınız:`, "Yedek rulman / kayış sipariş edildi, kargo bekleniyor.");
     if (partNote === null) return;
 
     brk.status = "Parça Bekleniyor";
-    brk.technicianNotes = (brk.technicianNotes ? brk.technicianNotes + "\n" : "") + `[PARÇA BEKLİYOR] ${currentUser.name}: ${partNote}`;
+    brk.technicianNotes = (brk.technicianNotes ? brk.technicianNotes + "\n" : "") + `[PARÇA BEKLİYOR] ${uName}: ${partNote}`;
     appState.saveState();
 
     logSystemAction(
       "ARIZA_PARÇA_BEKLEME",
-      `${currentUser.name}, "${brk.machineName}" arızasını [Parça Bekleniyor] durumuna aldı. Not: ${partNote}`,
+      `${uName}, "${brk.machineName}" arızasını [Parça Bekleniyor] durumuna aldı. Not: ${partNote}`,
       { breakdownId: brk.id, machine: brk.machineName }
     );
 
@@ -840,18 +865,19 @@ Zaman: ${timeStr}
     if (!brk) return;
 
     const currentUser = appState.state.currentUser;
+    const uName = currentUser ? currentUser.name : "Teknisyen";
     const solution = prompt(`"${brk.machineName}" arızası giderildi mi?\nLütfen yapılan onarımı özetleyiniz:`, "Arıza giderildi, test kesimi yapıldı ve hat çalışır vaziyette teslim edildi.");
     if (solution === null) return;
 
     brk.status = "Giderildi";
     brk.resolvedTime = new Date().toISOString();
-    brk.technicianNotes = (brk.technicianNotes ? brk.technicianNotes + "\n" : "") + `[GİDERİLDİ] ${currentUser.name}: ${solution}`;
+    brk.technicianNotes = (brk.technicianNotes ? brk.technicianNotes + "\n" : "") + `[GİDERİLDİ] ${uName}: ${solution}`;
     appState.saveState();
 
     logSystemAction(
       "ARIZA_GİDERİLDİ",
-      `"${brk.machineName}" arızası ${currentUser.name} tarafından giderildi. Makina aktif ve devrede. Çözüm: ${solution}`,
-      { breakdownId: brk.id, machine: brk.machineName, resolver: currentUser.name }
+      `"${brk.machineName}" arızası ${uName} tarafından giderildi. Makina aktif ve devrede. Çözüm: ${solution}`,
+      { breakdownId: brk.id, machine: brk.machineName, resolver: uName }
     );
 
     this.render();
@@ -866,9 +892,10 @@ Zaman: ${timeStr}
       appState.state.breakdowns = appState.state.breakdowns.filter(b => b.id !== breakdownId);
       appState.saveState();
 
+      const uName = appState.state.currentUser ? appState.state.currentUser.name : "Yetkili";
       logSystemAction(
         "ARIZA_SİLME",
-        `${appState.state.currentUser.name}, "${brk.machineName}" arıza kaydını sildi.`,
+        `${uName}, "${brk.machineName}" arıza kaydını sildi.`,
         { breakdownId }
       );
 
@@ -1012,7 +1039,7 @@ Zaman: ${timeStr}
     }
 
     const currentUser = appState.state.currentUser;
-    const isMaintenanceOrAdmin = currentUser.role === "BAKIM" || currentUser.role === "ADMIN" || currentUser.role === "USTA";
+    const isMaintenanceOrAdmin = currentUser ? (currentUser.role === "BAKIM" || currentUser.role === "ADMIN" || currentUser.role === "USTA") : true;
 
     cardsContainer.innerHTML = filtered.map(brk => {
       const dep = appState.state.departments.find(d => d.id === brk.departmentId) || { name: "", icon: "🏢" };

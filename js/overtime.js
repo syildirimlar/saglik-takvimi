@@ -361,7 +361,7 @@ export class OvertimeModule {
       employeeIds: employeeIds,
       employeeNames: employeeNames,
       departmentId: deptId,
-      requestedBy: appState.state.currentUser.name,
+      requestedBy: appState.state.currentUser ? appState.state.currentUser.name : "Personel",
       date: dateVal,
       startTime: startVal,
       endTime: endVal,
@@ -388,9 +388,10 @@ export class OvertimeModule {
 
     playAlertSound("call");
 
+    const uName = appState.state.currentUser ? appState.state.currentUser.name : "Yetkili";
     logSystemAction(
       "MESAİ_TALEBİ",
-      `${appState.state.currentUser.name}, "${employeeNames}" için ${dateVal} tarihinde ${hoursVal} saat (${rateTypeVal}) fazla mesai talebi açtı. Gerekçe: ${reasonVal}`,
+      `${uName}, "${employeeNames}" için ${dateVal} tarihinde ${hoursVal} saat (${rateTypeVal}) fazla mesai talebi açtı. Gerekçe: ${reasonVal}`,
       { overtimeId: newReq.id, hours: hoursVal, employees: employeeNames }
     );
 
@@ -410,9 +411,10 @@ export class OvertimeModule {
     let hrNote = prompt(`İşlem: ${newStatus}\nLütfen İK karar notunu ekleyin (opsiyonel):`);
     if (hrNote === null) return; // İptal edildi
 
+    const uName = appState.state.currentUser ? appState.state.currentUser.name : "İK Yetkilisi";
     req.status = newStatus;
-    req.processedBy = appState.state.currentUser.name;
-    req.hrNotes = `${appState.state.currentUser.name}: ${hrNote || 'İşlem tamamlandı.'}`;
+    req.processedBy = uName;
+    req.hrNotes = `${uName}: ${hrNote || 'İşlem tamamlandı.'}`;
 
     appState.saveState();
 
@@ -424,7 +426,7 @@ export class OvertimeModule {
 
     logSystemAction(
       actionKey,
-      `${req.employeeNames} personellerinin ${req.date} tarihli (${req.hours} saat) mesai talebi ${appState.state.currentUser.name} tarafından "${newStatus}" olarak işlendi.${hrNote ? ' Not: ' + hrNote : ''}`,
+      `${req.employeeNames} personellerinin ${req.date} tarihli (${req.hours} saat) mesai talebi ${uName} tarafından "${newStatus}" olarak işlendi.${hrNote ? ' Not: ' + hrNote : ''}`,
       { overtimeId: req.id, status: newStatus, hrNote }
     );
 

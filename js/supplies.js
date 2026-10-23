@@ -33,7 +33,7 @@ export class SuppliesModule {
         if (modal) {
           // Varsayılan olarak kullanıcının departmanı seçili gelsin
           const depSelect = document.getElementById("supply-department");
-          if (depSelect && appState.state.currentUser.departmentId) {
+          if (depSelect && appState.state.currentUser && appState.state.currentUser.departmentId) {
             depSelect.value = appState.state.currentUser.departmentId;
           }
           modal.classList.add("show");
@@ -155,10 +155,11 @@ export class SuppliesModule {
         const newStatus = e.currentTarget.getAttribute("data-new-status");
         const target = appState.state.supplies.find(s => s.id === id);
         if (target) {
+          const uName = appState.state.currentUser ? appState.state.currentUser.name : "Yetkili";
           target.status = newStatus;
-          target.updatedBy = appState.state.currentUser.name;
+          target.updatedBy = uName;
           appState.saveState();
-          logSystemAction("SARF_GÜNCELLEME", `${appState.state.currentUser.name}, "${target.itemName}" talebini "${newStatus}" olarak güncelledi.`, { supplyId: target.id, newStatus, item: target.itemName });
+          logSystemAction("SARF_GÜNCELLEME", `${uName}, "${target.itemName}" talebini "${newStatus}" olarak güncelledi.`, { supplyId: target.id, newStatus, item: target.itemName });
           this.render();
         }
       });
@@ -170,7 +171,8 @@ export class SuppliesModule {
         const target = appState.state.supplies.find(s => s.id === id);
         if (confirm("Bu sarf malzeme talebini silmek istediğinize emin misiniz?")) {
           if (target) {
-            logSystemAction("SARF_SİLME", `${appState.state.currentUser.name}, "${target.itemName}" sarf malzeme talebini sildi.`);
+            const uName = appState.state.currentUser ? appState.state.currentUser.name : "Yetkili";
+            logSystemAction("SARF_SİLME", `${uName}, "${target.itemName}" sarf malzeme talebini sildi.`);
           }
           appState.state.supplies = appState.state.supplies.filter(s => s.id !== id);
           appState.saveState();
@@ -193,10 +195,11 @@ export class SuppliesModule {
       return;
     }
 
+    const uName = appState.state.currentUser ? appState.state.currentUser.name : "Personel";
     const newSupply = {
       id: "sup_" + Date.now(),
       departmentId,
-      requestedBy: appState.state.currentUser.name,
+      requestedBy: uName,
       itemName,
       amount,
       unit,
@@ -209,7 +212,7 @@ export class SuppliesModule {
     appState.state.supplies.unshift(newSupply);
     appState.saveState();
 
-    logSystemAction("SARF_TALEP", `${appState.state.currentUser.name}, "${itemName}" (${amount} ${unit}) sarf malzeme talebi açtı.`, { itemName, amount, unit, urgency });
+    logSystemAction("SARF_TALEP", `${uName}, "${itemName}" (${amount} ${unit}) sarf malzeme talebi açtı.`, { itemName, amount, unit, urgency });
 
     playAlertSound("call");
 

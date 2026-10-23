@@ -325,6 +325,11 @@
             </button>
           </div>
 
+          <!-- Yeni Makine Ekle Butonu -->
+          <button id="btn-prod-add-machine" class="bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white font-extrabold text-xs py-2 px-3.5 rounded-xl shadow-sm transition flex items-center gap-1.5 cursor-pointer" title="Yeni Makine Kaydet">
+            <span>⚙️</span> <span>Yeni Makine Ekle</span>
+          </button>
+
           <!-- Yeni Plan Ekle Butonu -->
           <button id="btn-open-add-production-plan" class="bg-blue-600 hover:bg-blue-700 active:scale-98 text-white font-extrabold text-xs py-2 px-3.5 rounded-xl shadow-sm transition flex items-center gap-1.5 cursor-pointer">
             <span>+</span> <span>Kalıp Baskı Planı Ekle</span>
@@ -1102,7 +1107,12 @@
       <form id="form-add-production-plan" class="space-y-3.5">
         <!-- Makine Seçimi -->
         <div>
-          <label class="text-xs font-bold text-slate-700 block mb-1">Kalıp Bağlanacak Makine: *</label>
+          <div class="flex items-center justify-between mb-1">
+            <label class="text-xs font-bold text-slate-700 block">Kalıp Bağlanacak Makine: *</label>
+            <button type="button" id="btn-open-modal-machine-from-plan" class="text-[11px] font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1 cursor-pointer">
+              <span>+</span> <span>Yeni Makine Tanımla</span>
+            </button>
+          </div>
           <select id="plan-machine-select" required class="w-full text-xs font-bold bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-800">
             <!-- JS ile doldurulur -->
           </select>
@@ -2702,7 +2712,7 @@
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js?v=30').catch(err => {
+        navigator.serviceWorker.register('sw.js?v=31').catch(err => {
           console.log('SW registration failed:', err);
         });
       });
@@ -2710,6 +2720,6 @@
   </script>
 
   <!-- ES Modül Girişi -->
-  <script type="module" src="js/app.js?v=4.9"></script>
+  <script type="module" src="js/app.js?v=5.0"></script>
 </body>
 </html>

@@ -467,18 +467,19 @@ export class CalendarModule {
 
     ev.title = newTitle;
     ev.date = newDate;
+    const uName = appState.state.currentUser ? appState.state.currentUser.name : "Yetkili";
     ev.type = newType;
     ev.status = newStatus;
     ev.responsible = newResponsible;
     ev.notes = newNotes;
-    ev.lastEditedBy = appState.state.currentUser.name;
+    ev.lastEditedBy = uName;
     ev.lastEditedAt = new Date().toISOString();
 
     appState.saveState();
 
     logSystemAction(
       "TAKVİM_DÜZENLEME",
-      `Yetkili ${appState.state.currentUser.name}, "${newTitle}" takvim planını güncelledi. (${changes.length > 0 ? changes.join(", ") : "Bilgiler teyit edildi"})`,
+      `Yetkili ${uName}, "${newTitle}" takvim planını güncelledi. (${changes.length > 0 ? changes.join(", ") : "Bilgiler teyit edildi"})`,
       { eventId: id, changes }
     );
 
@@ -644,7 +645,8 @@ export class CalendarModule {
         const target = appState.state.calendarEvents.find(x => x.id === id);
         if (confirm("Bu etkinlik/bakım kaydını silmek istediğinize emin misiniz?")) {
           if (target) {
-            logSystemAction("TAKVİM_SİLME", `${appState.state.currentUser.name}, "${target.title}" plan/bakım kaydını sildi.`, { eventId: id, title: target.title });
+            const uName = appState.state.currentUser ? appState.state.currentUser.name : "Yetkili";
+            logSystemAction("TAKVİM_SİLME", `${uName}, "${target.title}" plan/bakım kaydını sildi.`, { eventId: id, title: target.title });
           }
           appState.state.calendarEvents = appState.state.calendarEvents.filter(x => x.id !== id);
           appState.saveState();
@@ -683,6 +685,7 @@ export class CalendarModule {
       return;
     }
 
+    const uName = appState.state.currentUser ? appState.state.currentUser.name : "Fabrika Yetkilisi";
     const newEvent = {
       id: "ev_" + Date.now(),
       title,
@@ -691,7 +694,7 @@ export class CalendarModule {
       responsible: responsible || "Belirtilmedi",
       status: "Planlandı",
       notes,
-      createdBy: appState.state.currentUser.name
+      createdBy: uName
     };
 
     if (!Array.isArray(appState.state.calendarEvents)) {
@@ -703,7 +706,7 @@ export class CalendarModule {
 
     logSystemAction(
       "TAKVİM_EKLE",
-      `${appState.state.currentUser.name}, "${title}" (${type} - ${date}) plan/bakım kaydını takvime ekledi.`,
+      `${uName}, "${title}" (${type} - ${date}) plan/bakım kaydını takvime ekledi.`,
       { title, type, date, responsible }
     );
 
@@ -749,6 +752,7 @@ export class CalendarModule {
     const escapeHtml = (str) => String(str || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     const timeStr = new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
 
+    const uName = appState.state.currentUser ? appState.state.currentUser.name : "Fabrika Yetkilisi";
     const htmlMessage = `
 ${typeEmoji} <b>PLANLAMA & OPERASYON TAKVİMİ BİLDİRİMİ</b>
 ─────────────────────
@@ -756,7 +760,7 @@ ${typeEmoji} <b>PLANLAMA & OPERASYON TAKVİMİ BİLDİRİMİ</b>
 🏷️ <b>Tür:</b> ${escapeHtml(typeLabel)}
 📆 <b>Tarih:</b> ${escapeHtml(event.date)}
 👤 <b>Sorumlu:</b> ${escapeHtml(event.responsible || 'Belirtilmedi')}
-✍️ <b>Kaydeden:</b> ${escapeHtml(event.createdBy || appState.state.currentUser.name)}
+✍️ <b>Kaydeden:</b> ${escapeHtml(event.createdBy || uName)}
 ${event.notes ? `💬 <b>Açıklama / Not:</b> ${escapeHtml(event.notes)}\n` : ''}⏰ <b>Kayıt Zamanı:</b> ${timeStr}
 `.trim();
 
@@ -767,7 +771,7 @@ ${typeEmoji} PLANLAMA & OPERASYON TAKVİMİ BİLDİRİMİ
 🏷️ Tür: ${typeLabel}
 📆 Tarih: ${event.date}
 👤 Sorumlu: ${event.responsible || 'Belirtilmedi'}
-✍️ Kaydeden: ${event.createdBy || appState.state.currentUser.name}
+✍️ Kaydeden: ${event.createdBy || uName}
 ${event.notes ? `💬 Not: ${event.notes}\n` : ''}⏰ Kayıt Zamanı: ${timeStr}
 `.trim();
 
