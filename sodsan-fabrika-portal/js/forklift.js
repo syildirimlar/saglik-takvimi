@@ -23,24 +23,20 @@ export class ForkliftModule {
   }
 
   bindEvents() {
-    const btnOpenCall = document.getElementById("btn-open-call-forklift");
-    const formCall = document.getElementById("form-call-forklift");
-    const filterStatus = document.getElementById("filter-forklift-status");
-    const btnTelegramSettings = document.getElementById("btn-telegram-settings");
-    const formTelegram = document.getElementById("form-telegram-settings");
-
-    if (btnOpenCall) {
-      btnOpenCall.addEventListener("click", () => {
-        const modal = document.getElementById("modal-call-forklift");
-        if (modal) {
-          const depSelect = document.getElementById("forklift-call-department");
-          if (depSelect && appState.state.currentUser && appState.state.currentUser.departmentId) {
-            depSelect.value = appState.state.currentUser.departmentId;
-          }
-          modal.classList.add("show");
+    const openCallModal = () => {
+      const modal = document.getElementById("modal-call-forklift");
+      if (modal) {
+        const depSelect = document.getElementById("forklift-call-department");
+        if (depSelect && appState.state.currentUser && appState.state.currentUser.departmentId) {
+          depSelect.value = appState.state.currentUser.departmentId;
         }
-      });
-    }
+        modal.classList.add("show");
+      }
+    };
+
+    document.querySelectorAll("#btn-open-call-forklift, [data-open-call-forklift]").forEach(btn => {
+      btn.addEventListener("click", openCallModal);
+    });
 
     if (btnTelegramSettings) {
       btnTelegramSettings.addEventListener("click", () => {

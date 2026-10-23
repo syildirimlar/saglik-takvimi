@@ -166,6 +166,7 @@ class App {
   }
 
   initTabs() {
+    // 1. Sekme Butonları Dinleyicileri (Sidebar ve Mobil)
     const tabBtns = document.querySelectorAll(".nav-tab-btn, .mobile-tab-btn");
     tabBtns.forEach(btn => {
       btn.addEventListener("click", (e) => {
@@ -175,6 +176,103 @@ class App {
         }
       });
     });
+
+    // 2. Mobil Sidebar Çekmece Dinleyicileri
+    const toggleSidebarBtn = document.getElementById("btn-toggle-sidebar");
+    const closeSidebarBtn = document.getElementById("btn-close-sidebar");
+    const sidebarBackdrop = document.getElementById("sidebar-backdrop");
+
+    if (toggleSidebarBtn) {
+      toggleSidebarBtn.addEventListener("click", () => this.openMobileSidebar());
+    }
+
+    if (closeSidebarBtn) {
+      closeSidebarBtn.addEventListener("click", () => this.closeMobileSidebar());
+    }
+
+    if (sidebarBackdrop) {
+      sidebarBackdrop.addEventListener("click", () => this.closeMobileSidebar());
+    }
+
+    // 3. Canlı Saat Göstergesi
+    this.initLiveClock();
+  }
+
+  openMobileSidebar() {
+    const sidebar = document.getElementById("portal-sidebar");
+    const backdrop = document.getElementById("sidebar-backdrop");
+    if (sidebar) sidebar.classList.add("open");
+    if (backdrop) {
+      backdrop.classList.remove("hidden");
+      backdrop.classList.add("show");
+    }
+  }
+
+  closeMobileSidebar() {
+    const sidebar = document.getElementById("portal-sidebar");
+    const backdrop = document.getElementById("sidebar-backdrop");
+    if (sidebar) sidebar.classList.remove("open");
+    if (backdrop) {
+      backdrop.classList.add("hidden");
+      backdrop.classList.remove("show");
+    }
+  }
+
+  initLiveClock() {
+    const clockEl = document.getElementById("portal-live-clock");
+    if (!clockEl) return;
+    const updateTime = () => {
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+      clockEl.textContent = timeStr;
+    };
+    updateTime();
+    setInterval(updateTime, 1000);
+  }
+
+  updateActivePageTitle(tabId) {
+    const titleEl = document.getElementById("current-page-title");
+    const descEl = document.getElementById("current-page-desc");
+    if (!titleEl) return;
+
+    const titles = {
+      "tab-production": {
+        title: "⚙️ Haftalık Üretim & Kalıp Baskı Matrisi",
+        desc: "Kayıtlı makinelere ait haftalık kalıp baskı adetleri ve operasyon çizelgesi"
+      },
+      "tab-breakdown": {
+        title: "🛠️ Makine Parkuru & Arıza Takip",
+        desc: "Fabrika pres ve makineleri, faal durumları ve teknik arıza bildirimleri"
+      },
+      "tab-calendar": {
+        title: "📅 Fabrika Operasyon & Planlama Takvimi",
+        desc: "Aylık bakım günleri, sevkiyat randevuları ve onaylı personel izinleri"
+      },
+      "tab-products": {
+        title: "📦 Gelen & Giden Ürünler ve İrsaliye",
+        desc: "Tedarikçi hammadde girişleri ve müşteri sevkiyat irsaliye kayıtları"
+      },
+      "tab-supplies": {
+        title: "🛒 Sarf Malzeme & Satınalma Talepleri",
+        desc: "Bölümlerin üretim ve işletme sarf malzeme ihtiyaçları ve sipariş durumları"
+      },
+      "tab-leave": {
+        title: "🏖️ İK: Personel İzin & Fazla Mesai",
+        desc: "Yıllık izin talepleri, İK onayları ve departman fazla mesai çizelgesi"
+      },
+      "tab-forklift": {
+        title: "🚜 Forklift & Saha Taşıma Operasyonu",
+        desc: "Saha içi yük taşıma, hammadde ve kalıp taşıma çağrıları"
+      },
+      "tab-admin": {
+        title: "🛡️ Sistem Yönetimi & İK Paneli",
+        desc: "Kullanıcı tanımları, yetki rolleri, departmanlar ve sistem yedekleme"
+      }
+    };
+
+    const info = titles[tabId] || titles["tab-production"];
+    titleEl.textContent = info.title;
+    if (descEl) descEl.textContent = info.desc;
   }
 
   switchTab(tabId) {
@@ -183,11 +281,17 @@ class App {
     // Buton aktiflikleri
     document.querySelectorAll(".nav-tab-btn, .mobile-tab-btn").forEach(btn => {
       if (btn.getAttribute("data-tab") === tabId) {
-        btn.classList.add("active", "text-blue-600", "border-blue-600");
-        btn.classList.remove("text-slate-500", "border-transparent");
+        btn.classList.add("active");
+        if (btn.classList.contains("mobile-tab-btn")) {
+          btn.classList.add("text-blue-600");
+          btn.classList.remove("text-slate-500");
+        }
       } else {
-        btn.classList.remove("active", "text-blue-600", "border-blue-600");
-        btn.classList.add("text-slate-500", "border-transparent");
+        btn.classList.remove("active");
+        if (btn.classList.contains("mobile-tab-btn")) {
+          btn.classList.remove("text-blue-600");
+          btn.classList.add("text-slate-500");
+        }
       }
     });
 
@@ -200,8 +304,12 @@ class App {
       }
     });
 
+    // Sayfa başlık metinlerini güncelle
+    this.updateActivePageTitle(tabId);
+
     // İlgili modülün render'ını tazele
     if (tabId === "tab-production") this.production.render();
+    if (tabId === "tab-calendar") this.calendar.render();
     if (tabId === "tab-products") this.products.render();
     if (tabId === "tab-supplies") this.supplies.render();
     if (tabId === "tab-leave") {
@@ -211,6 +319,9 @@ class App {
     if (tabId === "tab-forklift") this.forklift.render();
     if (tabId === "tab-breakdown") this.breakdown.render();
     if (tabId === "tab-admin") this.admin.render();
+
+    // Mobilde menü açıksa kapat
+    this.closeMobileSidebar();
   }
 
   initModals() {
@@ -338,17 +449,16 @@ class App {
       });
     });
 
-    // 5. Çıkış Yap Butonu
-    const logoutBtn = document.getElementById("btn-logout");
-    if (logoutBtn) {
-      logoutBtn.addEventListener("click", () => {
+    // 5. Çıkış Yap Butonları
+    document.querySelectorAll("#btn-logout, .btn-logout-action").forEach(btn => {
+      btn.addEventListener("click", () => {
         const modalSwitch = document.getElementById("modal-switch-user");
         if (modalSwitch) modalSwitch.classList.remove("show");
         if (confirm("Oturumu kapatmak istediğinize emin misiniz?")) {
           this.logout();
         }
       });
-    }
+    });
 
     // 6. Kullanıcı Değiştirme Menüsü
     const btnSwitchUser = document.getElementById("btn-switch-user");
