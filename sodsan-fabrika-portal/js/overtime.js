@@ -40,57 +40,73 @@ export class OvertimeModule {
     }
   }
 
+  // Tüm kayıtlı fabrika çalışanlarını hem employees hem users tablosundan eksiksiz derler
+  getFactoryEmployees() {
+    const list = [];
+    const seen = new Set();
+
+    // 1. İK Personel Çizelgesindeki kayıtlar (employees)
+    (appState.state.employees || []).forEach(emp => {
+      if (emp && emp.name && emp.name.trim()) {
+        const key = emp.name.trim().toLowerCase();
+        if (!seen.has(key)) {
+          seen.add(key);
+          list.push(emp);
+        }
+      }
+    });
+
+    // 2. Sistemde kayıtlı kullanıcılar (users) - çalışan olarak da seçilebilsinler
+    (appState.state.users || []).forEach(u => {
+      if (u && u.name && u.name.trim()) {
+        const key = u.name.trim().toLowerCase();
+        if (!seen.has(key)) {
+          seen.add(key);
+          list.push({
+            id: u.id,
+            userId: u.id,
+            name: u.name,
+            role: u.role || "PERSONEL",
+            departmentId: u.departmentId || "dep_genel",
+            totalLeave: 14,
+            usedLeave: 0,
+            remainingLeave: 14,
+            hireDate: "2024-01-01"
+          });
+        }
+      }
+    });
+
+    return list;
+  }
+
   populateEmployeeChecklist() {
     const container = document.getElementById("overtime-employee-checklist");
     if (!container) return;
 
-    const isAuthorized = isManagerOrHr();
-    const myEmp = getCurrentUserEmployee();
     const btnSelectAll = document.getElementById("btn-overtime-select-all");
     const btnClearAll = document.getElementById("btn-overtime-clear-all");
+    if (btnSelectAll) btnSelectAll.classList.remove("hidden");
+    if (btnClearAll) btnClearAll.classList.remove("hidden");
 
-    // Standart Personel Girişi: Kendi profili doğrudan seçili gelir
-    if (!isAuthorized) {
-      if (btnSelectAll) btnSelectAll.classList.add("hidden");
-      if (btnClearAll) btnClearAll.classList.add("hidden");
+    const modalDeptSelect = document.getElementById("overtime-department");
+    const selectedDeptId = modalDeptSelect ? modalDeptSelect.value : null;
+    const currentUser = appState.state.currentUser;
 
-      if (!myEmp) {
-        const u = appState.state.currentUser;
-        container.innerHTML = `
-          <div class="p-3 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-600">
-            <strong>${u?.name || "Kullanıcı"}</strong> hesabına ait çalışan kaydı bulunamadı.
-          </div>
-        `;
-        this.updateSelectedEmployeeCount();
-        return;
-      }
+    let employees = this.getFactoryEmployees();
 
-      const dep = appState.state.departments.find(d => d.id === myEmp.departmentId) || { name: "", icon: "🏢" };
+    if (employees.length === 0) {
       container.innerHTML = `
-        <div class="flex items-center justify-between p-2.5 rounded-lg border border-slate-200 bg-slate-50 text-xs">
-          <div class="flex items-center gap-2">
-            <input type="checkbox" name="overtime-emp" value="${myEmp.id}" data-name="${myEmp.name}" data-dept="${myEmp.departmentId}" checked class="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4 cursor-default">
-            <span class="text-slate-900 font-extrabold flex items-center gap-1.5">
-              <span>👤</span> <span>${myEmp.name}</span>
-            </span>
-          </div>
-          <span class="text-[11px] text-slate-500 font-medium">${dep.icon} ${dep.name}</span>
+        <div class="col-span-full p-4 bg-slate-50 border border-slate-200 rounded-lg text-xs text-center text-slate-500">
+          Kayıtlı fabrika personeli bulunamadı. Lütfen İK veya Admin panelinden personel ekleyiniz.
         </div>
       `;
       this.updateSelectedEmployeeCount();
       return;
     }
 
-    // YETKİLİ PERSONEL (ADMIN / İK / YÖNETİCİ): Tüm personelleri seçebilir
-    if (btnSelectAll) btnSelectAll.classList.remove("hidden");
-    if (btnClearAll) btnClearAll.classList.remove("hidden");
-
-    const modalDeptSelect = document.getElementById("overtime-department");
-    const selectedDeptId = modalDeptSelect ? modalDeptSelect.value : null;
-
-    let employees = appState.state.employees || [];
+    // Seçili departmandakileri en üste alacak şekilde sırala
     if (selectedDeptId) {
-      // Önce seçili departmandakiler, sonra diğerleri
       employees = [...employees].sort((a, b) => {
         if (a.departmentId === selectedDeptId && b.departmentId !== selectedDeptId) return -1;
         if (a.departmentId !== selectedDeptId && b.departmentId === selectedDeptId) return 1;
@@ -99,21 +115,25 @@ export class OvertimeModule {
     }
 
     container.innerHTML = employees.map(emp => {
-      const dep = appState.state.departments.find(d => d.id === emp.departmentId) || { name: "", icon: "🏢" };
+      const dep = appState.state.departments.find(d => d.id === emp.departmentId) || { name: "Genel", icon: "🏢" };
       const isMyDept = selectedDeptId && emp.departmentId === selectedDeptId;
+      const isMe = currentUser && (emp.userId === currentUser.id || emp.id === currentUser.id || (emp.name && emp.name.toLowerCase() === currentUser.name.toLowerCase()));
 
       return `
-        <label class="flex items-center justify-between p-2 rounded-lg border border-slate-200 hover:bg-blue-50/50 cursor-pointer transition text-xs select-none ${isMyDept ? 'bg-white font-medium' : 'bg-slate-50 opacity-80'}">
+        <label class="flex items-center justify-between p-2 rounded-lg border border-slate-200 hover:bg-blue-50/50 cursor-pointer transition text-xs select-none ${isMyDept ? 'bg-white font-medium border-blue-200 shadow-xs' : 'bg-slate-50 opacity-90'}">
           <div class="flex items-center gap-2">
-            <input type="checkbox" name="overtime-emp" value="${emp.id}" data-name="${emp.name}" data-dept="${emp.departmentId}" class="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4 cursor-pointer">
-            <span class="text-slate-800 font-bold">${emp.name}</span>
+            <input type="checkbox" name="overtime-emp" value="${emp.id}" data-name="${emp.name}" data-dept="${emp.departmentId || ''}" ${isMe ? 'checked' : ''} class="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4 cursor-pointer">
+            <span class="text-slate-800 font-bold flex items-center gap-1">
+              <span>${emp.name}</span>
+              ${isMe ? '<span class="text-[9px] bg-blue-100 text-blue-700 font-bold px-1 rounded">Siz</span>' : ''}
+            </span>
           </div>
-          <span class="text-[10px] text-slate-500 font-medium">${dep.icon} ${dep.name}</span>
+          <span class="text-[10px] text-slate-500 font-medium">${dep.icon || '🏢'} ${dep.name}</span>
         </label>
       `;
     }).join("");
 
-    // Personel sayacı güncelleme
+    // Personel sayacı dinleyicileri
     const checkboxes = container.querySelectorAll("input[name='overtime-emp']");
     checkboxes.forEach(cb => {
       cb.addEventListener("change", () => this.updateSelectedEmployeeCount());
@@ -303,36 +323,21 @@ export class OvertimeModule {
   }
 
   saveOvertimeRequest() {
-    const isAuthorized = isManagerOrHr();
-    const myEmp = getCurrentUserEmployee();
-
-    let checkedEmployees = Array.from(document.querySelectorAll("input[name='overtime-emp']:checked"));
-
-    // Yetkisiz kullanıcılar için sıkı denetim:
-    if (!isAuthorized) {
-      if (!myEmp) {
-        alert("Yetki Hatası: Sistemde adınıza kayıtlı çalışan profili bulunamadı. Mesai talebi oluşturulamaz.");
-        return;
-      }
-      // Checkbox disabled olduğunda da myEmp'i garantiye al
-      if (checkedEmployees.length === 0) {
-        checkedEmployees = [{ value: myEmp.id, getAttribute: (attr) => attr === "data-name" ? myEmp.name : "" }];
-      } else {
-        const hasOthers = checkedEmployees.some(cb => cb.value !== myEmp.id);
-        if (hasOthers || checkedEmployees.length > 1) {
-          alert("Lütfen yalnızca kendi adınıza fazla mesai talebi oluşturunuz.");
-          return;
-        }
-      }
-    }
+    const checkedEmployees = Array.from(document.querySelectorAll("input[name='overtime-emp']:checked"));
 
     if (checkedEmployees.length === 0) {
       alert("Lütfen fazla mesaiye kalacak en az 1 personel seçiniz.");
       return;
     }
 
+    const allEmps = this.getFactoryEmployees();
     const employeeIds = checkedEmployees.map(cb => cb.value);
-    const employeeNames = checkedEmployees.map(cb => cb.getAttribute("data-name") || (myEmp ? myEmp.name : "")).join(", ");
+    const employeeNames = checkedEmployees.map(cb => {
+      const nameAttr = cb.getAttribute("data-name");
+      if (nameAttr) return nameAttr;
+      const match = allEmps.find(e => e.id === cb.value || e.userId === cb.value);
+      return match ? match.name : cb.value;
+    }).join(", ");
     const deptId = document.getElementById("overtime-department").value;
     const dateVal = document.getElementById("overtime-date").value;
     const startVal = document.getElementById("overtime-start-time").value;
@@ -462,6 +467,7 @@ export class OvertimeModule {
   }
 
   render() {
+    this.populateEmployeeChecklist();
     this.renderRequestsList();
     this.renderStatistics();
     this.renderEmployeeOvertimeTable();
