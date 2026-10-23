@@ -34,7 +34,7 @@ export class ForkliftModule {
         const modal = document.getElementById("modal-call-forklift");
         if (modal) {
           const depSelect = document.getElementById("forklift-call-department");
-          if (depSelect && appState.state.currentUser.departmentId) {
+          if (depSelect && appState.state.currentUser && appState.state.currentUser.departmentId) {
             depSelect.value = appState.state.currentUser.departmentId;
           }
           modal.classList.add("show");
@@ -159,9 +159,8 @@ export class ForkliftModule {
         statusBadge = `<span class="bg-emerald-100 text-emerald-700 text-xs font-bold px-2 py-0.5 rounded">✓ Tamamlandı</span>`;
       }
 
-      const isForkliftOperatorOrAdmin = 
-        appState.state.currentUser.role === "FORKLIFT" || 
-        appState.state.currentUser.role === "ADMIN";
+      const currentUser = appState.state.currentUser;
+      const isForkliftOperatorOrAdmin = currentUser ? (currentUser.role === "FORKLIFT" || currentUser.role === "ADMIN") : true;
 
       return `
         <div class="bg-white p-4 rounded-xl border ${borderClass} shadow-sm flex flex-col justify-between space-y-3 relative">
@@ -222,13 +221,14 @@ export class ForkliftModule {
         const action = e.currentTarget.getAttribute("data-forklift-action");
         const call = appState.state.forkliftRequests.find(c => c.id === id);
         if (call) {
+          const uName = appState.state.currentUser ? appState.state.currentUser.name : "Operatör";
           call.status = action;
-          call.operatorName = appState.state.currentUser.name;
+          call.operatorName = uName;
           appState.saveState();
 
           logSystemAction(
             action === "Yolda" ? "FORKLİFT_KABUL" : "FORKLİFT_TAMAM",
-            `${appState.state.currentUser.name}, ${call.requestedBy} tarafından açılan (${call.location}) forklift çağrısını ${action === "Yolda" ? 'üstlendi (Yolda)' : 'tamamladı'}.`,
+            `${uName}, ${call.requestedBy} tarafından açılan (${call.location}) forklift çağrısını ${action === "Yolda" ? 'üstlendi (Yolda)' : 'tamamladı'}.`,
             { callId: id, location: call.location, action }
           );
 
@@ -247,7 +247,8 @@ export class ForkliftModule {
         const call = appState.state.forkliftRequests.find(c => c.id === id);
         if (confirm("Bu forklift çağrısını silmek istiyor musunuz?")) {
           if (call) {
-            logSystemAction("FORKLİFT_SİLME", `${appState.state.currentUser.name}, "${call.location}" konumundaki forklift çağrısını sildi.`);
+            const uName = appState.state.currentUser ? appState.state.currentUser.name : "Operatör";
+            logSystemAction("FORKLİFT_SİLME", `${uName}, "${call.location}" konumundaki forklift çağrısını sildi.`);
           }
           appState.state.forkliftRequests = appState.state.forkliftRequests.filter(c => c.id !== id);
           appState.saveState();
@@ -399,7 +400,7 @@ export class ForkliftModule {
       description,
       status: "Bekliyor",
       requestTime: new Date().toISOString(),
-      requestedBy: appState.state.currentUser.name,
+      requestedBy: appState.state.currentUser ? appState.state.currentUser.name : "Personel",
       operatorName: null
     };
 
@@ -407,9 +408,10 @@ export class ForkliftModule {
     appState.saveState();
 
     const depObj = appState.state.departments.find(d => d.id === departmentId) || { name: "" };
+    const uName = appState.state.currentUser ? appState.state.currentUser.name : "Personel";
     logSystemAction(
       "FORKLİFT_ÇAGRI",
-      `${appState.state.currentUser.name}, ${depObj.name} (${location}) için [${urgency}] aciliyetinde forklift çağrısı açtı.`,
+      `${uName}, ${depObj.name} (${location}) için [${urgency}] aciliyetinde forklift çağrısı açtı.`,
       { location, urgency, description }
     );
 
@@ -452,7 +454,8 @@ export class ForkliftModule {
     };
 
     appState.saveState();
-    logSystemAction("TELEGRAM_AYAR", `${appState.state.currentUser.name} Telegram bot bildirim tercihlerini güncelledi.`);
+    const uName = appState.state.currentUser ? appState.state.currentUser.name : "Yönetici";
+    logSystemAction("TELEGRAM_AYAR", `${uName} Telegram bot bildirim tercihlerini güncelledi.`);
     alert("Telegram ayarları ve bildirim tercihleri başarıyla kaydedildi.");
     document.getElementById("modal-telegram-settings").classList.remove("show");
   }

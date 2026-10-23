@@ -186,7 +186,8 @@ export class AdminModule {
         }
 
         // 2. ADIM: Log kaydet ve sıfırla
-        logSystemAction("FABRİKA_SIFIRLAMA", `${appState.state.currentUser.name}, acil kurtarma yedeği alarak sistemi fabrika ayarlarına sıfırladı.`);
+        const uName = appState.state.currentUser ? appState.state.currentUser.name : "Sistem Yöneticisi";
+        logSystemAction("FABRİKA_SIFIRLAMA", `${uName}, acil kurtarma yedeği alarak sistemi fabrika ayarlarına sıfırladı.`);
         appState.resetToDefaults();
 
         alert("Fabrika sıfırlama tamamlandı. Tüm verilerinizi içeren acil durum kurtarma yedeği dosyanız bilgisayarınıza otomatik olarak indirildi.");

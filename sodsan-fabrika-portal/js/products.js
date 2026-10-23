@@ -423,9 +423,11 @@ export class ProductsModule {
 
         if (confirm(confirmMsg)) {
           // Sistem Arşiv Logu - Silinse bile tüm detaylar burada kalır
+          const uName = appState.state.currentUser ? appState.state.currentUser.name : "Yönetici";
+          const uRole = appState.state.currentUser ? appState.state.currentUser.role : "ADMIN";
           logSystemAction(
             "ÜRÜN_SİLME",
-            `[YÖNETİCİ SİLME ARŞİVİ] ${appState.state.currentUser.name}, "${target.productName}" (${target.amount} ${target.unit}, Hareket: ${target.type}, Firma: ${target.company || target.supplier || '-'}, Giriş Tarihi: ${target.date}, Ekleyen: ${target.createdBy || 'Bilinmiyor'}) kaydını sildi.`,
+            `[YÖNETİCİ SİLME ARŞİVİ] ${uName}, "${target.productName}" (${target.amount} ${target.unit}, Hareket: ${target.type}, Firma: ${target.company || target.supplier || '-'}, Giriş Tarihi: ${target.date}, Ekleyen: ${target.createdBy || 'Bilinmiyor'}) kaydını sildi.`,
             {
               deletedRecordId: target.id,
               productName: target.productName,
@@ -438,8 +440,8 @@ export class ProductsModule {
               originalDate: target.date,
               departmentId: target.departmentId,
               originalCreatedBy: target.createdBy || '',
-              deletedBy: appState.state.currentUser.name,
-              deletedByUserRole: appState.state.currentUser.role,
+              deletedBy: uName,
+              deletedByUserRole: uRole,
               deletedAt: new Date().toISOString()
             }
           );
@@ -547,11 +549,12 @@ export class ProductsModule {
     item.type = newType;
     item.departmentId = newDeptId;
     item.unitDetail = newUnitDetail;
+    const uName = appState.state.currentUser ? appState.state.currentUser.name : "Yönetici";
     item.company = chosenCompany;
     item.supplier = chosenCompany + (newInvoiceNo ? ` (${newInvoiceNo})` : "");
     item.invoiceNo = newInvoiceNo;
     item.note = newNote;
-    item.lastEditedBy = appState.state.currentUser.name;
+    item.lastEditedBy = uName;
     item.lastEditedAt = new Date().toISOString();
 
     appState.saveState();
@@ -559,8 +562,8 @@ export class ProductsModule {
     // Sistem günlüğüne açık ve detaylı kayıt tut
     logSystemAction(
       "ÜRÜN_DÜZENLEME",
-      `Yönetici ${appState.state.currentUser.name}, "${newName}" ürün hareketini güncelledi. (${changes.length > 0 ? changes.join(", ") : "Bilgiler teyit edildi"})`,
-      { productId: item.id, changes, editedBy: appState.state.currentUser.name }
+      `Yönetici ${uName}, "${newName}" ürün hareketini güncelledi. (${changes.length > 0 ? changes.join(", ") : "Bilgiler teyit edildi"})`,
+      { productId: item.id, changes, editedBy: uName }
     );
 
     playAlertSound("call");
@@ -620,16 +623,17 @@ export class ProductsModule {
       company: chosenCompany,
       supplier: chosenCompany + (invoiceNo ? ` (${invoiceNo})` : ""),
       invoiceNo,
-      createdBy: appState.state.currentUser.name,
+      createdBy: appState.state.currentUser ? appState.state.currentUser.name : "Fabrika Yetkilisi",
       note
     };
 
     appState.state.products.unshift(newProduct);
     appState.saveState();
 
+    const uName = appState.state.currentUser ? appState.state.currentUser.name : "Fabrika Yetkilisi";
     logSystemAction(
       type === 'GELEN' ? "ÜRÜN_GİRİŞİ" : type === 'GIDEN' ? "ÜRÜN_ÇIKIŞI" : "ÜRÜN_TRANSFER",
-      `${appState.state.currentUser.name}, "${productName}" (${amount} ${unit}) - Firma: "${chosenCompany}" ${typeLabel} kaydetti.`,
+      `${uName}, "${productName}" (${amount} ${unit}) - Firma: "${chosenCompany}" ${typeLabel} kaydetti.`,
       { productName, amount, unit, type, company: chosenCompany, invoiceNo }
     );
 
