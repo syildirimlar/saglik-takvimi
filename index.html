@@ -56,8 +56,8 @@
       <!-- Üst Logo & Başlık -->
       <div class="text-center mb-6">
         <div class="inline-flex flex-col items-center mb-2">
-          <img src="assets/sodsan-logo.png" alt="SODSAN" class="h-10 w-auto object-contain block mx-auto">
-          <span class="text-[11px] font-black tracking-[0.25em] text-blue-600 dark:text-blue-400 uppercase text-center mt-1">PORTAL</span>
+          <img src="assets/sodsan-logo.png" alt="SODSAN" class="h-11 w-auto max-w-[200px] object-contain block mx-auto">
+          <span class="inline-block mt-1.5 px-3 py-0.5 rounded text-[10px] font-black tracking-[0.25em] bg-blue-600 text-white uppercase text-center shadow-xs">PORTAL</span>
         </div>
         <h2 class="text-lg font-black text-slate-900 dark:text-white mt-1">Fabrika Operasyon Girişi</h2>
         <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Sisteme erişebilmek için lütfen kullanıcı bilgilerinizi doğrulayınız.</p>
@@ -132,16 +132,16 @@
       <div class="flex-1 flex flex-col min-h-0">
         
         <!-- Logo & Başlık -->
-        <div class="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-          <div class="flex items-center gap-2.5">
-            <img src="assets/sodsan-logo.png" alt="SODSAN" class="h-8 w-auto max-w-[150px] object-contain block dark:brightness-125">
-            <span class="text-[9px] font-black bg-blue-600 text-white px-1.5 py-0.5 rounded tracking-wider">PORTAL</span>
-          </div>
-
+        <div class="p-4 border-b border-slate-100 dark:border-slate-800 relative flex flex-col items-center justify-center">
           <!-- Mobilde Kapatma Butonu -->
-          <button id="btn-close-sidebar" class="lg:hidden p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-lg font-bold cursor-pointer" title="Menüyü Kapat">
+          <button id="btn-close-sidebar" class="lg:hidden absolute top-3 right-3 p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-lg font-bold cursor-pointer" title="Menüyü Kapat">
             ✕
           </button>
+
+          <div class="flex flex-col items-center justify-center text-center">
+            <img src="assets/sodsan-logo.png" alt="SODSAN" class="h-9 w-auto max-w-[170px] object-contain block">
+            <span class="inline-block mt-1.5 px-2.5 py-0.5 rounded text-[10px] font-black tracking-[0.25em] bg-blue-600 text-white uppercase text-center shadow-xs">PORTAL</span>
+          </div>
         </div>
 
         <!-- Hızlı Acil Aksiyon Butonları (Sidebar Üstü) -->
@@ -315,7 +315,10 @@
           <button id="btn-toggle-sidebar" class="lg:hidden p-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-200 text-base font-black transition cursor-pointer" title="Menüyü Aç">
             ☰
           </button>
-          <img src="assets/sodsan-logo.png" alt="SODSAN" class="h-6 w-auto object-contain block lg:hidden">
+          <div class="flex flex-col items-center lg:hidden">
+            <img src="assets/sodsan-logo.png" alt="SODSAN" class="h-5 w-auto object-contain block">
+            <span class="text-[7px] font-black tracking-widest text-blue-600 dark:text-blue-400 uppercase -mt-0.5">PORTAL</span>
+          </div>
           <div>
             <h1 id="current-page-title" class="text-sm sm:text-base font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-1.5 truncate">
               📅 Fabrika Operasyon & Planlama Takvimi
@@ -2852,7 +2855,7 @@
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js?v=34').catch(err => {
+        navigator.serviceWorker.register('sw.js?v=35').catch(err => {
           console.log('SW registration failed:', err);
         });
       });
@@ -2860,6 +2863,6 @@
   </script>
 
   <!-- ES Modül Girişi -->
-  <script type="module" src="js/app.js?v=5.3"></script>
+  <script type="module" src="js/app.js?v=5.4"></script>
 </body>
 </html>
