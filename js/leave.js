@@ -19,59 +19,78 @@ export class LeaveModule {
     this.render();
   }
 
+  // Tüm kayıtlı fabrika çalışanlarını hem employees hem users tablosundan eksiksiz derler
+  getFactoryEmployees() {
+    const list = [];
+    const seen = new Set();
+
+    // 1. İK Personel Çizelgesindeki kayıtlar (employees)
+    (appState.state.employees || []).forEach(emp => {
+      if (emp && emp.name && emp.name.trim()) {
+        const key = emp.name.trim().toLowerCase();
+        if (!seen.has(key)) {
+          seen.add(key);
+          list.push(emp);
+        }
+      }
+    });
+
+    // 2. Sistemde kayıtlı kullanıcılar (users) - çalışan olarak da seçilebilsinler
+    (appState.state.users || []).forEach(u => {
+      if (u && u.name && u.name.trim()) {
+        const key = u.name.trim().toLowerCase();
+        if (!seen.has(key)) {
+          seen.add(key);
+          list.push({
+            id: u.id,
+            userId: u.id,
+            name: u.name,
+            role: u.role || "PERSONEL",
+            departmentId: u.departmentId || "dep_genel",
+            totalLeave: 14,
+            usedLeave: 0,
+            remainingLeave: 14,
+            hireDate: "2024-01-01"
+          });
+        }
+      }
+    });
+
+    return list;
+  }
+
   populateEmployeeSelect() {
     const empSelect = document.getElementById("leave-employee");
     if (!empSelect) return;
 
-    const employees = appState.state.employees || [];
-    const myEmp = getCurrentUserEmployee();
-    const isAuthorized = isManagerOrHr();
+    const employees = this.getFactoryEmployees();
+    const currentUser = appState.state.currentUser;
 
-    // Yetki bilgilendirme rozeti
-    let noticeEl = document.getElementById("leave-permission-notice");
-    if (!noticeEl) {
-      noticeEl = document.createElement("div");
-      noticeEl.id = "leave-permission-notice";
-      noticeEl.className = "text-[11px] font-semibold mt-1 p-2 rounded-lg";
-      empSelect.parentNode.appendChild(noticeEl);
+    empSelect.disabled = false;
+
+    if (employees.length === 0) {
+      empSelect.innerHTML = `<option value="">-- Kayıtlı personel bulunamadı --</option>`;
+      return;
     }
 
-    if (noticeEl) {
-      noticeEl.innerHTML = "";
-      noticeEl.className = "hidden";
-    }
+    empSelect.innerHTML = `<option value="">-- Personel Seçiniz (${employees.length} Kayıtlı Çalışan) --</option>`;
+    employees.forEach(emp => {
+      const dep = appState.state.departments.find(d => d.id === emp.departmentId) || { name: "Genel Fabrika" };
+      const isMe = currentUser && (emp.userId === currentUser.id || emp.id === currentUser.id || (emp.name && emp.name.toLowerCase() === currentUser.name.toLowerCase()));
+      const remaining = typeof emp.remainingLeave === "number" ? emp.remainingLeave : 14;
 
-    if (isAuthorized) {
-      // YETKİLİ PERSONEL: Tüm çalışanlar listelenir
-      empSelect.disabled = false;
-      empSelect.innerHTML = `<option value="">-- Personel Seçiniz --</option>`;
-      employees.forEach(emp => {
-        const dep = appState.state.departments.find(d => d.id === emp.departmentId) || { name: "" };
-        const isMe = myEmp && emp.id === myEmp.id;
-        empSelect.innerHTML += `
-          <option value="${emp.id}" data-dept="${emp.departmentId}" data-remaining="${emp.remainingLeave}" ${isMe ? 'selected' : ''}>
-            ${emp.name} (${dep.name || 'Genel'} - Kalan: ${emp.remainingLeave} Gün)
-          </option>
-        `;
-      });
+      empSelect.innerHTML += `
+        <option value="${emp.id}" data-dept="${emp.departmentId || ''}" data-remaining="${remaining}" ${isMe ? 'selected' : ''}>
+          ${emp.name} (${dep.name} - Kalan İzin: ${remaining} Gün)
+        </option>
+      `;
+    });
 
-      if (myEmp && !empSelect.value) {
-        empSelect.value = myEmp.id;
-      }
-    } else {
-      // STANDART PERSONEL: Kendi profili doğrudan seçili gelir
+    // Oturumdaki kullanıcının kendi profili varsa ve seçim yapılmadıysa onu otomatik seç
+    if (currentUser && (!empSelect.value || empSelect.value === "")) {
+      const myEmp = employees.find(e => e.userId === currentUser.id || e.id === currentUser.id || (e.name && e.name.toLowerCase() === currentUser.name.toLowerCase()));
       if (myEmp) {
-        const dep = appState.state.departments.find(d => d.id === myEmp.departmentId) || { name: "" };
-        empSelect.innerHTML = `
-          <option value="${myEmp.id}" data-dept="${myEmp.departmentId}" data-remaining="${myEmp.remainingLeave}" selected>
-            ${myEmp.name} (${dep.name || 'Genel'} - Kalan İzin: ${myEmp.remainingLeave} Gün)
-          </option>
-        `;
         empSelect.value = myEmp.id;
-        empSelect.disabled = true;
-      } else {
-        empSelect.innerHTML = `<option value="">-- Çalışan profiliniz bulunamadı --</option>`;
-        empSelect.disabled = true;
       }
     }
   }
@@ -311,6 +330,7 @@ export class LeaveModule {
   }
 
   render() {
+    this.populateEmployeeSelect();
     this.renderRequestsList();
     this.renderBalancesTable();
     this.renderWorkforceChart();
@@ -648,16 +668,6 @@ export class LeaveModule {
   saveLeaveRequest() {
     const empSelect = document.getElementById("leave-employee");
     const empId = empSelect.value;
-    const isAuthorized = isManagerOrHr();
-    const myEmp = getCurrentUserEmployee();
-
-    // Sıkı Yetki Kontrolü: Yetkisiz kullanıcı başkası adına izin açamaz
-    if (!isAuthorized) {
-      if (!myEmp || empId !== myEmp.id) {
-        alert("Lütfen yalnızca kendi adınıza izin talebi oluşturunuz.");
-        return;
-      }
-    }
 
     const leaveType = document.getElementById("leave-type").value;
     const startDate = document.getElementById("leave-start-date").value;
@@ -670,7 +680,8 @@ export class LeaveModule {
       return;
     }
 
-    const employee = appState.state.employees.find(e => e.id === empId);
+    const allEmps = this.getFactoryEmployees();
+    const employee = allEmps.find(e => e.id === empId || e.userId === empId || (e.name && e.name === empId));
     const uName = appState.state.currentUser ? appState.state.currentUser.name : "Personel";
     const userDeptId = appState.state.currentUser ? appState.state.currentUser.departmentId : "";
 
