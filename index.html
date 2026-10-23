@@ -325,11 +325,6 @@
             </button>
           </div>
 
-          <!-- Hızlı Makine Üret Butonu -->
-          <button id="btn-open-quick-machine" class="bg-amber-500 hover:bg-amber-600 text-white font-extrabold text-xs py-2 px-3 rounded-xl shadow-sm transition flex items-center gap-1.5 cursor-pointer" title="Yeni Makine / Enjeksiyon Presi Üret">
-            <span>⚡</span> <span>Makine Üret / Ekle</span>
-          </button>
-
           <!-- Yeni Plan Ekle Butonu -->
           <button id="btn-open-add-production-plan" class="bg-blue-600 hover:bg-blue-700 active:scale-98 text-white font-extrabold text-xs py-2 px-3.5 rounded-xl shadow-sm transition flex items-center gap-1.5 cursor-pointer">
             <span>+</span> <span>Kalıp Baskı Planı Ekle</span>
@@ -1217,81 +1212,6 @@
     </div>
   </div>
 
-  <!-- MODAL: Hızlı Makine Üret / Ekle -->
-  <div id="modal-quick-machine" class="modal-backdrop">
-    <div class="modal-card p-5 max-w-lg">
-      <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
-        <div class="flex items-center gap-2">
-          <span class="text-xl">⚡</span>
-          <div>
-            <h3 class="text-base font-extrabold text-slate-900">Makine Üret / Parkura Ekle</h3>
-            <p class="text-xs text-slate-500">Fabrika makine parkuruna yeni enjeksiyon presi veya üretim hattı ekleyin</p>
-          </div>
-        </div>
-        <button data-close-modal class="text-slate-400 hover:text-slate-600 font-bold text-lg cursor-pointer">✕</button>
-      </div>
-
-      <!-- Hızlı Tek Tık Şablonlar -->
-      <div class="mb-4 bg-slate-50 p-3 rounded-xl border border-slate-200">
-        <span class="text-[11px] font-bold text-slate-600 uppercase block mb-1.5">⚡ Hızlı Seçim Şablonları (Tek Tıkla Doldur):</span>
-        <div class="flex flex-wrap gap-1.5">
-          <button type="button" data-preset-machine="ENJEKSİYON 2000" data-preset-code="ENJ-2000" class="text-[11px] font-bold bg-white hover:bg-blue-50 text-slate-700 hover:text-blue-700 px-2.5 py-1 rounded-lg border border-slate-200 transition cursor-pointer">
-            + Enjeksiyon 2000
-          </button>
-          <button type="button" data-preset-machine="ENJEKSİYON 350" data-preset-code="ENJ-350" class="text-[11px] font-bold bg-white hover:bg-blue-50 text-slate-700 hover:text-blue-700 px-2.5 py-1 rounded-lg border border-slate-200 transition cursor-pointer">
-            + Enjeksiyon 350
-          </button>
-          <button type="button" data-preset-machine="VAKUM PRES HATTI 03" data-preset-code="VKM-03" class="text-[11px] font-bold bg-white hover:bg-blue-50 text-slate-700 hover:text-blue-700 px-2.5 py-1 rounded-lg border border-slate-200 transition cursor-pointer">
-            + Vakum Pres 03
-          </button>
-          <button type="button" data-preset-machine="CNC SÜNGER KESİM ROBOTU" data-preset-code="CNC-01" class="text-[11px] font-bold bg-white hover:bg-blue-50 text-slate-700 hover:text-blue-700 px-2.5 py-1 rounded-lg border border-slate-200 transition cursor-pointer">
-            + CNC Sünger Kesim
-          </button>
-          <button type="button" data-preset-machine="OTOMATİK RULO PAKETLEME" data-preset-code="PKT-01" class="text-[11px] font-bold bg-white hover:bg-blue-50 text-slate-700 hover:text-blue-700 px-2.5 py-1 rounded-lg border border-slate-200 transition cursor-pointer">
-            + Paketleme Presi
-          </button>
-        </div>
-      </div>
-
-      <form id="form-quick-machine" class="space-y-3.5">
-        <div>
-          <label class="text-xs font-bold text-slate-700 block mb-1">Makine / Hat Adı: *</label>
-          <input type="text" id="quick-machine-name" required placeholder="Örn: ENJEKSİYON 2000 veya VAKUM HATTI" class="w-full text-xs font-bold border border-slate-200 rounded-xl p-2.5 text-slate-900">
-        </div>
-
-        <div class="grid grid-cols-2 gap-3">
-          <div>
-            <label class="text-xs font-bold text-slate-700 block mb-1">Makine Kodu / Plaka:</label>
-            <input type="text" id="quick-machine-code" placeholder="Örn: ENJ-2000" class="w-full text-xs font-mono border border-slate-200 rounded-xl p-2.5">
-          </div>
-          <div>
-            <label class="text-xs font-bold text-slate-700 block mb-1">Bağlı Departman:</label>
-            <select id="quick-machine-dept" class="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl p-2.5 font-medium text-slate-800">
-              <!-- JS ile doldurulur -->
-            </select>
-          </div>
-        </div>
-
-        <div>
-          <label class="text-xs font-bold text-slate-700 block mb-1">Konum / Hat Yeri:</label>
-          <input type="text" id="quick-machine-location" placeholder="Örn: 1400 Üretim Sahası, Hat 3" class="w-full text-xs border border-slate-200 rounded-xl p-2.5">
-        </div>
-
-        <div>
-          <label class="text-xs font-bold text-slate-700 block mb-1">Makine Notu & Kapasitesi:</label>
-          <input type="text" id="quick-machine-notes" placeholder="Örn: 2000 Ton Hidrolik Klempli Büyük Şase Presi" class="w-full text-xs border border-slate-200 rounded-xl p-2.5">
-        </div>
-
-        <div class="pt-2 flex justify-end gap-2 border-t border-slate-100">
-          <button type="button" data-close-modal class="text-xs font-bold text-slate-500 py-2.5 px-4 rounded-xl hover:bg-slate-100 cursor-pointer">Vazgeç</button>
-          <button type="submit" class="bg-amber-500 hover:bg-amber-600 text-white font-black text-xs py-2.5 px-5 rounded-xl shadow-sm flex items-center gap-1.5 cursor-pointer">
-            <span>⚡</span> <span>Makineyi Parkura Kaydet</span>
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
-
   <!-- MODAL: Hızlı Baskı Sayacı Girişi (Operatör) -->
   <div id="modal-log-production-count" class="modal-backdrop">
     <div class="modal-card p-5 max-w-sm">
@@ -1336,10 +1256,10 @@
 
         <!-- Hızlı Adet Ekleme Tuşları -->
         <div class="flex items-center gap-1.5 pt-1">
-          <button type="button" onclick="document.getElementById('log-count-input').value = 250" class="text-xs font-bold bg-slate-100 hover:bg-slate-200 py-1 px-2.5 rounded-lg border border-slate-200 text-slate-700 cursor-pointer">+250</button>
-          <button type="button" onclick="document.getElementById('log-count-input').value = 500" class="text-xs font-bold bg-slate-100 hover:bg-slate-200 py-1 px-2.5 rounded-lg border border-slate-200 text-slate-700 cursor-pointer">+500</button>
-          <button type="button" onclick="document.getElementById('log-count-input').value = 1000" class="text-xs font-bold bg-slate-100 hover:bg-slate-200 py-1 px-2.5 rounded-lg border border-slate-200 text-slate-700 cursor-pointer">+1.000</button>
-          <button type="button" onclick="document.getElementById('log-count-input').value = 2000" class="text-xs font-bold bg-slate-100 hover:bg-slate-200 py-1 px-2.5 rounded-lg border border-slate-200 text-slate-700 cursor-pointer">+2.000</button>
+          <button type="button" data-preset-count="250" class="btn-preset-count text-xs font-bold bg-slate-100 hover:bg-slate-200 py-1.5 px-3 rounded-lg border border-slate-200 text-slate-700 cursor-pointer active:scale-95 transition">+250</button>
+          <button type="button" data-preset-count="500" class="btn-preset-count text-xs font-bold bg-slate-100 hover:bg-slate-200 py-1.5 px-3 rounded-lg border border-slate-200 text-slate-700 cursor-pointer active:scale-95 transition">+500</button>
+          <button type="button" data-preset-count="1000" class="btn-preset-count text-xs font-bold bg-slate-100 hover:bg-slate-200 py-1.5 px-3 rounded-lg border border-slate-200 text-slate-700 cursor-pointer active:scale-95 transition">+1.000</button>
+          <button type="button" data-preset-count="2000" class="btn-preset-count text-xs font-bold bg-slate-100 hover:bg-slate-200 py-1.5 px-3 rounded-lg border border-slate-200 text-slate-700 cursor-pointer active:scale-95 transition">+2.000</button>
         </div>
 
         <div class="pt-2 flex justify-end gap-2 border-t border-slate-100">
@@ -1348,6 +1268,9 @@
             <span>✅</span> <span>Baskıyı Ekle</span>
           </button>
         </div>
+      </form>
+    </div>
+  </div>
       </form>
     </div>
   </div>
@@ -2779,7 +2702,7 @@
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js?v=29').catch(err => {
+        navigator.serviceWorker.register('sw.js?v=30').catch(err => {
           console.log('SW registration failed:', err);
         });
       });
@@ -2787,6 +2710,6 @@
   </script>
 
   <!-- ES Modül Girişi -->
-  <script type="module" src="js/app.js?v=4.8"></script>
+  <script type="module" src="js/app.js?v=4.9"></script>
 </body>
 </html>
