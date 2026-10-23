@@ -146,11 +146,17 @@
 
         <!-- Hızlı Acil Aksiyon Butonları (Sidebar Üstü) -->
         <div class="p-3 grid grid-cols-2 gap-2 border-b border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/40">
-          <button id="btn-open-report-breakdown" class="bg-red-600 hover:bg-red-700 active:scale-98 text-white font-extrabold text-[11px] py-2 px-2 rounded-xl shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer">
+          <button id="btn-open-report-breakdown" class="bg-red-600 hover:bg-red-700 active:scale-98 text-white font-extrabold text-[11px] py-2 px-2 rounded-xl shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer" title="Acil Makine Arıza Bildirimi">
             <span>🚨</span> <span>Arıza Bildir</span>
           </button>
-          <button id="btn-open-call-forklift" class="bg-amber-500 hover:bg-amber-600 active:scale-98 text-white font-extrabold text-[11px] py-2 px-2 rounded-xl shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer">
+          <button id="btn-open-call-forklift" class="bg-amber-500 hover:bg-amber-600 active:scale-98 text-white font-extrabold text-[11px] py-2 px-2 rounded-xl shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer" title="Acil Forklift Operatörü Çağır">
             <span>🚜</span> <span>Forklift Çağır</span>
+          </button>
+          <button data-open-catering-menu class="bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white font-extrabold text-[11px] py-2 px-2 rounded-xl shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer" title="Aylık Yemek Menüsünü Görüntüle">
+            <span>🍽️</span> <span>Yemek Menüsü</span>
+          </button>
+          <button data-open-shuttle-info class="bg-indigo-600 hover:bg-indigo-700 active:scale-98 text-white font-extrabold text-[11px] py-2 px-2 rounded-xl shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer" title="Personel Servis Güzergahları ve Şoförler">
+            <span>🚐</span> <span>Servisler</span>
           </button>
         </div>
 
@@ -330,19 +336,29 @@
         </div>
 
         <!-- Sağ: Hızlı Bildirimler & Tarih -->
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-1.5 sm:gap-2">
+          <!-- Yemek Menüsü Hızlı Butonu (En Tepe) -->
+          <button data-open-catering-menu class="bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white font-extrabold text-xs px-2.5 py-1.5 rounded-lg shadow-xs transition flex items-center gap-1 cursor-pointer" title="Aylık Yemek Menüsünü Görüntüle">
+            <span>🍽️</span> <span class="hidden md:inline">Yemek Menüsü</span>
+          </button>
+
+          <!-- Servis Güzergahları Hızlı Butonu -->
+          <button data-open-shuttle-info class="bg-indigo-600 hover:bg-indigo-700 active:scale-98 text-white font-extrabold text-xs px-2.5 py-1.5 rounded-lg shadow-xs transition flex items-center gap-1 cursor-pointer" title="Personel Servis Güzergahları & Şoförler">
+            <span>🚐</span> <span class="hidden md:inline">Servisler</span>
+          </button>
+
           <!-- Hızlı Arıza Bildir Butonu (Üst Çubukta da hazır) -->
-          <button data-open-report-breakdown class="bg-red-600 hover:bg-red-700 text-white font-extrabold text-xs px-2.5 py-1.5 rounded-lg shadow-xs transition flex items-center gap-1 cursor-pointer">
+          <button data-open-report-breakdown class="bg-red-600 hover:bg-red-700 text-white font-extrabold text-xs px-2.5 py-1.5 rounded-lg shadow-xs transition flex items-center gap-1 cursor-pointer" title="Acil Arıza Bildir">
             <span>🚨</span> <span class="hidden sm:inline">Arıza Bildir</span>
           </button>
 
           <!-- Hızlı Forklift Çağır Butonu -->
-          <button data-open-call-forklift class="pulse-emergency bg-amber-500 hover:bg-amber-600 text-white font-extrabold text-xs px-2.5 py-1.5 rounded-lg shadow-xs transition flex items-center gap-1 cursor-pointer">
+          <button data-open-call-forklift class="pulse-emergency bg-amber-500 hover:bg-amber-600 text-white font-extrabold text-xs px-2.5 py-1.5 rounded-lg shadow-xs transition flex items-center gap-1 cursor-pointer" title="Forklift Operatörü Çağır">
             <span>🚜</span> <span class="hidden sm:inline">Forklift</span>
           </button>
 
           <!-- Tarih Rozeti -->
-          <div class="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-semibold">
+          <div class="hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-semibold">
             <span>🕒</span>
             <span id="portal-live-clock">Canlı Takip</span>
           </div>
@@ -653,15 +669,23 @@
     <section id="tab-leave" class="tab-pane hidden space-y-4">
       <!-- İK Üst Alt-Sekme Seçici (İzinler vs Fazla Mesai) -->
       <div class="bg-white p-2 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between flex-wrap gap-2">
-        <div class="flex items-center gap-1.5 p-1 bg-slate-100 rounded-lg">
-          <button id="subtab-btn-leave" class="px-4 py-2 rounded-md text-xs font-bold transition flex items-center gap-1.5 bg-white text-blue-700 shadow-sm">
+        <div class="flex items-center gap-1.5 p-1 bg-slate-100 dark:bg-slate-800 rounded-lg flex-wrap">
+          <button id="subtab-btn-leave" class="px-3 sm:px-4 py-2 rounded-md text-xs font-bold transition flex items-center gap-1.5 bg-white text-blue-700 shadow-sm cursor-pointer">
             <span class="text-base">🏖️</span>
             <span>Personel İzinleri & Bakiye</span>
           </button>
-          <button id="subtab-btn-overtime" class="px-4 py-2 rounded-md text-xs font-bold transition flex items-center gap-1.5 text-slate-600 hover:text-slate-900">
+          <button id="subtab-btn-overtime" class="px-3 sm:px-4 py-2 rounded-md text-xs font-bold transition flex items-center gap-1.5 text-slate-600 hover:text-slate-900 cursor-pointer">
             <span class="text-base">⏰</span>
-            <span>Fazla Mesai Talepleri & Çizelge</span>
+            <span>Fazla Mesai Çizelgesi</span>
             <span id="overtime-pending-badge" class="bg-amber-500 text-white text-[10px] font-black px-1.5 py-0.2 rounded-full hidden">0</span>
+          </button>
+          <button id="subtab-btn-catering" class="px-3 sm:px-4 py-2 rounded-md text-xs font-bold transition flex items-center gap-1.5 text-slate-600 hover:text-slate-900 cursor-pointer">
+            <span class="text-base">🍽️</span>
+            <span>Aylık Yemek Menüsü</span>
+          </button>
+          <button id="subtab-btn-shuttle" class="px-3 sm:px-4 py-2 rounded-md text-xs font-bold transition flex items-center gap-1.5 text-slate-600 hover:text-slate-900 cursor-pointer">
+            <span class="text-base">🚐</span>
+            <span>Personel Servisleri</span>
           </button>
         </div>
       </div>
@@ -837,6 +861,81 @@
               </thead>
               <tbody id="overtime-employee-table-body">
                 <!-- JavaScript tarafından doldurulur -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ALT SEKME 3: AYLIK YEMEK MENÜSÜ -->
+      <div id="subpane-catering" class="hidden space-y-4">
+        <div class="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="text-xl">🍽️</span>
+              <h2 class="text-base font-extrabold text-slate-800 dark:text-white">Aylık Yemek Menüsü Panosu</h2>
+              <span id="ik-catering-month-display" class="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 text-xs font-black px-2.5 py-0.5 rounded-full">Ekim 2026</span>
+            </div>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Tedarikçi Şirket: <span id="ik-catering-company-display" class="font-bold text-slate-700 dark:text-slate-300">Yemek Şirketi</span></p>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <button type="button" data-open-catering-menu class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2 px-3.5 rounded-xl shadow-sm transition flex items-center gap-1.5 cursor-pointer">
+              <span>🔍</span> <span>Menüyü Büyüt / İncele</span>
+            </button>
+            <button type="button" onclick="window.portalApp.switchTab('tab-admin')" class="bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold py-2 px-3 rounded-xl border border-slate-200 dark:border-slate-700 transition flex items-center gap-1 cursor-pointer">
+              <span>⚙️</span> <span>Yemekçi Ayarları</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Menü Görseli Önizleme Kutusu -->
+        <div id="ik-catering-menu-preview" class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm min-h-[250px] flex items-center justify-center">
+          <!-- JS tarafından doldurulur -->
+        </div>
+      </div>
+
+      <!-- ALT SEKME 4: PERSONEL SERVİS GÜZERGAHLARI -->
+      <div id="subpane-shuttle" class="hidden space-y-4">
+        <div class="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="text-xl">🚐</span>
+              <h2 class="text-base font-extrabold text-slate-800 dark:text-white">Personel Servis Güzergahları & Şoför Listesi</h2>
+            </div>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Servis güzergahları, durak saatleri, araç plakaları ve hangi personelin hangi araca bineceği</p>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <button type="button" data-open-shuttle-info class="bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 text-indigo-700 dark:text-indigo-300 text-xs font-bold py-2 px-3 rounded-xl border border-indigo-200 dark:border-indigo-800 transition flex items-center gap-1.5 cursor-pointer">
+              <span>👁️</span> <span>Personel Görünümü</span>
+            </button>
+            <button type="button" id="btn-open-add-shuttle" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-bold py-2 px-4 rounded-xl shadow-sm transition flex items-center gap-1.5 cursor-pointer">
+              <span>+</span> <span>Yeni Servis Ekle</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Servis Arama & Tablo -->
+        <div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+          <div class="p-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 flex items-center justify-between gap-3">
+            <input type="text" id="filter-shuttle-search" placeholder="Güzergah, plaka veya şoför ara..." class="border border-slate-200 dark:border-slate-700 dark:bg-slate-800 rounded-lg py-1.5 px-3 text-xs w-full max-w-xs focus:ring-2 focus:ring-indigo-500 outline-none">
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left">
+              <thead class="bg-slate-100 dark:bg-slate-800/80 text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase border-b border-slate-200 dark:border-slate-700">
+                <tr>
+                  <th class="py-2.5 px-3">Güzergah Adı</th>
+                  <th class="py-2.5 px-3">Araç Plakası</th>
+                  <th class="py-2.5 px-3">Şoför & İletişim</th>
+                  <th class="py-2.5 px-3">Duraklar & Saatler</th>
+                  <th class="py-2.5 px-3">Kapasite / Personel</th>
+                  <th class="py-2.5 px-3 text-right">İşlemler</th>
+                </tr>
+              </thead>
+              <tbody id="ik-shuttle-routes-table-tbody" class="divide-y divide-slate-100 dark:divide-slate-800">
+                <!-- JS tarafından doldurulur -->
               </tbody>
             </table>
           </div>
@@ -1102,6 +1201,96 @@
             </tbody>
           </table>
         </div>
+      </div>
+
+      <!-- YEMEK ŞİRKETİ & AYLIK MENÜ YÖNETİMİ (ADMIN ENTEGRASYONU) -->
+      <div id="admin-catering-section" class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden transition">
+        <div class="p-4 border-b border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3 bg-slate-50 dark:bg-slate-800/40">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="text-xl">🍽️</span>
+              <h3 class="text-sm font-extrabold text-slate-800 dark:text-white">Yemek Şirketi Portalı & Aylık Menü Ayarları</h3>
+            </div>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Yemek şirketinin web sitesi, giriş şifreleri ve aylık yemek listesi görseli</p>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <button type="button" id="btn-go-catering-site" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-2 px-3.5 rounded-lg shadow-xs transition flex items-center gap-1.5 cursor-pointer">
+              <span>🌐</span> <span>Yemekçi Sitesine Git</span>
+            </button>
+            <button type="button" data-open-catering-menu class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2 px-3.5 rounded-lg shadow-xs transition flex items-center gap-1.5 cursor-pointer">
+              <span>🍽️</span> <span>Menüyü Gör</span>
+            </button>
+          </div>
+        </div>
+
+        <form id="form-admin-catering-config" class="p-4 sm:p-6 space-y-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Yemek Şirketi Adı:</label>
+              <input type="text" id="catering-admin-company" placeholder="Örn: Sofra Catering A.Ş." class="w-full text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500 font-medium">
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Hangi Ayın Menüsü:</label>
+              <input type="text" id="catering-admin-month" placeholder="Örn: Ekim 2026" class="w-full text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500 font-bold">
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Yemek Şirketi Web Adresi (URL):</label>
+              <input type="url" id="catering-admin-website" placeholder="https://portal.yemekfirmasi.com" class="w-full text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500 font-medium">
+              <span class="text-[10px] text-slate-400">Tek tıkla giriş yapılacak site adresi</span>
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Giriş Kullanıcı Adı / Müşteri No:</label>
+              <input type="text" id="catering-admin-username" placeholder="Müşteri kullanıcı adı" class="w-full text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500 font-medium">
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Giriş Şifresi:</label>
+              <div class="relative">
+                <input type="password" id="catering-admin-password" placeholder="Site giriş şifresi" class="w-full text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2.5 pr-8 outline-none focus:ring-2 focus:ring-blue-500 font-medium">
+                <button type="button" id="btn-toggle-catering-pass" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs cursor-pointer">
+                  👁️
+                </button>
+              </div>
+              <span class="text-[10px] text-slate-400">Site açıldığında şifre panoya kopyalanır</span>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Doğrudan Menü Bağlantısı (İsteğe Bağlı URL):</label>
+            <input type="url" id="catering-admin-menu-url" placeholder="https://.../aylik-menu.pdf veya resim linki" class="w-full text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500 font-medium">
+          </div>
+
+          <!-- Menü Görseli Dosya Yükleme -->
+          <div class="p-4 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-200 dark:border-slate-700 space-y-3">
+            <div class="flex items-center justify-between flex-wrap gap-2">
+              <div>
+                <label class="block text-xs font-extrabold text-slate-800 dark:text-white">📸 Aylık Yemek Menüsü Görseli Yükle:</label>
+                <p class="text-[11px] text-slate-500 dark:text-slate-400">Yemek şirketinden gelen aylık yemek listesi resmini (JPG, PNG) cihazınızdan seçin.</p>
+              </div>
+              <button type="button" id="btn-remove-menu-image" class="text-xs text-red-600 hover:text-red-700 font-bold cursor-pointer">
+                🗑️ Görseli Kaldır
+              </button>
+            </div>
+
+            <input type="file" id="catering-admin-image-file" accept="image/*" class="text-xs block w-full file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer">
+
+            <div id="catering-admin-image-preview" class="pt-2">
+              <!-- JS tarafından doldurulur -->
+            </div>
+          </div>
+
+          <div class="flex justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+            <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs py-2.5 px-6 rounded-xl shadow-sm transition flex items-center gap-1.5 cursor-pointer">
+              <span>💾</span> <span>Yemek Şirketi & Menü Ayarlarını Kaydet</span>
+            </button>
+          </div>
+        </form>
       </div>
 
       <!-- İŞLEM GEÇMİŞİ & DENETİM İZİ (AUDIT LOG) -->
@@ -2851,11 +3040,173 @@
   </div>
 
 
+  <!-- ==================== MODAL: AYLIK YEMEK MENÜSÜ GÖRÜNTÜLEME ==================== -->
+  <div id="modal-catering-menu" class="modal-backdrop">
+    <div class="modal-content max-w-4xl w-full p-4 sm:p-6 space-y-4 max-h-[92vh] flex flex-col">
+      <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 flex-wrap gap-2">
+        <div class="flex items-center gap-2.5">
+          <span class="text-2xl">🍽️</span>
+          <div>
+            <h3 id="modal-catering-title" class="text-base sm:text-lg font-black text-slate-900 dark:text-white">Aylık Yemek Menüsü</h3>
+            <p id="modal-catering-subtitle" class="text-xs text-slate-500 dark:text-slate-400">SODSAN Fabrika Yemek Menüsü</p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button type="button" id="modal-catering-website-btn" class="hidden bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-1.5 px-3 rounded-lg shadow-xs transition flex items-center gap-1 cursor-pointer">
+            <span>🌐</span> <span class="hidden sm:inline">Yemek Şirketi Portalı</span>
+          </button>
+          <button type="button" id="modal-catering-edit-btn" class="hidden bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 text-xs font-bold py-1.5 px-3 rounded-lg transition flex items-center gap-1 cursor-pointer">
+            <span>✏️</span> <span>Güncelle</span>
+          </button>
+          <button type="button" data-close-modal class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xl font-black w-8 h-8 rounded-full flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer" title="Kapat">
+            ✕
+          </button>
+        </div>
+      </div>
+
+      <!-- Bugünün Menüsü Vurgu Şeridi -->
+      <div id="modal-catering-today-banner" class="hidden"></div>
+
+      <!-- Menü Resmi Alanı -->
+      <div id="modal-catering-image-container" class="flex-1 overflow-y-auto">
+        <!-- JS tarafından doldurulur -->
+      </div>
+
+      <div class="pt-2 flex items-center justify-between border-t border-slate-100 dark:border-slate-800 text-xs text-slate-500">
+        <span class="text-[11px]">Resme tıklayarak yakınlaştırabilir veya "Tam Ekran" ile büyük açabilirsiniz.</span>
+        <button type="button" data-close-modal class="bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs py-2 px-4 rounded-xl transition cursor-pointer">
+          ✕ Kapat
+        </button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ==================== MODAL: PERSONEL SERVİS GÜZERGAHLARI & ŞOFÖRLER ==================== -->
+  <div id="modal-shuttle-info" class="modal-backdrop">
+    <div class="modal-content max-w-4xl w-full p-4 sm:p-6 space-y-4 max-h-[92vh] flex flex-col">
+      <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 flex-wrap gap-2">
+        <div class="flex items-center gap-2.5">
+          <span class="text-2xl">🚐</span>
+          <div>
+            <h3 class="text-base sm:text-lg font-black text-slate-900 dark:text-white">Personel Servis Güzergahları & Şoför Bilgileri</h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400">Fabrika vardiya servisleri, durak saatleri, araç plakaları ve binecek personeller</p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button type="button" data-close-modal class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xl font-black w-8 h-8 rounded-full flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer" title="Kapat">
+            ✕
+          </button>
+        </div>
+      </div>
+
+      <!-- Servis Kartları Listesi -->
+      <div id="modal-shuttle-routes-list" class="flex-1 overflow-y-auto space-y-4 pr-1">
+        <!-- JS tarafından doldurulur -->
+      </div>
+
+      <div class="pt-2 flex items-center justify-between border-t border-slate-100 dark:border-slate-800 text-xs text-slate-500">
+        <span class="text-[11px]">Şoförün telefonuna tıklayarak doğrudan arama yapabilirsiniz.</span>
+        <button type="button" data-close-modal class="bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs py-2 px-4 rounded-xl transition cursor-pointer">
+          ✕ Kapat
+        </button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ==================== MODAL: SERVİS GÜZERGAHI EKLE / DÜZENLE ==================== -->
+  <div id="modal-add-edit-shuttle" class="modal-backdrop">
+    <div class="modal-content max-w-2xl w-full p-5 sm:p-6 space-y-4 max-h-[90vh] flex flex-col">
+      <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+        <div class="flex items-center gap-2">
+          <span class="text-xl">🚐</span>
+          <h3 id="modal-shuttle-form-title" class="text-base font-black text-slate-900 dark:text-white">Yeni Servis Güzergahı Ekle</h3>
+        </div>
+        <button type="button" data-close-modal class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xl font-black w-8 h-8 rounded-full flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer" title="Kapat">
+          ✕
+        </button>
+      </div>
+
+      <form id="form-add-edit-shuttle" class="flex-1 overflow-y-auto space-y-3.5 pr-1">
+        <input type="hidden" id="shuttle-form-id">
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Güzergah / Hat Adı: *</label>
+            <input type="text" id="shuttle-form-name" required placeholder="Örn: Hat 1: Yıldırım - Kent Meydanı" class="w-full text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500 font-bold">
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Araç Plakası: *</label>
+            <input type="text" id="shuttle-form-plate" required placeholder="Örn: 16 S 1234" class="w-full text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500 font-mono font-black uppercase">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Şoför Adı Soyadı:</label>
+            <input type="text" id="shuttle-form-driver" placeholder="Örn: Ahmet Usta" class="w-full text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500 font-medium">
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Şoför Telefonu:</label>
+            <input type="tel" id="shuttle-form-phone" placeholder="0532 555 10 20" class="w-full text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500 font-medium">
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Yolcu Kapasitesi:</label>
+            <input type="number" id="shuttle-form-capacity" value="16" min="1" max="100" class="w-full text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500 font-bold">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Duraklar ve Hareket Saatleri:</label>
+          <textarea id="shuttle-form-stops" rows="3" placeholder="Örn:
+07:15 - Yıldırım Meydanı
+07:30 - Kent Meydanı
+07:45 - Emek İstasyonu
+08:00 - SODSAN Fabrika Varış" class="w-full text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500 font-medium"></textarea>
+        </div>
+
+        <div>
+          <div class="flex items-center justify-between mb-1.5">
+            <label class="text-xs font-bold text-slate-700 dark:text-slate-300">Bu Servise Binecek Personeller:</label>
+            <div class="flex items-center gap-2 text-[10px]">
+              <button type="button" id="btn-select-all-passengers" class="text-blue-600 hover:underline font-bold cursor-pointer">Tümünü Seç</button>
+              <span class="text-slate-300">|</span>
+              <button type="button" id="btn-clear-all-passengers" class="text-slate-500 hover:underline font-bold cursor-pointer">Temizle</button>
+            </div>
+          </div>
+
+          <div id="shuttle-passengers-checklist" class="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto p-2.5 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700">
+            <!-- JS tarafından doldurulur -->
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Özel Notlar:</label>
+          <input type="text" id="shuttle-form-notes" placeholder="Örn: Sabah 08:00 vardiyası için geçerlidir" class="w-full text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500">
+        </div>
+
+        <div class="pt-3 flex justify-end gap-2 border-t border-slate-100 dark:border-slate-800">
+          <button type="button" data-close-modal class="text-xs font-bold text-slate-500 py-2 px-3 rounded-lg hover:bg-slate-100">Vazgeç</button>
+          <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs py-2 px-5 rounded-lg shadow-sm flex items-center gap-1.5 cursor-pointer">
+            <span>💾</span> <span>Servis Güzergahını Kaydet</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+
   <!-- Service Worker Kaydı (PWA) -->
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js?v=35').catch(err => {
+        navigator.serviceWorker.register('sw.js?v=36').catch(err => {
           console.log('SW registration failed:', err);
         });
       });
@@ -2863,6 +3214,6 @@
   </script>
 
   <!-- ES Modül Girişi -->
-  <script type="module" src="js/app.js?v=5.4"></script>
+  <script type="module" src="js/app.js?v=5.5"></script>
 </body>
 </html>
