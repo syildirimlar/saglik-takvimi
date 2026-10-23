@@ -1,5 +1,5 @@
 // SODSAN Fabrika Portalı - Haftalık Üretim Programı & Kalıp Baskı Planlama Modülü (production.js)
-import { appState, playAlertSound, logSystemAction } from './data.js?v=4.8';
+import { appState, playAlertSound, logSystemAction } from './data.js?v=4.9';
 
 export class ProductionModule {
   constructor() {
@@ -7,6 +7,7 @@ export class ProductionModule {
     this.selectedMachineFilter = "ALL";
     this.selectedStatusFilter = "ALL";
     this.activeView = "matrix"; // "matrix" veya "cards"
+    this.eventsBound = false;
   }
 
   init() {
@@ -54,6 +55,9 @@ export class ProductionModule {
   }
 
   bindEvents() {
+    if (this.eventsBound) return;
+    this.eventsBound = true;
+
     // Hafta Değiştirme Butonları
     const btnPrevWeek = document.getElementById("prod-prev-week");
     const btnNextWeek = document.getElementById("prod-next-week");
@@ -134,10 +138,7 @@ export class ProductionModule {
 
     if (btnOpenAddPlan && modalAddPlan) {
       btnOpenAddPlan.addEventListener("click", () => {
-        this.populateMachineDropdowns();
-        this.populateOperatorDropdowns();
-        if (formAddPlan) formAddPlan.reset();
-        modalAddPlan.classList.add("show");
+        this.openAddPlanModal();
       });
     }
 
@@ -148,35 +149,15 @@ export class ProductionModule {
       });
     }
 
-    // Hızlı Makine Üret Butonu ve Modalı
-    const btnOpenQuickMachine = document.getElementById("btn-open-quick-machine");
-    const modalQuickMachine = document.getElementById("modal-quick-machine");
-    const formQuickMachine = document.getElementById("form-quick-machine");
-
-    if (btnOpenQuickMachine && modalQuickMachine) {
-      btnOpenQuickMachine.addEventListener("click", () => {
-        this.populateDepartmentSelectInMachineModal();
-        if (formQuickMachine) formQuickMachine.reset();
-        modalQuickMachine.classList.add("show");
-      });
-    }
-
-    if (formQuickMachine) {
-      formQuickMachine.addEventListener("submit", (e) => {
-        e.preventDefault();
-        this.handleQuickMachineCreate();
-      });
-    }
-
-    // Şablon Makine Üretme Butonları (Örn: + ENJEKSİYON 2000 vb.)
-    document.querySelectorAll("[data-preset-machine]").forEach(btn => {
+    // Baskı Sayaç Girişi Modalı Hızlı Butonlar (+250, +500, vb.)
+    document.querySelectorAll(".btn-preset-count, [data-preset-count]").forEach(btn => {
       btn.addEventListener("click", (e) => {
-        const presetName = e.currentTarget.getAttribute("data-preset-machine");
-        const presetCode = e.currentTarget.getAttribute("data-preset-code") || "";
-        const nameInput = document.getElementById("quick-machine-name");
-        const codeInput = document.getElementById("quick-machine-code");
-        if (nameInput) nameInput.value = presetName;
-        if (codeInput) codeInput.value = presetCode;
+        const count = e.currentTarget.getAttribute("data-preset-count");
+        const countInput = document.getElementById("log-count-input");
+        if (countInput && count) {
+          countInput.value = count;
+          countInput.focus();
+        }
       });
     });
 
@@ -196,6 +177,81 @@ export class ProductionModule {
         window.print();
       });
     }
+
+    // Etkinlik Delege Edicisi (Container Event Delegation)
+    // Dinamik üretilen tüm butonlar için (Adet Ekle, Kalıp Ata, Durum Değiştir, Sil, Boş Alan Butonları)
+    const container = document.getElementById("prod-view-container");
+    if (container) {
+      container.addEventListener("click", (e) => {
+        // 1. Baskı sayacı ekle
+        const logBtn = e.target.closest("[data-log-count]");
+        if (logBtn) {
+          const planId = logBtn.getAttribute("data-log-count");
+          this.openLogCountModal(planId);
+          return;
+        }
+
+        // 2. Boş makineye hızlı kalıp atama
+        const quickAddBtn = e.target.closest("[data-quick-add-plan]");
+        if (quickAddBtn) {
+          const macId = quickAddBtn.getAttribute("data-quick-add-plan");
+          const macName = quickAddBtn.getAttribute("data-mac-name");
+          this.openAddPlanModal(macId || macName);
+          return;
+        }
+
+        // 3. Plan silme
+        const delBtn = e.target.closest("[data-delete-plan]");
+        if (delBtn) {
+          const planId = delBtn.getAttribute("data-delete-plan");
+          if (confirm("Bu kalıp baskı planını silmek istediğinize emin misiniz?")) {
+            appState.deleteProductionPlan(planId);
+            playAlertSound("call");
+            this.render();
+          }
+          return;
+        }
+
+        // 4. Durum değiştirme
+        const statusBtn = e.target.closest("[data-change-status]");
+        if (statusBtn) {
+          const planId = statusBtn.getAttribute("data-change-status");
+          const plans = appState.state.productionPlans || [];
+          const plan = plans.find(p => p.id === planId);
+          if (!plan) return;
+
+          const statuses = ["Planlandı", "Kalıp Bağlanıyor", "Üretimde", "Tamamlandı", "Durduruldu"];
+          const curIdx = statuses.indexOf(plan.status);
+          const nextStatus = statuses[(curIdx + 1) % statuses.length];
+
+          appState.updateProductionPlan(planId, { status: nextStatus });
+          this.render();
+          return;
+        }
+
+        // 5. Boş durumdan modal açma
+        const emptyAddBtn = e.target.closest("[data-open-add-plan-empty]");
+        if (emptyAddBtn) {
+          this.openAddPlanModal();
+          return;
+        }
+      });
+    }
+  }
+
+  openAddPlanModal(preselectedMachineId = "") {
+    this.populateMachineDropdowns();
+    this.populateOperatorDropdowns();
+    const form = document.getElementById("form-add-production-plan");
+    if (form) form.reset();
+
+    if (preselectedMachineId) {
+      const sel = document.getElementById("plan-machine-select");
+      if (sel) sel.value = preselectedMachineId;
+    }
+
+    const modal = document.getElementById("modal-add-production-plan");
+    if (modal) modal.classList.add("show");
   }
 
   populateMachineDropdowns() {
@@ -234,54 +290,6 @@ export class ProductionModule {
     }
   }
 
-  populateDepartmentSelectInMachineModal() {
-    const depts = appState.state.departments || [];
-    const select = document.getElementById("quick-machine-dept");
-    if (select) {
-      select.innerHTML = depts.map(d => `<option value="${d.id}">${d.icon} ${d.name}</option>`).join("");
-      // Varsayılan olarak 1400 Üretim veya ilki
-      const uretim = depts.find(d => d.name.includes("ÜRETİM") || d.name.includes("1400"));
-      if (uretim) select.value = uretim.id;
-    }
-  }
-
-  handleQuickMachineCreate() {
-    const nameInput = document.getElementById("quick-machine-name");
-    const codeInput = document.getElementById("quick-machine-code");
-    const deptSelect = document.getElementById("quick-machine-dept");
-    const locInput = document.getElementById("quick-machine-location");
-    const notesInput = document.getElementById("quick-machine-notes");
-
-    const name = (nameInput?.value || "").trim();
-    if (!name) {
-      alert("Lütfen makine adını giriniz.");
-      return;
-    }
-
-    const machine = appState.registerMachine({
-      name: name,
-      code: codeInput?.value || "",
-      departmentId: deptSelect?.value || "",
-      location: locInput?.value || "Üretim Sahası",
-      notes: notesInput?.value || ""
-    });
-
-    playAlertSound("call");
-    logSystemAction("MAKİNE_ÜRETİLDİ", `Yeni makine parkura eklendi: ${name}`);
-
-    document.getElementById("modal-quick-machine")?.classList.remove("show");
-    document.getElementById("form-quick-machine")?.reset();
-
-    this.populateMachineDropdowns();
-    if (window.portalApp && window.portalApp.breakdown) {
-      window.portalApp.breakdown.populateMachineSelect();
-      window.portalApp.breakdown.render();
-    }
-
-    this.render();
-    alert(`✅ "${name}" makinesi başarıyla üretildi ve fabrika parkuruna kaydedildi!`);
-  }
-
   handleSaveProductionPlan() {
     const machineSelect = document.getElementById("plan-machine-select");
     const moldCodeInput = document.getElementById("plan-mold-code");
@@ -309,7 +317,7 @@ export class ProductionModule {
     }
 
     if (!moldName) {
-      alert("Lütfen kalıp adını veya kodunu giriniz.");
+      alert("Lütfen kalıp adını veya tanımını giriniz.");
       return;
     }
 
@@ -342,7 +350,9 @@ export class ProductionModule {
     });
 
     playAlertSound("call");
-    logSystemAction("ÜRETİM_PLANI_EKLENDİ", `${machineName} için ${moldName} (${targetQty} adet) planlandı.`);
+    try {
+      logSystemAction("ÜRETİM_PLANI_EKLENDİ", `${machineName} için ${moldName} (${targetQty} adet) planlandı.`);
+    } catch (e) {}
 
     // Telegram Grubu Bildirimi
     this.sendProductionTelegramNotification(newPlan, "NEW_PLAN");
@@ -361,13 +371,19 @@ export class ProductionModule {
     const modal = document.getElementById("modal-log-production-count");
     if (!modal) return;
 
-    document.getElementById("log-plan-id").value = plan.id;
-    document.getElementById("log-plan-machine").textContent = plan.machineName;
-    document.getElementById("log-plan-mold").textContent = `${plan.moldName} (${plan.moldCode || ''})`;
-    document.getElementById("log-plan-target").textContent = Number(plan.targetQuantity).toLocaleString("tr-TR") + " Adet";
-    document.getElementById("log-plan-current").textContent = Number(plan.producedQuantity).toLocaleString("tr-TR") + " Adet";
-    
+    const elId = document.getElementById("log-plan-id");
+    const elMac = document.getElementById("log-plan-machine");
+    const elMold = document.getElementById("log-plan-mold");
+    const elTarget = document.getElementById("log-plan-target");
+    const elCurrent = document.getElementById("log-plan-current");
     const countInput = document.getElementById("log-count-input");
+
+    if (elId) elId.value = plan.id;
+    if (elMac) elMac.textContent = plan.machineName;
+    if (elMold) elMold.textContent = `${plan.moldName} (${plan.moldCode || ''})`;
+    if (elTarget) elTarget.textContent = Number(plan.targetQuantity).toLocaleString("tr-TR") + " Adet";
+    if (elCurrent) elCurrent.textContent = Number(plan.producedQuantity).toLocaleString("tr-TR") + " Adet";
+    
     if (countInput) {
       countInput.value = "";
       setTimeout(() => countInput.focus(), 150);
@@ -389,7 +405,9 @@ export class ProductionModule {
     const updated = appState.logProductionCount(planId, count);
     if (updated) {
       playAlertSound("call");
-      logSystemAction("BASKI_SAYACI_EKLENDİ", `${updated.machineName} - ${updated.moldName}: +${count} adet basıldı (Toplam: ${updated.producedQuantity}/${updated.targetQuantity}).`);
+      try {
+        logSystemAction("BASKI_SAYACI_EKLENDİ", `${updated.machineName} - ${updated.moldName}: +${count} adet basıldı (Toplam: ${updated.producedQuantity}/${updated.targetQuantity}).`);
+      } catch (e) {}
 
       if (updated.status === "Tamamlandı") {
         this.sendProductionTelegramNotification(updated, "COMPLETED");
@@ -521,27 +539,30 @@ export class ProductionModule {
     if (elSetup) elSetup.textContent = `${setupCount} Kalıp`;
   }
 
-  getStatusBadge(status) {
+  getStatusBadge(status, planId = "") {
+    const clickableClass = planId ? `cursor-pointer hover:opacity-80 transition active:scale-95` : ``;
+    const attr = planId ? `data-change-status="${planId}" title="Durumu değiştirmek için tıklayınız"` : ``;
+
     switch (status) {
       case "Üretimde":
-        return `<span class="inline-flex items-center gap-1 text-[11px] font-black px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">
+        return `<span ${attr} class="inline-flex items-center gap-1 text-[11px] font-black px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 ${clickableClass}">
                   <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> ⚙️ Baskıda
                 </span>`;
       case "Kalıp Bağlanıyor":
-        return `<span class="inline-flex items-center gap-1 text-[11px] font-black px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300">
+        return `<span ${attr} class="inline-flex items-center gap-1 text-[11px] font-black px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 border border-amber-300 ${clickableClass}">
                   🔧 Kalıp Bağlanıyor
                 </span>`;
       case "Tamamlandı":
-        return `<span class="inline-flex items-center gap-1 text-[11px] font-black px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-800 border border-blue-300">
+        return `<span ${attr} class="inline-flex items-center gap-1 text-[11px] font-black px-2.5 py-1 rounded-full bg-blue-100 text-blue-800 border border-blue-300 ${clickableClass}">
                   ✅ Tamamlandı
                 </span>`;
       case "Durduruldu":
       case "Arıza":
-        return `<span class="inline-flex items-center gap-1 text-[11px] font-black px-2.5 py-0.5 rounded-full bg-red-100 text-red-800 border border-red-300">
+        return `<span ${attr} class="inline-flex items-center gap-1 text-[11px] font-black px-2.5 py-1 rounded-full bg-red-100 text-red-800 border border-red-300 ${clickableClass}">
                   🚨 Durduruldu
                 </span>`;
       default:
-        return `<span class="inline-flex items-center gap-1 text-[11px] font-black px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-300">
+        return `<span ${attr} class="inline-flex items-center gap-1 text-[11px] font-black px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 border border-slate-300 ${clickableClass}">
                   ⏳ Planlandı
                 </span>`;
     }
@@ -561,38 +582,33 @@ export class ProductionModule {
 
     if (displayMachines.length === 0) {
       container.innerHTML = `
-        <div class="bg-white rounded-xl border border-slate-200 p-8 text-center text-slate-500">
-          <span class="text-3xl block mb-2">⚙️</span>
-          <p class="font-bold">Kayıtlı makine bulunamadı.</p>
-          <p class="text-xs text-slate-400 mt-1">Yukarıdaki "⚡ Makine Üret / Ekle" butonu ile yeni enjeksiyon makineleri ekleyebilirsiniz.</p>
+        <div class="bg-white rounded-2xl border border-slate-200 p-8 text-center text-slate-500 shadow-sm">
+          <span class="text-4xl block mb-2">⚙️</span>
+          <p class="font-bold text-slate-800 text-sm">Kayıtlı makine bulunamadı.</p>
+          <p class="text-xs text-slate-400 mt-1">Fabrika parkurundaki makineleri görüntülemek için filtreyi temizleyiniz.</p>
         </div>
       `;
       return;
     }
 
-    const days = [
-      { key: "Pazartesi", label: "Pzt", full: "Pazartesi" },
-      { key: "Salı", label: "Sal", full: "Salı" },
-      { key: "Çarşamba", label: "Çar", full: "Çarşamba" },
-      { key: "Perşembe", label: "Per", full: "Perşembe" },
-      { key: "Cuma", label: "Cum", full: "Cuma" },
-      { key: "Cumartesi", label: "Cmt", full: "Cumartesi" },
-      { key: "Pazar", label: "Paz", full: "Pazar" }
-    ];
-
     container.innerHTML = `
       <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div class="p-3 sm:p-4 bg-slate-900 text-white flex items-center justify-between">
-          <div class="flex items-center gap-2">
+        <div class="p-3 sm:p-4 bg-slate-900 text-white flex flex-wrap items-center justify-between gap-2">
+          <div class="flex items-center gap-2.5">
             <span class="text-xl">📊</span>
             <div>
               <h3 class="text-xs sm:text-sm font-black uppercase tracking-wider text-blue-400">Haftalık Kalıp Baskı Matrisi</h3>
               <p class="text-[11px] text-slate-300">Makinelere bağlanan kalıplar, baskı hedefleri ve gerçekleşen adetler</p>
             </div>
           </div>
-          <span class="text-xs font-bold bg-slate-800 text-slate-200 px-3 py-1 rounded-lg border border-slate-700">
-            ${displayMachines.length} Kayıtlı Makine
-          </span>
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-bold bg-slate-800 text-slate-200 px-3 py-1 rounded-lg border border-slate-700">
+              ${displayMachines.length} Kayıtlı Makine
+            </span>
+            <button data-open-add-plan-empty class="bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-extrabold text-xs px-3 py-1 rounded-lg transition shadow-sm cursor-pointer flex items-center gap-1">
+              <span>+</span> <span>Kalıp Planı Ekle</span>
+            </button>
+          </div>
         </div>
 
         <div class="overflow-x-auto">
@@ -606,7 +622,7 @@ export class ProductionModule {
                 <th class="py-3 px-3 sm:px-4 w-44">İlerleme Oranı</th>
                 <th class="py-3 px-3 sm:px-4 text-center w-32">Gün / Vardiya</th>
                 <th class="py-3 px-3 sm:px-4 text-center w-32">Durum</th>
-                <th class="py-3 px-3 sm:px-4 text-right w-28">Hızlı Aksiyon</th>
+                <th class="py-3 px-3 sm:px-4 text-right w-32">Aksiyon</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-100 text-xs">
@@ -621,13 +637,13 @@ export class ProductionModule {
                           <span class="text-base">⚙️</span>
                           <span>${mac.name}</span>
                         </div>
-                        <span class="text-[10px] text-slate-400 font-normal">${mac.code || 'Enjeksiyon Hattı'}</span>
+                        <span class="text-[10px] text-slate-400 font-normal">${mac.code || 'Enjeksiyon Parkuru'}</span>
                       </td>
                       <td colspan="6" class="py-3.5 px-4 text-slate-400 italic">
                         Bu hafta için kalıp baskı planı henüz girilmedi.
                       </td>
                       <td class="py-3.5 px-3 sm:px-4 text-right">
-                        <button data-quick-add-plan="${mac.id}" data-mac-name="${mac.name}" class="text-[11px] font-bold bg-blue-50 text-blue-700 hover:bg-blue-100 px-2.5 py-1.5 rounded-lg transition border border-blue-200">
+                        <button data-quick-add-plan="${mac.id}" data-mac-name="${mac.name}" class="text-[11px] font-bold bg-blue-50 text-blue-700 hover:bg-blue-100 active:scale-95 px-3 py-1.5 rounded-lg transition border border-blue-200 cursor-pointer shadow-sm">
                           + Kalıp Ata
                         </button>
                       </td>
@@ -691,15 +707,18 @@ export class ProductionModule {
                       </td>
 
                       <td class="py-3 px-3 sm:px-4 text-center">
-                        ${this.getStatusBadge(plan.status)}
+                        ${this.getStatusBadge(plan.status, plan.id)}
                       </td>
 
                       <td class="py-3 px-3 sm:px-4 text-right">
-                        <div class="flex items-center justify-end gap-1">
-                          <button data-log-count="${plan.id}" class="bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-black text-[11px] px-2.5 py-1.5 rounded-lg shadow-sm transition flex items-center gap-1" title="Baskı Sayacı Ekle">
+                        <div class="flex items-center justify-end gap-1.5">
+                          <button data-log-count="${plan.id}" class="bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-black text-[11px] px-2.5 py-1.5 rounded-lg shadow-sm transition flex items-center gap-1 cursor-pointer" title="Baskı Sayacı Ekle">
                             <span>+</span> <span>Adet</span>
                           </button>
-                          <button data-delete-plan="${plan.id}" class="text-slate-400 hover:text-red-600 p-1.5 rounded-lg hover:bg-red-50 transition" title="Planı Sil">
+                          <button data-change-status="${plan.id}" class="bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-700 p-1.5 rounded-lg border border-slate-200 transition cursor-pointer" title="Durum Değiştir">
+                            ⚙️
+                          </button>
+                          <button data-delete-plan="${plan.id}" class="text-slate-400 hover:text-red-600 p-1.5 rounded-lg hover:bg-red-50 transition cursor-pointer" title="Planı Sil">
                             🗑️
                           </button>
                         </div>
@@ -713,8 +732,6 @@ export class ProductionModule {
         </div>
       </div>
     `;
-
-    this.bindMatrixActionButtons(container);
   }
 
   renderCardsView(plans) {
@@ -723,10 +740,15 @@ export class ProductionModule {
 
     if (plans.length === 0) {
       container.innerHTML = `
-        <div class="bg-white rounded-xl border border-slate-200 p-8 text-center text-slate-500">
-          <span class="text-3xl block mb-2">📋</span>
-          <p class="font-bold">Bu hafta için seçili kriterlere uygun üretim planı bulunamadı.</p>
-          <p class="text-xs text-slate-400 mt-1">"+ Yeni Kalıp Baskı Planı Ekle" butonuna basarak iş emri oluşturabilirsiniz.</p>
+        <div class="bg-white rounded-2xl border border-slate-200 p-8 text-center text-slate-500 shadow-sm space-y-3">
+          <span class="text-4xl block">📋</span>
+          <p class="font-bold text-slate-800 text-sm">Bu hafta için henüz kalıp baskı planı girilmedi.</p>
+          <p class="text-xs text-slate-400 max-w-md mx-auto">Fabrika enjeksiyon makinelerinize hangi kalıbın kaç adet basılacağını hemen planlayabilirsiniz.</p>
+          <div class="pt-2">
+            <button data-open-add-plan-empty class="bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-black text-xs py-2.5 px-5 rounded-xl shadow-sm transition inline-flex items-center gap-1.5 cursor-pointer">
+              <span>+</span> <span>Yeni Kalıp Baskı Planı Ekle</span>
+            </button>
+          </div>
         </div>
       `;
       return;
@@ -754,7 +776,7 @@ export class ProductionModule {
                     </h4>
                   </div>
                   <div>
-                    ${this.getStatusBadge(plan.status)}
+                    ${this.getStatusBadge(plan.status, plan.id)}
                   </div>
                 </div>
 
@@ -813,10 +835,10 @@ export class ProductionModule {
                 <button data-log-count="${plan.id}" class="flex-1 bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white font-black text-xs py-2 px-3 rounded-xl shadow-sm transition flex items-center justify-center gap-1.5 cursor-pointer">
                   <span>+</span> <span>Baskı Sayacı Ekle</span>
                 </button>
-                <button data-change-status="${plan.id}" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs py-2 px-2.5 rounded-xl transition" title="Durum Güncelle">
+                <button data-change-status="${plan.id}" class="bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-700 font-bold text-xs py-2 px-2.5 rounded-xl transition cursor-pointer" title="Durum Güncelle">
                   ⚙️
                 </button>
-                <button data-delete-plan="${plan.id}" class="bg-red-50 hover:bg-red-100 text-red-600 font-bold text-xs py-2 px-2.5 rounded-xl transition" title="Planı Sil">
+                <button data-delete-plan="${plan.id}" class="bg-red-50 hover:bg-red-100 active:scale-95 text-red-600 font-bold text-xs py-2 px-2.5 rounded-xl transition cursor-pointer" title="Planı Sil">
                   🗑️
                 </button>
               </div>
@@ -825,58 +847,5 @@ export class ProductionModule {
         }).join("")}
       </div>
     `;
-
-    this.bindMatrixActionButtons(container);
-  }
-
-  bindMatrixActionButtons(container) {
-    // Baskı sayacı ekle butonları
-    container.querySelectorAll("[data-log-count]").forEach(btn => {
-      btn.addEventListener("click", (e) => {
-        const planId = e.currentTarget.getAttribute("data-log-count");
-        this.openLogCountModal(planId);
-      });
-    });
-
-    // Boş makineye hızlı kalıp atama butonu
-    container.querySelectorAll("[data-quick-add-plan]").forEach(btn => {
-      btn.addEventListener("click", (e) => {
-        const macId = e.currentTarget.getAttribute("data-quick-add-plan");
-        const macName = e.currentTarget.getAttribute("data-mac-name");
-        this.populateMachineDropdowns();
-        this.populateOperatorDropdowns();
-        const sel = document.getElementById("plan-machine-select");
-        if (sel) sel.value = macId || macName;
-        document.getElementById("modal-add-production-plan")?.classList.add("show");
-      });
-    });
-
-    // Plan Silme
-    container.querySelectorAll("[data-delete-plan]").forEach(btn => {
-      btn.addEventListener("click", (e) => {
-        const planId = e.currentTarget.getAttribute("data-delete-plan");
-        if (confirm("Bu kalıp baskı planını silmek istediğinize emin misiniz?")) {
-          appState.deleteProductionPlan(planId);
-          this.render();
-        }
-      });
-    });
-
-    // Durum Değiştirme
-    container.querySelectorAll("[data-change-status]").forEach(btn => {
-      btn.addEventListener("click", (e) => {
-        const planId = e.currentTarget.getAttribute("data-change-status");
-        const plans = appState.state.productionPlans || [];
-        const plan = plans.find(p => p.id === planId);
-        if (!plan) return;
-
-        const statuses = ["Planlandı", "Kalıp Bağlanıyor", "Üretimde", "Tamamlandı", "Durduruldu"];
-        const curIdx = statuses.indexOf(plan.status);
-        const nextStatus = statuses[(curIdx + 1) % statuses.length];
-
-        appState.updateProductionPlan(planId, { status: nextStatus });
-        this.render();
-      });
-    });
   }
 }
