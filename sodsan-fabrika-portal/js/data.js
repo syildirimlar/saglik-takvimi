@@ -704,6 +704,9 @@ export class StateManager {
       localStorage.setItem(STORAGE_KEY, dataStr);
       // Ayrıca yedek anahtarına da kaydet (veri kaybını %100 önlemek için)
       localStorage.setItem("sodsan_auto_backup_latest", dataStr);
+      if (typeof window !== "undefined" && typeof window.__broadcastPortalChange === "function") {
+        window.__broadcastPortalChange();
+      }
     } catch (e) {
       console.error("State kaydedilemedi:", e);
     }
@@ -972,6 +975,16 @@ export class StateManager {
     }
   }
 
+  reloadFromStorage() {
+    const freshState = this.loadState();
+    // Maintain current user session if already set
+    if (this.state && this.state.currentUser && freshState) {
+      freshState.currentUser = this.state.currentUser;
+    }
+    this.state = freshState;
+    return this.state;
+  }
+
   resetToDefaults() {
     localStorage.removeItem(STORAGE_KEY);
     this.state = this.loadState();
@@ -1018,9 +1031,9 @@ export class StateManager {
       };
 
       this.state.activityLogs.unshift(newLog);
-      // En fazla 500 kayıt tut
-      if (this.state.activityLogs.length > 500) {
-        this.state.activityLogs = this.state.activityLogs.slice(0, 500);
+      // Denetim ve işlem kayıtları kalıcıdır (asla silinmez)
+      if (this.state.activityLogs.length > 10000) {
+        this.state.activityLogs = this.state.activityLogs.slice(0, 10000);
       }
       this.saveState();
       return newLog;

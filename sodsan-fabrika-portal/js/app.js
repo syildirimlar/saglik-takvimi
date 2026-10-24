@@ -67,7 +67,62 @@ class App {
     // Başlangıçta aktif sekmeyi netleştir ve görünümü senkronize et
     this.switchTab(this.activeTab);
 
+    // Canlı Çapraz Ekran Senkronizasyonu (Sıfır pil & kota tüketimi - anlık yerel tetikleme)
+    this.initLiveSync();
+
     console.log("SODSAN Fabrika Portalı Başlatıldı.");
+  }
+
+  initLiveSync() {
+    let syncChannel = null;
+    if (typeof BroadcastChannel !== "undefined") {
+      try {
+        syncChannel = new BroadcastChannel("sodsan_live_sync");
+        syncChannel.onmessage = (evt) => {
+          if (evt?.data?.type === "DATA_UPDATED") {
+            appState.reloadFromStorage();
+            this.refreshAllActiveViews();
+          }
+        };
+      } catch (e) {
+        console.warn("BroadcastChannel başlatılamadı:", e);
+      }
+    }
+
+    // Global broadcast hook çağrıldığında kanala gönderir (data.js saveState tetikler)
+    window.__broadcastPortalChange = () => {
+      if (syncChannel) {
+        try {
+          syncChannel.postMessage({ type: "DATA_UPDATED", timestamp: Date.now() });
+        } catch (e) {}
+      }
+    };
+
+    // Diğer sekme/pencerelerden LocalStorage değişikliklerini dinle (Sıfır kota, anında yerel tetikleme)
+    window.addEventListener("storage", (e) => {
+      if (e.key === "sodsan_factory_portal_state_v1") {
+        appState.reloadFromStorage();
+        this.refreshAllActiveViews();
+      }
+    });
+  }
+
+  refreshAllActiveViews() {
+    try {
+      this.calendar?.render?.();
+      this.products?.render?.();
+      this.supplies?.render?.();
+      this.leave?.render?.();
+      this.overtime?.render?.();
+      this.forklift?.render?.();
+      this.breakdown?.render?.();
+      this.production?.render?.();
+      this.admin?.render?.();
+      this.cateringShuttle?.render?.();
+      this.renderUserShuttleNotificationBanner();
+    } catch (e) {
+      console.error("refreshAllActiveViews hatası:", e);
+    }
   }
 
   checkAuth() {
@@ -225,9 +280,14 @@ class App {
                 </div>
               </div>
             </div>
-            <button type="button" data-open-shuttle-info class="bg-white hover:bg-amber-50 text-amber-800 text-xs font-black py-2 px-3.5 rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer ml-auto sm:ml-0 flex-shrink-0">
-              <span>📋</span> <span>Yolcu Listesi & Güzergah</span> &rarr;
-            </button>
+            <div class="flex items-center gap-2 ml-auto sm:ml-0 flex-shrink-0">
+              <button type="button" data-show-live-shuttle="${b.routeId}" class="bg-amber-900/60 hover:bg-amber-900/90 border border-amber-300/40 text-white text-xs font-black py-2 px-3 rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer active:scale-95">
+                <span>📍</span> <span>Anlık Konum Göster</span>
+              </button>
+              <button type="button" data-open-shuttle-info class="bg-white hover:bg-amber-50 text-amber-800 text-xs font-black py-2 px-3.5 rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer">
+                <span>📋</span> <span>Yolcu Listesi</span> &rarr;
+              </button>
+            </div>
           </div>
         `;
       } else {
@@ -251,18 +311,32 @@ class App {
                 </div>
               </div>
             </div>
-            <button type="button" data-open-shuttle-info class="bg-white hover:bg-indigo-50 text-indigo-800 text-xs font-black py-2 px-3.5 rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer ml-auto sm:ml-0 flex-shrink-0">
-              <span>📍</span> <span>Durak Saatleri & Detay</span> &rarr;
-            </button>
+            <div class="flex items-center gap-2 ml-auto sm:ml-0 flex-shrink-0">
+              <button type="button" data-show-live-shuttle="${b.routeId}" class="bg-indigo-900/60 hover:bg-indigo-900/90 border border-indigo-300/40 text-white text-xs font-black py-2 px-3 rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer active:scale-95">
+                <span>📍</span> <span>Anlık Konum Göster</span>
+              </button>
+              <button type="button" data-open-shuttle-info class="bg-white hover:bg-indigo-50 text-indigo-800 text-xs font-black py-2 px-3.5 rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer">
+                <span>📍</span> <span>Durak Saatleri</span> &rarr;
+              </button>
+            </div>
           </div>
         `;
       }
     }).join("");
 
-    // Buton dinleyicisi
+    // Buton dinleyicileri
     bannerContainer.querySelectorAll("[data-open-shuttle-info]").forEach(btn => {
       btn.addEventListener("click", () => {
         this.cateringShuttle.openShuttleModal();
+      });
+    });
+
+    bannerContainer.querySelectorAll("[data-show-live-shuttle]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const routeId = btn.getAttribute("data-show-live-shuttle");
+        if (routeId && this.cateringShuttle) {
+          this.cateringShuttle.openLiveLocationModal(routeId);
+        }
       });
     });
   }

@@ -61,6 +61,17 @@ export class CateringShuttleModule {
       });
     });
 
+    // 2b. Servis Anlık Konum Göster (Arvento) Butonları Tıklama Delegasyonu
+    document.addEventListener("click", (e) => {
+      const btn = e.target.closest("[data-show-live-shuttle]");
+      if (btn) {
+        const routeId = btn.getAttribute("data-show-live-shuttle");
+        if (routeId) {
+          this.openLiveLocationModal(routeId);
+        }
+      }
+    });
+
     // 3. İK Alt Sekmeleri Tıklamaları (İzinler, Mesai, Yemek, Servis)
     const subtabBtnCatering = document.getElementById("subtab-btn-catering");
     const subtabBtnShuttle = document.getElementById("subtab-btn-shuttle");
@@ -587,6 +598,9 @@ export class CateringShuttleModule {
             </div>
 
             <div class="flex items-center gap-2">
+              <button type="button" data-show-live-shuttle="${route.id}" class="bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-black text-xs py-1.5 px-3 rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer">
+                <span>📍</span> <span>Anlık Konum Göster</span>
+              </button>
               <span class="bg-slate-900 text-white text-xs font-mono font-black px-3 py-1 rounded-lg tracking-wider border border-slate-700 shadow-xs">
                 ${route.plateNumber || "Plaka Belirtilmedi"}
               </span>
@@ -722,6 +736,9 @@ export class CateringShuttleModule {
           </td>
           <td class="p-3 text-right">
             <div class="inline-flex items-center gap-1.5">
+              <button type="button" data-show-live-shuttle="${r.id}" class="p-1.5 text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 rounded-lg text-xs font-bold transition cursor-pointer" title="Anlık Konum Göster">
+                📍
+              </button>
               <button type="button" onclick="window.portalApp.cateringShuttle.openEditShuttleModal('${r.id}')" class="p-1.5 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/50 rounded-lg text-xs font-bold transition cursor-pointer" title="Düzenle">
                 ✏️
               </button>
@@ -748,6 +765,10 @@ export class CateringShuttleModule {
 
     form.reset();
     document.getElementById("shuttle-form-id").value = "";
+    const arventoUrlInput = document.getElementById("shuttle-form-arvento-url");
+    const arventoIdInput = document.getElementById("shuttle-form-arvento-id");
+    if (arventoUrlInput) arventoUrlInput.value = "";
+    if (arventoIdInput) arventoIdInput.value = "";
     if (titleEl) titleEl.textContent = "🚐 Yeni Servis Güzergahı Ekle";
 
     this.populateDriverUserSelect("");
@@ -777,6 +798,10 @@ export class CateringShuttleModule {
     document.getElementById("shuttle-form-capacity").value = route.capacity || 16;
     document.getElementById("shuttle-form-stops").value = route.stops || "";
     document.getElementById("shuttle-form-notes").value = route.notes || "";
+    const arventoUrlInput = document.getElementById("shuttle-form-arvento-url");
+    const arventoIdInput = document.getElementById("shuttle-form-arvento-id");
+    if (arventoUrlInput) arventoUrlInput.value = route.arventoUrl || "";
+    if (arventoIdInput) arventoIdInput.value = route.arventoVehicleId || "";
 
     if (titleEl) titleEl.textContent = `✏️ Servis Düzenle: ${route.routeName}`;
 
@@ -854,6 +879,8 @@ export class CateringShuttleModule {
     const capacity = parseInt(document.getElementById("shuttle-form-capacity").value, 10) || 16;
     const stops = (document.getElementById("shuttle-form-stops").value || "").trim();
     const notes = (document.getElementById("shuttle-form-notes").value || "").trim();
+    const arventoUrl = (document.getElementById("shuttle-form-arvento-url")?.value || "").trim();
+    const arventoVehicleId = (document.getElementById("shuttle-form-arvento-id")?.value || "").trim();
 
     if (!routeName || !plateNumber) {
       alert("Lütfen en azından Güzergah Adı ve Araç Plakasını giriniz!");
@@ -887,6 +914,8 @@ export class CateringShuttleModule {
           capacity,
           stops,
           notes,
+          arventoUrl,
+          arventoVehicleId,
           passengerEmployeeIds,
           updatedAt: new Date().toISOString()
         };
@@ -909,6 +938,8 @@ export class CateringShuttleModule {
         capacity,
         stops,
         notes,
+        arventoUrl,
+        arventoVehicleId,
         passengerEmployeeIds,
         createdAt: new Date().toISOString()
       };
@@ -952,6 +983,87 @@ export class CateringShuttleModule {
 
       this.render();
     }
+  }
+
+  // ==========================================
+  // ARVENTO CANLI SERVİS KONUMU MODALI
+  // ==========================================
+
+  openLiveLocationModal(routeId) {
+    const route = (appState.state.shuttleRoutes || []).find(r => r.id === routeId);
+    if (!route) {
+      alert("Servis güzergahı bulunamadı.");
+      return;
+    }
+
+    const modal = document.getElementById("modal-live-shuttle-location");
+    if (!modal) return;
+
+    const plateEl = document.getElementById("live-loc-plate");
+    const routeEl = document.getElementById("live-loc-route");
+    const driverEl = document.getElementById("live-loc-driver");
+    const phoneBox = document.getElementById("live-loc-phone-box");
+    const container = document.getElementById("live-loc-frame-container");
+    const refreshBtn = document.getElementById("btn-refresh-live-location");
+
+    if (plateEl) plateEl.textContent = route.plateNumber || "Plakasız Araç";
+    if (routeEl) routeEl.textContent = route.routeName || "Servis Güzergahı";
+    if (driverEl) driverEl.textContent = route.driverName || "Belirtilmedi";
+
+    if (phoneBox) {
+      if (route.driverPhone) {
+        phoneBox.innerHTML = `
+          <a href="tel:${route.driverPhone}" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black py-2 px-3 rounded-xl shadow-xs transition flex items-center gap-1.5">
+            <span>📞</span> <span>Şoförü Ara (${route.driverPhone})</span>
+          </a>
+        `;
+      } else {
+        phoneBox.innerHTML = "";
+      }
+    }
+
+    if (container) {
+      const hasCustomUrl = !!(route.arventoUrl && route.arventoUrl.trim());
+      const arventoId = route.arventoVehicleId ? route.arventoVehicleId.trim() : (route.plateNumber || "");
+      const arventoPortalUrl = hasCustomUrl ? route.arventoUrl.trim() : "https://takip.arvento.com/";
+
+      container.innerHTML = `
+        <div class="w-16 h-16 rounded-2xl bg-indigo-100 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-3xl mb-1 shadow-inner">
+          🛰️
+        </div>
+        <div>
+          <h4 class="text-sm font-black text-slate-800 dark:text-white">Arvento Araç Takip Sistemi</h4>
+          <p class="text-xs text-slate-500 dark:text-slate-400 max-w-sm mt-1">
+            ${hasCustomUrl 
+              ? 'Bu araca özel Arvento canlı takip linki tanımlıdır. Doğrudan harita üzerinden anlık takip edebilirsiniz.' 
+              : `Bu servis (${route.plateNumber}) için Arvento kurumsal takip ekranından aracın konumunu anında görüntüleyebilirsiniz.`}
+          </p>
+        </div>
+
+        <div class="flex items-center flex-wrap gap-2 justify-center pt-2">
+          <a href="${arventoPortalUrl}" target="_blank" rel="noopener noreferrer" class="bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white font-black text-xs py-2.5 px-5 rounded-xl shadow-md transition flex items-center gap-2 cursor-pointer active:scale-95">
+            <span>🗺️</span> <span>Arvento Takip Ekranını Aç</span> <span>↗</span>
+          </a>
+          ${isManagerOrHr() ? `
+            <button type="button" onclick="window.portalApp.cateringShuttle.openEditShuttleModal('${route.id}')" class="bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 font-bold text-xs py-2 px-3 rounded-xl transition flex items-center gap-1 cursor-pointer">
+              <span>⚙️</span> <span>Takip Linkini Düzenle</span>
+            </button>
+          ` : ""}
+        </div>
+
+        <div class="mt-2 text-[10px] text-slate-400 font-mono">
+          Araç Takip ID / Plaka: <b>${arventoId}</b> • Son Sorgu: ${new Date().toLocaleTimeString("tr-TR")}
+        </div>
+      `;
+    }
+
+    if (refreshBtn) {
+      refreshBtn.onclick = () => {
+        this.openLiveLocationModal(routeId);
+      };
+    }
+
+    modal.classList.add("show");
   }
 
   // ==========================================
@@ -1022,6 +1134,9 @@ export function getUserShuttleBanners(currentUser) {
     if (isDriver) {
       banners.push({
         type: "DRIVER",
+        routeId: route.id,
+        arventoUrl: route.arventoUrl || "",
+        arventoVehicleId: route.arventoVehicleId || "",
         title: "HAFTALIK ŞOFÖRLÜK GÖREVİNİZ",
         plateNumber: route.plateNumber || "Plakasız",
         routeName: route.routeName,
@@ -1036,6 +1151,9 @@ export function getUserShuttleBanners(currentUser) {
     if (isPassenger) {
       banners.push({
         type: "PASSENGER",
+        routeId: route.id,
+        arventoUrl: route.arventoUrl || "",
+        arventoVehicleId: route.arventoVehicleId || "",
         title: "HAFTALIK PERSONEL SERVİS BİLGİNİZ",
         plateNumber: route.plateNumber || "Plakasız",
         routeName: route.routeName,
