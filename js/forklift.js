@@ -1,5 +1,5 @@
 // SODSAN Fabrika Portalı - Forklift Çağrı, Parkur & Bot Entegrasyon Modülü (forklift.js)
-import { appState, playAlertSound, speakVoiceAlert, logSystemAction } from './data.js';
+import { appState, playAlertSound, speakVoiceAlert, logSystemAction, isAdmin } from './data.js';
 
 export class ForkliftModule {
   constructor() {
@@ -91,10 +91,14 @@ export class ForkliftModule {
       });
     }
 
-    // 7. Telegram ve Bot Ayarları
+    // 7. Telegram ve Bot Ayarları (Sadece Admin Görebilir)
     const btnTelegramSettings = document.getElementById("btn-telegram-settings");
     if (btnTelegramSettings) {
       btnTelegramSettings.addEventListener("click", () => {
+        if (!isAdmin()) {
+          alert("Yetki Hatası: Telegram ve bot ayarlarını yalnızca Sistem Yöneticisi (Admin) görüntüleyebilir!");
+          return;
+        }
         const modal = document.getElementById("modal-telegram-settings");
         if (modal) {
           const cfg = appState.state.telegramConfig || {};
@@ -213,6 +217,11 @@ export class ForkliftModule {
   }
 
   openAddForkliftModal() {
+    if (!isAdmin()) {
+      alert("Yetki Hatası: Forklift ekleme yetkisi yalnızca Sistem Yöneticisi (Admin) hesabına aittir!");
+      return;
+    }
+
     const modal = document.getElementById("modal-add-edit-forklift");
     const form = document.getElementById("form-add-edit-forklift");
     const titleEl = document.getElementById("modal-forklift-form-title");
@@ -230,6 +239,11 @@ export class ForkliftModule {
   }
 
   openEditForkliftModal(forkliftId) {
+    if (!isAdmin()) {
+      alert("Yetki Hatası: Forklift düzenleme yetkisi yalnızca Sistem Yöneticisi (Admin) hesabına aittir!");
+      return;
+    }
+
     const forklift = (appState.state.forklifts || []).find(f => f.id === forkliftId);
     if (!forklift) return;
 
@@ -262,6 +276,11 @@ export class ForkliftModule {
   }
 
   saveForklift() {
+    if (!isAdmin()) {
+      alert("Yetki Hatası: Forklift kaydetme yetkisi yalnızca Sistem Yöneticisi (Admin) hesabına aittir!");
+      return;
+    }
+
     const id = document.getElementById("forklift-form-id").value;
     const code = (document.getElementById("forklift-form-code").value || "").trim().toUpperCase();
     const brand = (document.getElementById("forklift-form-brand").value || "").trim();
@@ -364,6 +383,11 @@ export class ForkliftModule {
   }
 
   deleteForklift(id) {
+    if (!isAdmin()) {
+      alert("Yetki Hatası: Forklift silme yetkisi yalnızca Sistem Yöneticisi (Admin) hesabına aittir!");
+      return;
+    }
+
     const forklift = (appState.state.forklifts || []).find(f => f.id === id);
     if (!forklift) return;
 
@@ -382,6 +406,19 @@ export class ForkliftModule {
   }
 
   render() {
+    // 1. Yetki Kontrolü: Telegram ayarları ve yeni forklift ekleme butonlarını yönet
+    const adminMode = isAdmin();
+
+    const btnTelegramSettings = document.getElementById("btn-telegram-settings");
+    if (btnTelegramSettings) {
+      btnTelegramSettings.style.display = adminMode ? "" : "none";
+    }
+
+    const btnOpenAddForklift = document.getElementById("btn-open-add-forklift");
+    if (btnOpenAddForklift) {
+      btnOpenAddForklift.style.display = adminMode ? "" : "none";
+    }
+
     this.renderForkliftRequests();
     this.renderForkliftFleet();
   }
@@ -391,6 +428,7 @@ export class ForkliftModule {
     const badgeCount = document.getElementById("forklift-fleet-badge-count");
     if (!container) return;
 
+    const adminMode = isAdmin();
     const list = appState.state.forklifts || [];
     if (badgeCount) badgeCount.textContent = list.length;
 
@@ -410,11 +448,13 @@ export class ForkliftModule {
           </div>
           <h4 class="text-base font-black text-slate-800 dark:text-white">Kayıtlı Forklift Bulunmuyor</h4>
           <p class="text-xs text-slate-500 dark:text-slate-400 max-w-sm mt-1 mb-4">
-            Fabrikanızda kullanılan forkliftleri marka, tonaj ve yakıt türüyle sisteme ekleyerek canlı durumlarını (Aktif, Şarjda, Arızalı) takip edebilirsiniz.
+            ${adminMode ? 'Fabrikanızda kullanılan forkliftleri marka, tonaj ve yakıt türüyle sisteme ekleyerek canlı durumlarını takip edebilirsiniz.' : 'Sisteme henüz forklift tanımlanmamıştır. Forklift ekleme yetkisi Sistem Yöneticisi (Admin) hesabına aittir.'}
           </p>
-          <button type="button" id="btn-quick-add-forklift-empty" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-black py-2.5 px-5 rounded-xl shadow-md transition flex items-center gap-2 cursor-pointer">
-            <span>➕</span> <span>İlk Forklifti Ekle</span>
-          </button>
+          ${adminMode ? `
+            <button type="button" id="btn-quick-add-forklift-empty" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-black py-2.5 px-5 rounded-xl shadow-md transition flex items-center gap-2 cursor-pointer">
+              <span>➕</span> <span>İlk Forklifti Ekle</span>
+            </button>
+          ` : ''}
         </div>
       `;
 
@@ -495,15 +535,17 @@ export class ForkliftModule {
             ` : ''}
           </div>
 
-          <!-- Alt Kısım: Canlı Durum Değiştirme Butonları & Düzenle/Sil -->
+          <!-- Alt Kısım: Canlı Durum Değiştirme Butonları & Düzenle/Sil (Yalnızca Admin) -->
           <div class="border-t border-slate-100 dark:border-slate-800 pt-3 space-y-2">
             <div class="text-[10px] font-black uppercase tracking-wider text-slate-400 flex items-center justify-between">
               <span>CANLI DURUM İŞARETLE</span>
-              <div class="flex items-center gap-2">
-                <button data-edit-forklift="${f.id}" class="text-[11px] text-blue-600 dark:text-blue-400 hover:underline font-bold cursor-pointer">✏️ Düzenle</button>
-                <span class="text-slate-300">|</span>
-                <button data-delete-forklift-fleet="${f.id}" class="text-[11px] text-red-500 hover:underline font-bold cursor-pointer">Sil</button>
-              </div>
+              ${adminMode ? `
+                <div class="flex items-center gap-2">
+                  <button data-edit-forklift="${f.id}" class="text-[11px] text-blue-600 dark:text-blue-400 hover:underline font-bold cursor-pointer">✏️ Düzenle</button>
+                  <span class="text-slate-300">|</span>
+                  <button data-delete-forklift-fleet="${f.id}" class="text-[11px] text-red-500 hover:underline font-bold cursor-pointer">Sil</button>
+                </div>
+              ` : ''}
             </div>
 
             <!-- Durum Seçim Butonları -->

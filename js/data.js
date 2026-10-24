@@ -137,13 +137,32 @@ export function getRoleInfo(roleKey) {
   return ROLES[roleKey] || { title: roleKey, badge: "bg-slate-100 text-slate-800", permissions: {} };
 }
 
-// Oturum açan kullanıcının İK / Yönetici yetkisine sahip olup olmadığını denetler
-export function isManagerOrHr() {
+// Oturum açan kullanıcının Sistem Yöneticisi (Admin) olup olmadığını denetler
+export function isAdmin() {
   if (typeof appState === "undefined" || !appState || !appState.state || !appState.state.currentUser) return false;
   const user = appState.state.currentUser;
-  if (user.role === "ADMIN" || user.role === "IK" || user.role === "YONETICI") return true;
-  const roleDef = (appState.state.roles || []).find(r => r.key === user.role);
+  const role = String(user.role || "").trim().toUpperCase();
+  const username = String(user.username || "").trim().toLowerCase();
+  if (role === "ADMIN" || username === "admin" || user.id === "u_admin") return true;
+  const roleDef = (appState.state.roles || []).find(r => String(r.key || "").trim().toUpperCase() === role);
+  return !!(roleDef && roleDef.permissions && roleDef.permissions.canAccessAdmin);
+}
+
+// Oturum açan kullanıcının İdari İşler (İK) veya Admin olup olmadığını denetler
+export function isIdariIslerOrAdmin() {
+  if (typeof appState === "undefined" || !appState || !appState.state || !appState.state.currentUser) return false;
+  if (isAdmin()) return true;
+  const user = appState.state.currentUser;
+  const role = String(user.role || "").trim().toUpperCase();
+  const depId = String(user.departmentId || "").trim().toLowerCase();
+  if (role === "IK" || role === "IDARI_ISLER" || role === "YONETICI" || depId === "dep_ik" || depId === "dep_yonetim") return true;
+  const roleDef = (appState.state.roles || []).find(r => String(r.key || "").trim().toUpperCase() === role);
   return !!(roleDef && roleDef.permissions && (roleDef.permissions.canAccessAdmin || roleDef.permissions.canApproveLeave || roleDef.permissions.canApproveOvertime));
+}
+
+// Oturum açan kullanıcının İK / Yönetici yetkisine sahip olup olmadığını denetler
+export function isManagerOrHr() {
+  return isIdariIslerOrAdmin();
 }
 
 // Oturum açan kullanıcının çalışanlar (employees) tablosundaki karşılığını getirir
