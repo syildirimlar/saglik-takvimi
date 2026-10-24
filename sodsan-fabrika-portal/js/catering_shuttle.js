@@ -749,6 +749,7 @@ export class CateringShuttleModule {
     document.getElementById("shuttle-form-id").value = "";
     if (titleEl) titleEl.textContent = "🚐 Yeni Servis Güzergahı Ekle";
 
+    this.populateDriverUserSelect("");
     this.populatePassengerChecklist([]);
     modal.classList.add("show");
   }
@@ -778,8 +779,37 @@ export class CateringShuttleModule {
 
     if (titleEl) titleEl.textContent = `✏️ Servis Düzenle: ${route.routeName}`;
 
+    this.populateDriverUserSelect(route.driverUserId || "");
     this.populatePassengerChecklist(route.passengerEmployeeIds || []);
     modal.classList.add("show");
+  }
+
+  populateDriverUserSelect(selectedDriverUserId = "") {
+    const sel = document.getElementById("shuttle-form-driver-user");
+    if (!sel) return;
+
+    const employees = this.getFactoryEmployees();
+    sel.innerHTML = `<option value="">-- Personel Seçiniz (Opsiyonel) --</option>` +
+      employees.map(emp => {
+        const isSel = (emp.id === selectedDriverUserId || emp.userId === selectedDriverUserId) ? "selected" : "";
+        return `<option value="${emp.id}" ${isSel}>${emp.name} (${emp.role})</option>`;
+      }).join("");
+
+    sel.onchange = () => {
+      const chosenId = sel.value;
+      if (!chosenId) return;
+      const chosenEmp = employees.find(e => e.id === chosenId || e.userId === chosenId);
+      if (chosenEmp) {
+        const driverNameInput = document.getElementById("shuttle-form-driver");
+        const driverPhoneInput = document.getElementById("shuttle-form-phone");
+        if (driverNameInput && !driverNameInput.value.trim()) {
+          driverNameInput.value = chosenEmp.name;
+        }
+        if (driverPhoneInput && !driverPhoneInput.value.trim() && (chosenEmp.phone || chosenEmp.phoneNumber)) {
+          driverPhoneInput.value = chosenEmp.phone || chosenEmp.phoneNumber;
+        }
+      }
+    };
   }
 
   populatePassengerChecklist(selectedIds = []) {
@@ -817,7 +847,8 @@ export class CateringShuttleModule {
     const id = document.getElementById("shuttle-form-id").value;
     const routeName = (document.getElementById("shuttle-form-name").value || "").trim();
     const plateNumber = (document.getElementById("shuttle-form-plate").value || "").trim().toUpperCase();
-    const driverName = (document.getElementById("shuttle-form-driver").value || "").trim();
+    const driverUserId = (document.getElementById("shuttle-form-driver-user")?.value || "").trim();
+    let driverName = (document.getElementById("shuttle-form-driver").value || "").trim();
     const driverPhone = (document.getElementById("shuttle-form-phone").value || "").trim();
     const capacity = parseInt(document.getElementById("shuttle-form-capacity").value, 10) || 16;
     const stops = (document.getElementById("shuttle-form-stops").value || "").trim();
@@ -826,6 +857,12 @@ export class CateringShuttleModule {
     if (!routeName || !plateNumber) {
       alert("Lütfen en azından Güzergah Adı ve Araç Plakasını giriniz!");
       return;
+    }
+
+    if (driverUserId && !driverName) {
+      const allEmps = this.getFactoryEmployees();
+      const emp = allEmps.find(e => e.id === driverUserId || e.userId === driverUserId);
+      if (emp) driverName = emp.name;
     }
 
     const checkedBoxes = Array.from(document.querySelectorAll("input[name='shuttle-passenger']:checked"));
@@ -843,6 +880,7 @@ export class CateringShuttleModule {
           ...appState.state.shuttleRoutes[idx],
           routeName,
           plateNumber,
+          driverUserId,
           driverName,
           driverPhone,
           capacity,
@@ -864,6 +902,7 @@ export class CateringShuttleModule {
         id: `shuttle_${Date.now()}`,
         routeName,
         plateNumber,
+        driverUserId,
         driverName,
         driverPhone,
         capacity,
@@ -953,4 +992,49 @@ export class CateringShuttleModule {
     this.renderCateringSection();
     this.renderShuttleSection();
   }
+}
+
+// Oturum açan kullanıcının bu haftaki servis şoförlüğü veya yolculuk bildirimlerini üretir
+export function getUserShuttleBanners(currentUser) {
+  if (!currentUser || !Array.isArray(appState.state.shuttleRoutes)) return [];
+  const routes = appState.state.shuttleRoutes;
+  const banners = [];
+
+  const emp = (appState.state.employees || []).find(e => e.userId === currentUser.id || e.id === currentUser.id || (e.name && e.name.toLowerCase() === currentUser.name.toLowerCase()));
+  const userEmpId = emp ? emp.id : currentUser.id;
+  const userNameLower = (currentUser.name || "").toLowerCase().trim();
+
+  routes.forEach(route => {
+    // 1. Şoför kontrolü
+    const isDriver = (route.driverUserId && (route.driverUserId === currentUser.id || route.driverUserId === userEmpId)) ||
+      (route.driverName && route.driverName.toLowerCase().trim() === userNameLower);
+
+    if (isDriver) {
+      banners.push({
+        type: "DRIVER",
+        title: "HAFTALIK ŞOFÖRLÜK GÖREVİNİZ",
+        plateNumber: route.plateNumber || "Plakasız",
+        routeName: route.routeName,
+        stops: route.stops || "",
+        capacity: route.capacity || 16,
+        passengerCount: (route.passengerEmployeeIds || []).length
+      });
+    }
+
+    // 2. Yolcu kontrolü
+    const isPassenger = (route.passengerEmployeeIds || []).some(id => id === currentUser.id || id === userEmpId);
+    if (isPassenger) {
+      banners.push({
+        type: "PASSENGER",
+        title: "HAFTALIK PERSONEL SERVİS BİLGİNİZ",
+        plateNumber: route.plateNumber || "Plakasız",
+        routeName: route.routeName,
+        driverName: route.driverName || "Belirtilmedi",
+        driverPhone: route.driverPhone || "",
+        stops: route.stops || ""
+      });
+    }
+  });
+
+  return banners;
 }
