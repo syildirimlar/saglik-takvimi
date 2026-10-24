@@ -1,9 +1,12 @@
-// SODSAN Fabrika Portalı - Forklift Çağrı & Telegram Entegrasyon Modülü (forklift.js)
-import { appState, playAlertSound, logSystemAction } from './data.js';
+// SODSAN Fabrika Portalı - Forklift Çağrı, Parkur & Bot Entegrasyon Modülü (forklift.js)
+import { appState, playAlertSound, speakVoiceAlert, logSystemAction } from './data.js';
 
 export class ForkliftModule {
   constructor() {
     this.filterStatus = "ALL";
+    this.fleetFilterStatus = "ALL";
+    this.fleetFilterFuel = "ALL";
+    this.activeSubtab = "calls"; // "calls" | "fleet"
   }
 
   init() {
@@ -23,6 +26,18 @@ export class ForkliftModule {
   }
 
   bindEvents() {
+    // 1. Alt Sekmeler (Çağrılar vs Forklift Parkuru)
+    const btnCalls = document.getElementById("subtab-btn-forklift-calls");
+    const btnFleet = document.getElementById("subtab-btn-forklift-fleet");
+
+    if (btnCalls) {
+      btnCalls.addEventListener("click", () => this.switchSubtab("calls"));
+    }
+    if (btnFleet) {
+      btnFleet.addEventListener("click", () => this.switchSubtab("fleet"));
+    }
+
+    // 2. Çağrı Modalı Açma
     const openCallModal = () => {
       const modal = document.getElementById("modal-call-forklift");
       if (modal) {
@@ -38,6 +53,46 @@ export class ForkliftModule {
       btn.addEventListener("click", openCallModal);
     });
 
+    // 3. Yeni Forklift Ekleme Butonu
+    const btnOpenAddForklift = document.getElementById("btn-open-add-forklift");
+    if (btnOpenAddForklift) {
+      btnOpenAddForklift.addEventListener("click", () => this.openAddForkliftModal());
+    }
+
+    // 4. Forklift Yakıt Değişimi Dinleyicisi (Şarjda seçeneği sadece Elektrikli için gösterilsin)
+    const fuelSelect = document.getElementById("forklift-form-fuel");
+    if (fuelSelect) {
+      fuelSelect.addEventListener("change", () => this.handleFuelTypeChange());
+    }
+
+    // 5. Forklift Formu Submit
+    const formForklift = document.getElementById("form-add-edit-forklift");
+    if (formForklift) {
+      formForklift.addEventListener("submit", (e) => {
+        e.preventDefault();
+        this.saveForklift();
+      });
+    }
+
+    // 6. Filo Filtreleri
+    const filterFleetStatus = document.getElementById("filter-forklift-fleet-status");
+    if (filterFleetStatus) {
+      filterFleetStatus.addEventListener("change", (e) => {
+        this.fleetFilterStatus = e.target.value;
+        this.renderForkliftFleet();
+      });
+    }
+
+    const filterFleetFuel = document.getElementById("filter-forklift-fleet-fuel");
+    if (filterFleetFuel) {
+      filterFleetFuel.addEventListener("change", (e) => {
+        this.fleetFilterFuel = e.target.value;
+        this.renderForkliftFleet();
+      });
+    }
+
+    // 7. Telegram ve Bot Ayarları
+    const btnTelegramSettings = document.getElementById("btn-telegram-settings");
     if (btnTelegramSettings) {
       btnTelegramSettings.addEventListener("click", () => {
         const modal = document.getElementById("modal-telegram-settings");
@@ -62,6 +117,12 @@ export class ForkliftModule {
           const elCalendar = document.getElementById("tg-notify-calendar");
           if (elCalendar) elCalendar.checked = cfg.notifyCalendar !== false;
 
+          const elVoice = document.getElementById("tg-voice-announce");
+          if (elVoice) elVoice.checked = cfg.voiceAnnounceEnabled !== false;
+
+          const elWebhook = document.getElementById("tg-webhook-call-url");
+          if (elWebhook) elWebhook.value = cfg.webhookCallUrl || "";
+
           modal.classList.add("show");
         }
       });
@@ -74,13 +135,15 @@ export class ForkliftModule {
       });
     }
 
+    const filterStatus = document.getElementById("filter-forklift-status");
     if (filterStatus) {
       filterStatus.addEventListener("change", (e) => {
         this.filterStatus = e.target.value;
-        this.render();
+        this.renderForkliftRequests();
       });
     }
 
+    const formCall = document.getElementById("form-call-forklift");
     if (formCall) {
       formCall.addEventListener("submit", (e) => {
         e.preventDefault();
@@ -88,6 +151,7 @@ export class ForkliftModule {
       });
     }
 
+    const formTelegram = document.getElementById("form-telegram-settings");
     if (formTelegram) {
       formTelegram.addEventListener("submit", (e) => {
         e.preventDefault();
@@ -96,9 +160,401 @@ export class ForkliftModule {
     }
   }
 
+  switchSubtab(tab) {
+    this.activeSubtab = tab;
+    const btnCalls = document.getElementById("subtab-btn-forklift-calls");
+    const btnFleet = document.getElementById("subtab-btn-forklift-fleet");
+    const paneCalls = document.getElementById("subpane-forklift-calls");
+    const paneFleet = document.getElementById("subpane-forklift-fleet");
+
+    if (tab === "calls") {
+      if (btnCalls) {
+        btnCalls.className = "px-3.5 py-1.5 rounded-lg text-xs font-black transition flex items-center gap-1.5 bg-white dark:bg-slate-900 text-blue-700 dark:text-blue-400 shadow-sm cursor-pointer";
+      }
+      if (btnFleet) {
+        btnFleet.className = "px-3.5 py-1.5 rounded-lg text-xs font-black transition flex items-center gap-1.5 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white cursor-pointer";
+      }
+      if (paneCalls) paneCalls.classList.remove("hidden");
+      if (paneFleet) paneFleet.classList.add("hidden");
+      this.renderForkliftRequests();
+    } else {
+      if (btnFleet) {
+        btnFleet.className = "px-3.5 py-1.5 rounded-lg text-xs font-black transition flex items-center gap-1.5 bg-white dark:bg-slate-900 text-blue-700 dark:text-blue-400 shadow-sm cursor-pointer";
+      }
+      if (btnCalls) {
+        btnCalls.className = "px-3.5 py-1.5 rounded-lg text-xs font-black transition flex items-center gap-1.5 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white cursor-pointer";
+      }
+      if (paneFleet) paneFleet.classList.remove("hidden");
+      if (paneCalls) paneCalls.classList.add("hidden");
+      this.renderForkliftFleet();
+    }
+  }
+
+  handleFuelTypeChange() {
+    const fuelSelect = document.getElementById("forklift-form-fuel");
+    const chargeContainer = document.getElementById("container-status-charge");
+    const chargeNotice = document.getElementById("fuel-charge-notice");
+    if (!fuelSelect || !chargeContainer) return;
+
+    const isElectric = fuelSelect.value === "Elektrikli";
+    if (isElectric) {
+      chargeContainer.style.display = "flex";
+      if (chargeNotice) chargeNotice.style.display = "block";
+    } else {
+      chargeContainer.style.display = "none";
+      if (chargeNotice) chargeNotice.style.display = "none";
+      // Eğer şarjda seçiliyse Aktif'e al
+      const chargeRadio = chargeContainer.querySelector("input[value='Şarjda']");
+      if (chargeRadio && chargeRadio.checked) {
+        const activeRadio = document.querySelector("input[name='forklift-form-status'][value='Aktif']");
+        if (activeRadio) activeRadio.checked = true;
+      }
+    }
+  }
+
+  openAddForkliftModal() {
+    const modal = document.getElementById("modal-add-edit-forklift");
+    const form = document.getElementById("form-add-edit-forklift");
+    const titleEl = document.getElementById("modal-forklift-form-title");
+    if (!modal || !form) return;
+
+    form.reset();
+    document.getElementById("forklift-form-id").value = "";
+    if (titleEl) titleEl.innerHTML = "<span>🚜</span> Yeni Forklift Tanımla";
+
+    const activeRadio = document.querySelector("input[name='forklift-form-status'][value='Aktif']");
+    if (activeRadio) activeRadio.checked = true;
+
+    this.handleFuelTypeChange();
+    modal.classList.add("show");
+  }
+
+  openEditForkliftModal(forkliftId) {
+    const forklift = (appState.state.forklifts || []).find(f => f.id === forkliftId);
+    if (!forklift) return;
+
+    const modal = document.getElementById("modal-add-edit-forklift");
+    const form = document.getElementById("form-add-edit-forklift");
+    const titleEl = document.getElementById("modal-forklift-form-title");
+    if (!modal || !form) return;
+
+    document.getElementById("forklift-form-id").value = forklift.id;
+    document.getElementById("forklift-form-code").value = forklift.code || "";
+    document.getElementById("forklift-form-brand").value = forklift.brand || "";
+    document.getElementById("forklift-form-capacity").value = forklift.capacity || "2.5 Ton";
+    document.getElementById("forklift-form-fuel").value = forklift.fuelType || "Elektrikli";
+    document.getElementById("forklift-form-operator").value = forklift.operatorName || "";
+    document.getElementById("forklift-form-notes").value = forklift.notes || "";
+
+    if (titleEl) titleEl.innerHTML = `<span>✏️</span> Forklift Düzenle: ${forklift.code}`;
+
+    this.handleFuelTypeChange();
+
+    const statusRadio = document.querySelector(`input[name='forklift-form-status'][value='${forklift.status}']`);
+    if (statusRadio && (forklift.status !== "Şarjda" || forklift.fuelType === "Elektrikli")) {
+      statusRadio.checked = true;
+    } else {
+      const activeRadio = document.querySelector("input[name='forklift-form-status'][value='Aktif']");
+      if (activeRadio) activeRadio.checked = true;
+    }
+
+    modal.classList.add("show");
+  }
+
+  saveForklift() {
+    const id = document.getElementById("forklift-form-id").value;
+    const code = (document.getElementById("forklift-form-code").value || "").trim().toUpperCase();
+    const brand = (document.getElementById("forklift-form-brand").value || "").trim();
+    const capacity = document.getElementById("forklift-form-capacity").value;
+    const fuelType = document.getElementById("forklift-form-fuel").value;
+    const operatorName = (document.getElementById("forklift-form-operator").value || "").trim();
+    const notes = (document.getElementById("forklift-form-notes").value || "").trim();
+
+    const statusRadio = document.querySelector("input[name='forklift-form-status']:checked");
+    let status = statusRadio ? statusRadio.value : "Aktif";
+
+    // Şarjda kuralı: SADECE Elektrikli için geçerli!
+    if (fuelType !== "Elektrikli" && status === "Şarjda") {
+      status = "Aktif";
+    }
+
+    if (!code || !brand) {
+      alert("Lütfen en azından Forklift Kodu/No ve Markasını giriniz!");
+      return;
+    }
+
+    if (!Array.isArray(appState.state.forklifts)) {
+      appState.state.forklifts = [];
+    }
+
+    if (id) {
+      const idx = appState.state.forklifts.findIndex(f => f.id === id);
+      if (idx !== -1) {
+        appState.state.forklifts[idx] = {
+          ...appState.state.forklifts[idx],
+          code,
+          brand,
+          capacity,
+          fuelType,
+          status,
+          operatorName,
+          notes,
+          updatedAt: new Date().toISOString()
+        };
+
+        logSystemAction(
+          "FORKLİFT_GÜNCELLEME",
+          `${code} (${brand} - ${capacity}) forklift bilgileri güncellendi. Durum: ${status}`,
+          { id, code, status }
+        );
+      }
+    } else {
+      const newForklift = {
+        id: `fk_${Date.now()}`,
+        code,
+        brand,
+        capacity,
+        fuelType,
+        status,
+        operatorName,
+        notes,
+        createdAt: new Date().toISOString()
+      };
+
+      appState.state.forklifts.push(newForklift);
+
+      logSystemAction(
+        "FORKLİFT_EKLEME",
+        `Yeni forklift parkura eklendi: ${code} (${brand} ${capacity} - ${fuelType})`,
+        { id: newForklift.id, code, status }
+      );
+    }
+
+    appState.saveState();
+
+    const modal = document.getElementById("modal-add-edit-forklift");
+    if (modal) modal.classList.remove("show");
+
+    this.render();
+    alert(`✅ Forklift (${code}) başarıyla kaydedildi!`);
+  }
+
+  setForkliftStatus(id, newStatus) {
+    const forklift = (appState.state.forklifts || []).find(f => f.id === id);
+    if (!forklift) return;
+
+    if (newStatus === "Şarjda" && forklift.fuelType !== "Elektrikli") {
+      alert("Hata: 'Şarjda' durumu yalnızca elektrikli forkliftler için geçerlidir!");
+      return;
+    }
+
+    forklift.status = newStatus;
+    forklift.updatedAt = new Date().toISOString();
+    appState.saveState();
+
+    const uName = appState.state.currentUser ? appState.state.currentUser.name : "Operatör";
+    logSystemAction(
+      "FORKLİFT_DURUM",
+      `${uName}, ${forklift.code} forkliftinin durumunu [${newStatus}] olarak güncelledi.`,
+      { id, code: forklift.code, status: newStatus }
+    );
+
+    playAlertSound("call");
+    this.render();
+  }
+
+  deleteForklift(id) {
+    const forklift = (appState.state.forklifts || []).find(f => f.id === id);
+    if (!forklift) return;
+
+    if (confirm(`"${forklift.code} - ${forklift.brand}" forkliftini parkurdan silmek istediğinize emin misiniz?`)) {
+      const uName = appState.state.currentUser ? appState.state.currentUser.name : "Yönetici";
+      logSystemAction(
+        "FORKLİFT_SİLME",
+        `${uName}, ${forklift.code} (${forklift.brand}) forkliftini parkurdan sildi.`,
+        { id, code: forklift.code }
+      );
+
+      appState.state.forklifts = appState.state.forklifts.filter(f => f.id !== id);
+      appState.saveState();
+      this.render();
+    }
+  }
+
   render() {
+    this.renderForkliftRequests();
+    this.renderForkliftFleet();
+  }
+
+  renderForkliftFleet() {
+    const container = document.getElementById("forklift-fleet-list");
+    const badgeCount = document.getElementById("forklift-fleet-badge-count");
+    if (!container) return;
+
+    const list = appState.state.forklifts || [];
+    if (badgeCount) badgeCount.textContent = list.length;
+
+    let filtered = [...list];
+    if (this.fleetFilterStatus !== "ALL") {
+      filtered = filtered.filter(f => f.status === this.fleetFilterStatus);
+    }
+    if (this.fleetFilterFuel !== "ALL") {
+      filtered = filtered.filter(f => f.fuelType === this.fleetFilterFuel);
+    }
+
+    if (filtered.length === 0) {
+      container.innerHTML = `
+        <div class="col-span-full text-center py-12 text-slate-400 bg-white dark:bg-slate-900 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 p-8 flex flex-col items-center justify-center">
+          <div class="w-16 h-16 rounded-2xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center text-3xl mb-3 shadow-inner">
+            🚜
+          </div>
+          <h4 class="text-base font-black text-slate-800 dark:text-white">Kayıtlı Forklift Bulunmuyor</h4>
+          <p class="text-xs text-slate-500 dark:text-slate-400 max-w-sm mt-1 mb-4">
+            Fabrikanızda kullanılan forkliftleri marka, tonaj ve yakıt türüyle sisteme ekleyerek canlı durumlarını (Aktif, Şarjda, Arızalı) takip edebilirsiniz.
+          </p>
+          <button type="button" id="btn-quick-add-forklift-empty" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-black py-2.5 px-5 rounded-xl shadow-md transition flex items-center gap-2 cursor-pointer">
+            <span>➕</span> <span>İlk Forklifti Ekle</span>
+          </button>
+        </div>
+      `;
+
+      const emptyBtn = container.querySelector("#btn-quick-add-forklift-empty");
+      if (emptyBtn) {
+        emptyBtn.onclick = () => this.openAddForkliftModal();
+      }
+      return;
+    }
+
+    container.innerHTML = filtered.map(f => {
+      const isElectric = f.fuelType === "Elektrikli";
+
+      let statusBadge = "";
+      let borderClass = "border-slate-200 dark:border-slate-800";
+
+      if (f.status === "Aktif") {
+        statusBadge = `<span class="bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 text-xs font-black px-2.5 py-1 rounded-full flex items-center gap-1 shadow-xs">🟢 Aktif</span>`;
+        borderClass = "border-emerald-300 dark:border-emerald-900/60";
+      } else if (f.status === "Şarjda") {
+        statusBadge = `<span class="bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 text-xs font-black px-2.5 py-1 rounded-full flex items-center gap-1 shadow-xs">⚡ Şarjda</span>`;
+        borderClass = "border-amber-300 dark:border-amber-900/60";
+      } else {
+        statusBadge = `<span class="bg-red-100 dark:bg-red-950 text-red-800 dark:text-red-300 text-xs font-black px-2.5 py-1 rounded-full flex items-center gap-1 shadow-xs">🔴 Arızalı</span>`;
+        borderClass = "border-red-300 dark:border-red-900/60";
+      }
+
+      let fuelIcon = "⛽";
+      let fuelClass = "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300";
+      if (isElectric) {
+        fuelIcon = "⚡";
+        fuelClass = "bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800";
+      } else if (f.fuelType === "Dizel") {
+        fuelIcon = "🛢️";
+        fuelClass = "bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800";
+      }
+
+      return `
+        <div class="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl border ${borderClass} shadow-sm flex flex-col justify-between space-y-4 hover:shadow-md transition">
+          <div>
+            <!-- Üst Kısım: Kod, Marka ve Durum Rozeti -->
+            <div class="flex items-start justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
+              <div>
+                <div class="flex items-center gap-2">
+                  <span class="text-xl">🚜</span>
+                  <h3 class="text-base font-black text-slate-900 dark:text-white tracking-wide">${f.code}</h3>
+                </div>
+                <div class="text-xs font-bold text-slate-500 dark:text-slate-400 mt-0.5">${f.brand}</div>
+              </div>
+              <div>${statusBadge}</div>
+            </div>
+
+            <!-- Özellikler: Tonaj ve Yakıt -->
+            <div class="grid grid-cols-2 gap-2 mt-3">
+              <div class="bg-slate-50 dark:bg-slate-800/60 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800 text-center">
+                <div class="text-[10px] text-slate-400 uppercase font-black">Kapasite / Tonaj</div>
+                <div class="text-xs font-extrabold text-slate-800 dark:text-slate-200 mt-0.5">⚖️ ${f.capacity}</div>
+              </div>
+
+              <div class="${fuelClass} p-2.5 rounded-xl text-center">
+                <div class="text-[10px] uppercase font-black opacity-75">Yakıt Türü</div>
+                <div class="text-xs font-extrabold mt-0.5">${fuelIcon} ${f.fuelType}</div>
+              </div>
+            </div>
+
+            <!-- Operatör / Notlar -->
+            ${f.operatorName ? `
+              <div class="mt-2.5 text-xs text-slate-600 dark:text-slate-400 flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800/40 p-2 rounded-lg">
+                <span class="font-bold text-slate-700 dark:text-slate-300">👤 Sorumlu:</span>
+                <span>${f.operatorName}</span>
+              </div>
+            ` : ''}
+
+            ${f.notes ? `
+              <div class="mt-2 text-[11px] text-slate-500 dark:text-slate-400 italic">
+                📝 ${f.notes}
+              </div>
+            ` : ''}
+          </div>
+
+          <!-- Alt Kısım: Canlı Durum Değiştirme Butonları & Düzenle/Sil -->
+          <div class="border-t border-slate-100 dark:border-slate-800 pt-3 space-y-2">
+            <div class="text-[10px] font-black uppercase tracking-wider text-slate-400 flex items-center justify-between">
+              <span>CANLI DURUM İŞARETLE</span>
+              <div class="flex items-center gap-2">
+                <button data-edit-forklift="${f.id}" class="text-[11px] text-blue-600 dark:text-blue-400 hover:underline font-bold cursor-pointer">✏️ Düzenle</button>
+                <span class="text-slate-300">|</span>
+                <button data-delete-forklift-fleet="${f.id}" class="text-[11px] text-red-500 hover:underline font-bold cursor-pointer">Sil</button>
+              </div>
+            </div>
+
+            <!-- Durum Seçim Butonları -->
+            <div class="grid ${isElectric ? 'grid-cols-3' : 'grid-cols-2'} gap-1.5">
+              <button data-status-forklift="${f.id}" data-new-status="Aktif" class="py-1.5 px-2 rounded-lg text-xs font-black transition cursor-pointer flex items-center justify-center gap-1 ${f.status === 'Aktif' ? 'bg-emerald-600 text-white shadow-sm ring-2 ring-emerald-300' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-emerald-50 dark:hover:bg-emerald-950'}">
+                <span>🟢</span> <span>Aktif</span>
+              </button>
+
+              ${isElectric ? `
+                <button data-status-forklift="${f.id}" data-new-status="Şarjda" class="py-1.5 px-2 rounded-lg text-xs font-black transition cursor-pointer flex items-center justify-center gap-1 ${f.status === 'Şarjda' ? 'bg-amber-500 text-white shadow-sm ring-2 ring-amber-300' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-amber-50 dark:hover:bg-amber-950'}">
+                  <span>⚡</span> <span>Şarjda</span>
+                </button>
+              ` : ''}
+
+              <button data-status-forklift="${f.id}" data-new-status="Arızalı" class="py-1.5 px-2 rounded-lg text-xs font-black transition cursor-pointer flex items-center justify-center gap-1 ${f.status === 'Arızalı' ? 'bg-red-600 text-white shadow-sm ring-2 ring-red-300' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-red-50 dark:hover:bg-red-950'}">
+                <span>🔴</span> <span>Arızalı</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join("");
+
+    // Aksiyon Dinleyicileri
+    container.querySelectorAll("[data-status-forklift]").forEach(btn => {
+      btn.addEventListener("click", (e) => {
+        const id = e.currentTarget.getAttribute("data-status-forklift");
+        const newStatus = e.currentTarget.getAttribute("data-new-status");
+        this.setForkliftStatus(id, newStatus);
+      });
+    });
+
+    container.querySelectorAll("[data-edit-forklift]").forEach(btn => {
+      btn.addEventListener("click", (e) => {
+        const id = e.currentTarget.getAttribute("data-edit-forklift");
+        this.openEditForkliftModal(id);
+      });
+    });
+
+    container.querySelectorAll("[data-delete-forklift-fleet]").forEach(btn => {
+      btn.addEventListener("click", (e) => {
+        const id = e.currentTarget.getAttribute("data-delete-forklift-fleet");
+        this.deleteForklift(id);
+      });
+    });
+  }
+
+  renderForkliftRequests() {
     const container = document.getElementById("forklift-requests-list");
     const activeCounterEl = document.getElementById("forklift-active-count");
+    const subtabBadgeEl = document.getElementById("forklift-calls-subtab-badge");
     if (!container) return;
 
     let items = [...appState.state.forkliftRequests].sort((a, b) => new Date(b.requestTime) - new Date(a.requestTime));
@@ -112,6 +568,9 @@ export class ForkliftModule {
         activeCounterEl.classList.remove("animate-pulse");
       }
     }
+    if (subtabBadgeEl) {
+      subtabBadgeEl.textContent = waitingCount;
+    }
 
     if (this.filterStatus !== "ALL") {
       items = items.filter(i => i.status === this.filterStatus);
@@ -119,10 +578,10 @@ export class ForkliftModule {
 
     if (items.length === 0) {
       container.innerHTML = `
-        <div class="col-span-full text-center py-12 text-slate-400 bg-white rounded-xl border border-dashed border-slate-200">
+        <div class="col-span-full text-center py-12 text-slate-400 bg-white dark:bg-slate-900 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 p-8">
           <p class="text-3xl mb-1">🚜</p>
-          <p class="font-medium">Aktif forklift çağrısı bulunmuyor.</p>
-          <p class="text-xs mt-1">Forklift çağırmak için yukarıdaki kırmızı/sarı butona basınız.</p>
+          <p class="font-medium text-slate-700 dark:text-slate-300">Aktif forklift çağrısı bulunmuyor.</p>
+          <p class="text-xs mt-1 text-slate-500">Forklift çağırmak için yukarıdaki sarı "Forklift Çağır" butonuna basınız.</p>
         </div>
       `;
       return;
@@ -134,7 +593,7 @@ export class ForkliftModule {
       const timeStr = dateObj.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
 
       let urgencyBadge = "";
-      let borderClass = "border-slate-200";
+      let borderClass = "border-slate-200 dark:border-slate-800";
 
       if (req.urgency === "Kritik") {
         urgencyBadge = `<span class="bg-red-600 text-white text-xs px-2.5 py-0.5 rounded-full font-black animate-pulse">🚨 HAT DURDU / KRİTİK</span>`;
@@ -156,50 +615,50 @@ export class ForkliftModule {
       }
 
       const currentUser = appState.state.currentUser;
-      const isForkliftOperatorOrAdmin = currentUser ? (currentUser.role === "FORKLIFT" || currentUser.role === "ADMIN") : true;
+      const isForkliftOperatorOrAdmin = currentUser ? (currentUser.role === "FORKLIFT" || currentUser.role === "ADMIN" || currentUser.role === "USTA") : true;
 
       return `
-        <div class="bg-white p-4 rounded-xl border ${borderClass} shadow-sm flex flex-col justify-between space-y-3 relative">
+        <div class="bg-white dark:bg-slate-900 p-4 rounded-xl border ${borderClass} shadow-sm flex flex-col justify-between space-y-3 relative">
           <div>
-            <div class="flex items-center justify-between gap-2 border-b border-slate-100 pb-2 mb-2">
+            <div class="flex items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-2 mb-2">
               <div class="flex items-center gap-1.5">
                 <span class="text-base">${dep.icon}</span>
-                <span class="font-extrabold text-slate-800 text-sm">${dep.name}</span>
+                <span class="font-extrabold text-slate-800 dark:text-white text-sm">${dep.name}</span>
               </div>
               <div>${urgencyBadge}</div>
             </div>
 
-            <div class="text-xs text-slate-500 flex items-center gap-1 mb-1">
+            <div class="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1 mb-1">
               <span>📍 Konum / Hat:</span>
-              <b class="text-slate-800">${req.location}</b>
+              <b class="text-slate-800 dark:text-white">${req.location}</b>
             </div>
 
-            <div class="bg-slate-50 p-2.5 rounded-lg text-xs text-slate-700 border border-slate-100">
+            <div class="bg-slate-50 dark:bg-slate-800/60 p-2.5 rounded-lg text-xs text-slate-700 dark:text-slate-300 border border-slate-100 dark:border-slate-800">
               <b>Açıklama:</b> ${req.description}
             </div>
 
-            <div class="flex flex-wrap items-center justify-between text-xs text-slate-500 mt-2 pt-1 border-t border-slate-100 gap-1">
-              <span class="bg-slate-100 text-slate-700 px-2 py-0.5 rounded font-bold">👤 Çağıran Usta: ${req.requestedBy}</span>
+            <div class="flex flex-wrap items-center justify-between text-xs text-slate-500 mt-2 pt-1 border-t border-slate-100 dark:border-slate-800 gap-1">
+              <span class="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-2 py-0.5 rounded font-bold">👤 Çağıran: ${req.requestedBy}</span>
               ${req.operatorName ? `<span class="bg-purple-100 text-purple-800 px-2 py-0.5 rounded font-bold">🚜 Operatör: ${req.operatorName}</span>` : ''}
               <span class="text-slate-400 text-[11px] ml-auto">🕒 Saat: <b>${timeStr}</b></span>
             </div>
           </div>
 
-          <div class="border-t border-slate-100 pt-3">
+          <div class="border-t border-slate-100 dark:border-slate-800 pt-3">
             <div class="flex items-center justify-between mb-2">
               ${statusBadge}
-              <button data-delete-forklift="${req.id}" class="text-[11px] text-slate-400 hover:text-red-500">Sil</button>
+              <button data-delete-forklift="${req.id}" class="text-[11px] text-slate-400 hover:text-red-500 cursor-pointer">Sil</button>
             </div>
 
             ${isForkliftOperatorOrAdmin ? `
               <div class="flex gap-2">
                 ${req.status === "Bekliyor" ? `
-                  <button data-forklift-action="Yolda" data-call-id="${req.id}" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs py-2 px-3 rounded-lg transition flex items-center justify-center gap-1">
+                  <button data-forklift-action="Yolda" data-call-id="${req.id}" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs py-2 px-3 rounded-lg transition flex items-center justify-center gap-1 cursor-pointer">
                     🚜 Görevi Aldım (Yoldayım)
                   </button>
                 ` : ''}
                 ${req.status === "Yolda" ? `
-                  <button data-forklift-action="Tamamlandı" data-call-id="${req.id}" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs py-2 px-3 rounded-lg transition flex items-center justify-center gap-1">
+                  <button data-forklift-action="Tamamlandı" data-call-id="${req.id}" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs py-2 px-3 rounded-lg transition flex items-center justify-center gap-1 cursor-pointer">
                     ✓ Görevi Tamamladım
                   </button>
                 ` : ''}
@@ -229,6 +688,14 @@ export class ForkliftModule {
           );
 
           playAlertSound("call");
+
+          // Sesli Anons
+          if (action === "Yolda") {
+            speakVoiceAlert(`Forklift operatörü yola çıktı. Görevi ${uName} üstlendi.`);
+          } else {
+            speakVoiceAlert(`Forklift görevi tamamlandı.`);
+          }
+
           this.render();
 
           // Telegram Grubu Bildirimi (Görevi Aldı / Tamamladı)
@@ -256,40 +723,49 @@ export class ForkliftModule {
 
   async sendTelegramNotification(call, eventType = "NEW") {
     const config = appState.state.telegramConfig;
+
+    // Harici Webhook (Telefon Sesli Araması / WhatsApp Botu) Tetikleme
+    if (eventType === "NEW" && config?.webhookCallUrl) {
+      try {
+        fetch(config.webhookCallUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            event: "FORKLIFT_CALL",
+            urgency: call.urgency,
+            location: call.location,
+            description: call.description,
+            requestedBy: call.requestedBy,
+            time: call.requestTime,
+            message: `Acil forklift çağrısı: ${call.location} konumunda ${call.description}`
+          })
+        }).catch(err => console.warn("Otomatik arama webhook hatası:", err));
+      } catch (e) {
+        console.warn("Webhook dispatch error:", e);
+      }
+    }
+
     if (!config || !config.enabled || !config.botToken || !config.chatId) {
-      console.log("Telegram entegrasyonu devre dışı veya yapılandırılmamış.");
       return;
     }
 
-    // Seçim kutusu filtre kontrolleri
-    if (eventType === "NEW" && config.notifyForkliftNew === false) {
-      console.log("Yeni forklift çağrısı bildirimi tercihi kapalı.");
-      return;
-    }
-    if (eventType === "Yolda" && config.notifyForkliftEnRoute === false) {
-      console.log("Forklift operatör yolda bildirimi tercihi kapalı.");
-      return;
-    }
-    if (eventType === "Tamamlandı" && config.notifyForkliftDone === false) {
-      console.log("Forklift görevi tamamlandı bildirimi tercihi kapalı.");
-      return;
-    }
+    // Tercih filtreleri
+    if (eventType === "NEW" && config.notifyForkliftNew === false) return;
+    if (eventType === "Yolda" && config.notifyForkliftEnRoute === false) return;
+    if (eventType === "Tamamlandı" && config.notifyForkliftDone === false) return;
 
     const dep = appState.state.departments.find(d => d.id === call.departmentId) || { name: "Genel Fabrika" };
     const timeStr = new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
 
     const escapeHtml = (str) => {
       if (!str) return "";
-      return String(str)
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;");
+      return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     };
 
     const depName = escapeHtml(dep.name);
     const loc = escapeHtml(call.location);
     const reqBy = escapeHtml(call.requestedBy);
-    const opName = escapeHtml(call.operatorName || appState.state.currentUser.name);
+    const opName = escapeHtml(call.operatorName || appState.state.currentUser?.name || "Operatör");
     const desc = escapeHtml(call.description);
     const urgency = escapeHtml(call.urgency || "Normal");
 
@@ -308,7 +784,7 @@ export class ForkliftModule {
       plainText = `🚜 FORKLİFT HAREKETE GEÇTİ (YOLDA)\n\n` +
         `📍 Bölüm: ${dep.name}\n` +
         `📌 Konum: ${call.location}\n` +
-        `👷 Operatör: ${call.operatorName || appState.state.currentUser.name}\n` +
+        `👷 Operatör: ${opName}\n` +
         `👤 Talep Eden: ${call.requestedBy}\n` +
         `📝 İş: ${call.description}\n` +
         `⏰ Başlama Saati: ${timeStr}`;
@@ -324,7 +800,7 @@ export class ForkliftModule {
       plainText = `✅ FORKLİFT GÖREVİ TAMAMLANDI\n\n` +
         `📍 Bölüm: ${dep.name}\n` +
         `📌 Konum: ${call.location}\n` +
-        `👷 Tamamlayan: ${call.operatorName || appState.state.currentUser.name}\n` +
+        `👷 Tamamlayan: ${opName}\n` +
         `👤 Talep Eden: ${call.requestedBy}\n` +
         `📝 İş: ${call.description}\n` +
         `⏰ Bitiş Saati: ${timeStr}`;
@@ -361,7 +837,6 @@ export class ForkliftModule {
       const resData = await res.json().catch(() => null);
 
       if (!res.ok || (resData && !resData.ok)) {
-        console.warn("Telegram HTML gönderimi başarısız oldu, düz metin deneniyor...", resData);
         await fetch(url, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -371,7 +846,6 @@ export class ForkliftModule {
           })
         });
       }
-      console.log(`Telegram bildirimi (${eventType}) başarıyla gönderildi.`);
     } catch (e) {
       console.warn("Telegram mesajı gönderilemedi:", e);
     }
@@ -411,15 +885,18 @@ export class ForkliftModule {
       { location, urgency, description }
     );
 
-    // Sesli Alarm
+    // 1. Sesli Alarm (Ding / Siren)
     if (urgency === "Kritik") {
       playAlertSound("critical");
     } else {
       playAlertSound("call");
     }
 
-    // Telegram Bildirimi (Yapılandırılmışsa)
-    this.sendTelegramNotification(newCall);
+    // 2. Sesli Anons (Tarayıcı Türkçe Konuşması)
+    speakVoiceAlert(`Dikkat! ${depObj.name} bölümünden ${urgency === 'Kritik' ? 'acil ' : ''}forklift çağrısı var. Konum: ${location}.`);
+
+    // 3. Telegram ve Webhook Bildirimi
+    this.sendTelegramNotification(newCall, "NEW");
 
     document.getElementById("form-call-forklift").reset();
     document.getElementById("modal-call-forklift").classList.remove("show");
@@ -438,6 +915,9 @@ export class ForkliftModule {
     const notifyBreakdown = document.getElementById("tg-notify-breakdown") ? document.getElementById("tg-notify-breakdown").checked : true;
     const notifyCalendar = document.getElementById("tg-notify-calendar") ? document.getElementById("tg-notify-calendar").checked : true;
 
+    const voiceAnnounceEnabled = document.getElementById("tg-voice-announce") ? document.getElementById("tg-voice-announce").checked : true;
+    const webhookCallUrl = document.getElementById("tg-webhook-call-url") ? document.getElementById("tg-webhook-call-url").value.trim() : "";
+
     appState.state.telegramConfig = {
       botToken: token,
       chatId: chatId,
@@ -446,13 +926,15 @@ export class ForkliftModule {
       notifyForkliftEnRoute,
       notifyForkliftDone,
       notifyBreakdown,
-      notifyCalendar
+      notifyCalendar,
+      voiceAnnounceEnabled,
+      webhookCallUrl
     };
 
     appState.saveState();
     const uName = appState.state.currentUser ? appState.state.currentUser.name : "Yönetici";
-    logSystemAction("TELEGRAM_AYAR", `${uName} Telegram bot bildirim tercihlerini güncelledi.`);
-    alert("Telegram ayarları ve bildirim tercihleri başarıyla kaydedildi.");
+    logSystemAction("TELEGRAM_AYAR", `${uName} Telegram bot ve anons tercihlerini güncelledi.`);
+    alert("✅ Telegram ayarları, sesli anons ve bildirim tercihleri başarıyla kaydedildi.");
     document.getElementById("modal-telegram-settings").classList.remove("show");
   }
 
@@ -494,6 +976,8 @@ export class ForkliftModule {
       const data = await res.json().catch(() => null);
 
       if (res.ok && data?.ok) {
+        // Tarayıcıdan da test anonsu yap
+        speakVoiceAlert("Telegram ve sesli anons bağlantı testi başarılı.");
         alert("✅ Test bildirimi Telegram grubunuza başarıyla iletildi!");
       } else {
         alert("❌ Telegram Hatası: " + (data?.description || `HTTP ${res.status}`));

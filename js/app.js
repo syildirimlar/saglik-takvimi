@@ -9,7 +9,7 @@ import { ForkliftModule } from './forklift.js?v=3.9';
 import { BreakdownModule } from './breakdown.js?v=3.9';
 import { ProductionModule } from './production.js?v=4.9';
 import { AdminModule } from './admin.js?v=4.3';
-import { CateringShuttleModule } from './catering_shuttle.js';
+import { CateringShuttleModule, getUserShuttleBanners } from './catering_shuttle.js';
 
 class App {
   constructor() {
@@ -173,6 +173,89 @@ class App {
 
     // Kullanıcının / Birimin özel menü sıralamasını uygula
     this.applySavedMenuOrder();
+
+    // Haftalık Servis & Şoförlük Bildirim Banner'ını Göster
+    this.renderUserShuttleNotificationBanner();
+  }
+
+  renderUserShuttleNotificationBanner() {
+    const bannerContainer = document.getElementById("user-shuttle-notification-banner");
+    if (!bannerContainer) return;
+
+    const user = appState.state.currentUser;
+    if (!user) {
+      bannerContainer.innerHTML = "";
+      return;
+    }
+
+    const banners = getUserShuttleBanners(user);
+    if (banners.length === 0) {
+      bannerContainer.innerHTML = "";
+      return;
+    }
+
+    bannerContainer.innerHTML = banners.map(b => {
+      if (b.type === "DRIVER") {
+        return `
+          <div class="bg-gradient-to-r from-amber-500 via-amber-600 to-orange-600 text-white p-3.5 sm:p-4 rounded-2xl shadow-md border border-amber-400 flex items-center justify-between flex-wrap gap-2.5 transition">
+            <div class="flex items-center gap-3 min-w-0">
+              <span class="text-2xl sm:text-3xl bg-white/20 p-2 rounded-xl flex-shrink-0">🚐</span>
+              <div class="min-w-0">
+                <div class="text-[10px] sm:text-xs font-black uppercase tracking-wider text-amber-100 flex items-center gap-1.5">
+                  <span>⭐</span> <span>${b.title}</span>
+                </div>
+                <div class="text-sm sm:text-base font-black flex items-center flex-wrap gap-1.5 mt-0.5">
+                  <span>BU HAFTA KULLANACAĞINIZ ARAÇ:</span>
+                  <span class="bg-white text-slate-900 px-2.5 py-0.5 rounded-lg font-mono tracking-wider font-black shadow-xs">${b.plateNumber}</span>
+                </div>
+                <div class="text-xs text-amber-100 mt-1 flex items-center flex-wrap gap-x-2 gap-y-0.5">
+                  <span>📍 Güzergah: <b>${b.routeName}</b></span>
+                  <span>•</span>
+                  <span>👥 Yolcu Sayısı: <b>${b.passengerCount} / ${b.capacity}</b> Kişi</span>
+                  ${b.stops ? `<span>•</span> <span>🕒 ${b.stops.split('\n')[0]}</span>` : ''}
+                </div>
+              </div>
+            </div>
+            <button type="button" data-open-shuttle-info class="bg-white hover:bg-amber-50 text-amber-800 text-xs font-black py-2 px-3.5 rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer ml-auto sm:ml-0 flex-shrink-0">
+              <span>📋</span> <span>Yolcu Listesi & Güzergah</span> &rarr;
+            </button>
+          </div>
+        `;
+      } else {
+        return `
+          <div class="bg-gradient-to-r from-blue-600 via-indigo-600 to-indigo-700 text-white p-3.5 sm:p-4 rounded-2xl shadow-md border border-indigo-400 flex items-center justify-between flex-wrap gap-2.5 transition">
+            <div class="flex items-center gap-3 min-w-0">
+              <span class="text-2xl sm:text-3xl bg-white/20 p-2 rounded-xl flex-shrink-0">🚐</span>
+              <div class="min-w-0">
+                <div class="text-[10px] sm:text-xs font-black uppercase tracking-wider text-indigo-200 flex items-center gap-1.5">
+                  <span>ℹ️</span> <span>${b.title}</span>
+                </div>
+                <div class="text-sm sm:text-base font-black flex items-center flex-wrap gap-1.5 mt-0.5">
+                  <span>BU HAFTA BİNECEĞİNİZ ARAÇ:</span>
+                  <span class="bg-white text-slate-900 px-2.5 py-0.5 rounded-lg font-mono tracking-wider font-black shadow-xs">${b.plateNumber}</span>
+                </div>
+                <div class="text-xs text-indigo-100 mt-1 flex items-center flex-wrap gap-x-2 gap-y-0.5">
+                  <span>📍 Hat: <b>${b.routeName}</b></span>
+                  <span>•</span>
+                  <span>👤 Şoför: <b>${b.driverName}</b></span>
+                  ${b.driverPhone ? `<span>•</span> <span>📞 Tel: <a href="tel:${b.driverPhone}" class="underline font-bold text-white hover:text-indigo-200">${b.driverPhone}</a></span>` : ''}
+                </div>
+              </div>
+            </div>
+            <button type="button" data-open-shuttle-info class="bg-white hover:bg-indigo-50 text-indigo-800 text-xs font-black py-2 px-3.5 rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer ml-auto sm:ml-0 flex-shrink-0">
+              <span>📍</span> <span>Durak Saatleri & Detay</span> &rarr;
+            </button>
+          </div>
+        `;
+      }
+    }).join("");
+
+    // Buton dinleyicisi
+    bannerContainer.querySelectorAll("[data-open-shuttle-info]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        this.cateringShuttle.openShuttleModal();
+      });
+    });
   }
 
   initTabs() {
@@ -223,6 +306,7 @@ class App {
       backdrop.classList.remove("hidden");
       backdrop.classList.add("show");
     }
+    document.body.classList.add("overflow-hidden");
   }
 
   closeMobileSidebar() {
@@ -233,6 +317,7 @@ class App {
       backdrop.classList.add("hidden");
       backdrop.classList.remove("show");
     }
+    document.body.classList.remove("overflow-hidden");
   }
 
   initLiveClock() {

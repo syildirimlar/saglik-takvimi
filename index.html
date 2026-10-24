@@ -123,10 +123,10 @@
   <div id="portal-app-wrapper" class="flex min-h-screen w-full bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100">
 
     <!-- MOBİL İÇİN ARKA PLAN KARARTMASI -->
-    <div id="sidebar-backdrop" class="fixed inset-0 z-40 bg-slate-900/60 backdrop-blur-xs lg:hidden hidden transition-opacity"></div>
+    <div id="sidebar-backdrop" class="fixed inset-0 z-40 bg-slate-900/60 lg:hidden hidden transition-opacity"></div>
 
     <!-- ==================== SOL PANEL (SIDEBAR - YUKARIDAN AŞAĞIYA SIRALI ANA BÖLÜMLER) ==================== -->
-    <aside id="portal-sidebar" class="fixed inset-y-0 left-0 z-40 w-72 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col justify-between transition-transform duration-300 -translate-x-full lg:translate-x-0 shadow-lg lg:shadow-none">
+    <aside id="portal-sidebar" class="fixed inset-y-0 left-0 z-40 w-[84vw] max-w-[320px] lg:w-72 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col justify-between transition-transform duration-300 -translate-x-full lg:translate-x-0 shadow-xl lg:shadow-none">
       
       <!-- Üst Kısım: Logo & Menü Başlıkları -->
       <div class="flex-1 flex flex-col min-h-0">
@@ -309,50 +309,50 @@
     <div id="portal-main-wrapper" class="lg:pl-72 flex-1 flex flex-col min-w-0 min-h-screen">
       
       <!-- Üst Bilgi ve Sayfa Başlık Çubuğu -->
-      <header class="top-header sticky top-0 z-30 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-4 sm:px-6 py-2.5 flex items-center justify-between gap-3 shadow-xs">
+      <header class="top-header sticky top-0 z-30 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-3 sm:px-6 py-2 flex items-center justify-between gap-2 sm:gap-3 shadow-xs">
         <!-- Sol: Mobil Menü Butonu, Logo & Sayfa Başlığı -->
-        <div class="flex items-center gap-3 min-w-0">
-          <button id="btn-toggle-sidebar" class="lg:hidden p-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-200 text-base font-black transition cursor-pointer" title="Menüyü Aç">
+        <div class="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+          <button id="btn-toggle-sidebar" class="lg:hidden p-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-200 text-base font-black transition cursor-pointer flex-shrink-0" title="Menüyü Aç">
             ☰
           </button>
-          <div class="flex flex-col items-center lg:hidden">
+          <div class="flex flex-col items-center lg:hidden flex-shrink-0">
             <img src="assets/sodsan-logo.png" alt="SODSAN" class="h-5 w-auto object-contain block">
             <span class="text-[7px] font-black tracking-widest text-blue-600 dark:text-blue-400 uppercase -mt-0.5">PORTAL</span>
           </div>
-          <div>
-            <h1 id="current-page-title" class="text-sm sm:text-base font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-1.5 truncate">
+          <div class="min-w-0 flex-1 overflow-hidden">
+            <h1 id="current-page-title" class="text-xs sm:text-sm md:text-base font-black text-slate-900 dark:text-white tracking-tight truncate flex items-center gap-1.5">
               📅 Fabrika Operasyon & Planlama Takvimi
             </h1>
-            <p id="current-page-desc" class="text-[11px] text-slate-500 dark:text-slate-400 hidden sm:block truncate">
+            <p id="current-page-desc" class="text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 hidden md:block truncate">
               Aylık bakım günleri, sevkiyat randevuları ve onaylı personel izinleri
             </p>
           </div>
         </div>
 
         <!-- Sağ: Hızlı Bildirimler & Tarih -->
-        <div class="flex items-center gap-1.5 sm:gap-2">
+        <div class="flex items-center gap-1 sm:gap-1.5 flex-shrink-0">
           <!-- Yemek Menüsü Hızlı Butonu (En Tepe) -->
-          <button data-open-catering-menu class="bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white font-extrabold text-xs px-2.5 py-1.5 rounded-lg shadow-xs transition flex items-center gap-1 cursor-pointer" title="Aylık Yemek Menüsünü Görüntüle">
-            <span>🍽️</span> <span class="hidden md:inline">Yemek Menüsü</span>
+          <button data-open-catering-menu class="bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white font-extrabold text-xs px-2 py-1.5 sm:px-2.5 sm:py-1.5 rounded-lg shadow-xs transition flex items-center gap-1 cursor-pointer flex-shrink-0" title="Aylık Yemek Menüsünü Görüntüle">
+            <span>🍽️</span> <span class="hidden lg:inline">Yemek Menüsü</span>
           </button>
 
           <!-- Servis Güzergahları Hızlı Butonu -->
-          <button data-open-shuttle-info class="bg-indigo-600 hover:bg-indigo-700 active:scale-98 text-white font-extrabold text-xs px-2.5 py-1.5 rounded-lg shadow-xs transition flex items-center gap-1 cursor-pointer" title="Personel Servis Güzergahları & Şoförler">
-            <span>🚐</span> <span class="hidden md:inline">Servisler</span>
+          <button data-open-shuttle-info class="bg-indigo-600 hover:bg-indigo-700 active:scale-98 text-white font-extrabold text-xs px-2 py-1.5 sm:px-2.5 sm:py-1.5 rounded-lg shadow-xs transition flex items-center gap-1 cursor-pointer flex-shrink-0" title="Personel Servis Güzergahları & Şoförler">
+            <span>🚐</span> <span class="hidden lg:inline">Servisler</span>
           </button>
 
           <!-- Hızlı Arıza Bildir Butonu (Üst Çubukta da hazır) -->
-          <button data-open-report-breakdown class="bg-red-600 hover:bg-red-700 text-white font-extrabold text-xs px-2.5 py-1.5 rounded-lg shadow-xs transition flex items-center gap-1 cursor-pointer" title="Acil Arıza Bildir">
-            <span>🚨</span> <span class="hidden sm:inline">Arıza Bildir</span>
+          <button data-open-report-breakdown class="bg-red-600 hover:bg-red-700 text-white font-extrabold text-xs px-2 py-1.5 sm:px-2.5 sm:py-1.5 rounded-lg shadow-xs transition flex items-center gap-1 cursor-pointer flex-shrink-0" title="Acil Arıza Bildir">
+            <span>🚨</span> <span class="hidden sm:inline">Arıza</span>
           </button>
 
           <!-- Hızlı Forklift Çağır Butonu -->
-          <button data-open-call-forklift class="pulse-emergency bg-amber-500 hover:bg-amber-600 text-white font-extrabold text-xs px-2.5 py-1.5 rounded-lg shadow-xs transition flex items-center gap-1 cursor-pointer" title="Forklift Operatörü Çağır">
+          <button data-open-call-forklift class="pulse-emergency bg-amber-500 hover:bg-amber-600 text-white font-extrabold text-xs px-2 py-1.5 sm:px-2.5 sm:py-1.5 rounded-lg shadow-xs transition flex items-center gap-1 cursor-pointer flex-shrink-0" title="Forklift Operatörü Çağır">
             <span>🚜</span> <span class="hidden sm:inline">Forklift</span>
           </button>
 
           <!-- Tarih Rozeti -->
-          <div class="hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-semibold">
+          <div class="hidden xl:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-semibold flex-shrink-0">
             <span>🕒</span>
             <span id="portal-live-clock">Canlı Takip</span>
           </div>
@@ -362,6 +362,9 @@
       <!-- Aktif İçerik Alanı -->
       <main class="flex-1 p-3 sm:p-5 lg:p-6 w-full max-w-[1680px] mx-auto space-y-4">
         
+        <!-- Kullanıcı Haftalık Servis / Şoförlük Bildirim Banner'ı -->
+        <div id="user-shuttle-notification-banner" class="space-y-2"></div>
+
         <!-- Aktif Arıza Canlı Uyarı Şeridi -->
         <div id="active-breakdowns-banner" class="hidden"></div>
 
@@ -937,35 +940,95 @@
       </div>
     </section>
 
-    <!-- ==================== SEKME 4: FORKLİFT OPERASYONU ==================== -->
+    <!-- ==================== SEKME 4: FORKLİFT OPERASYONU & PARKURU ==================== -->
     <section id="tab-forklift" class="tab-pane hidden space-y-4">
-      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h2 class="text-base font-extrabold text-slate-800 flex items-center gap-2">
-            <span>🚜 Forklift Çağrı Paneli</span>
-            <span class="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded font-bold">Canlı Hat</span>
-          </h2>
-          <p class="text-xs text-slate-500">Forkliftçiler talepleri buradan görür, görevi üstlenir ve tamamlar.</p>
+
+      <!-- Alt Sekmeler (Subtabs): Çağrılar vs Forklift Parkuru & Canlı Durum -->
+      <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2 flex-wrap gap-2">
+        <div class="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
+          <button id="subtab-btn-forklift-calls" class="px-3.5 py-1.5 rounded-lg text-xs font-black transition flex items-center gap-1.5 bg-white dark:bg-slate-900 text-blue-700 dark:text-blue-400 shadow-sm cursor-pointer">
+            <span>🚨</span> <span>Forklift Çağrıları</span>
+            <span id="forklift-calls-subtab-badge" class="bg-amber-500 text-white text-[10px] font-black px-1.5 py-0.2 rounded-full">0</span>
+          </button>
+          <button id="subtab-btn-forklift-fleet" class="px-3.5 py-1.5 rounded-lg text-xs font-black transition flex items-center gap-1.5 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white cursor-pointer">
+            <span>🚜</span> <span>Forklift Parkuru & Durum</span>
+            <span id="forklift-fleet-badge-count" class="bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 text-[10px] font-black px-1.5 py-0.2 rounded-full">0</span>
+          </button>
         </div>
 
         <div class="flex items-center gap-2">
-          <select id="filter-forklift-status" class="text-xs bg-slate-50 border border-slate-200 rounded-lg py-1.5 px-2.5 font-medium text-slate-700">
-            <option value="ALL">Tüm Çağrılar</option>
-            <option value="Bekliyor">⏳ Bekleyenler</option>
-            <option value="Yolda">🚀 Yoldakiler</option>
-            <option value="Tamamlandı">✓ Tamamlananlar</option>
-          </select>
-
-          <button id="btn-telegram-settings" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold py-2 px-3 rounded-lg border border-slate-200 transition flex items-center gap-1">
-            <span>💬</span> <span>Telegram Bildirim Ayarı</span>
+          <button id="btn-open-add-forklift" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-2 px-3.5 rounded-lg shadow-sm transition flex items-center gap-1.5 cursor-pointer">
+            <span>➕</span> <span>Yeni Forklift Ekle</span>
+          </button>
+          <button data-open-call-forklift class="pulse-emergency bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold py-2 px-3.5 rounded-lg shadow-sm transition flex items-center gap-1.5 cursor-pointer">
+            <span>🚜</span> <span>Forklift Çağır</span>
+          </button>
+          <button id="btn-telegram-settings" class="bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold py-2 px-3 rounded-lg border border-slate-200 dark:border-slate-700 transition flex items-center gap-1 cursor-pointer">
+            <span>💬</span> <span>Telegram & Bot Ayarı</span>
           </button>
         </div>
       </div>
 
-      <!-- Forklift Çağrı Kartları -->
-      <div id="forklift-requests-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-        <!-- JavaScript tarafından doldurulur -->
+      <!-- ALT PANE 1: ÇAĞRILAR & GÖREVLER -->
+      <div id="subpane-forklift-calls" class="space-y-4">
+        <div class="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 class="text-base font-extrabold text-slate-800 dark:text-white flex items-center gap-2">
+              <span>🚜 Canlı Forklift Çağrı Paneli</span>
+              <span class="text-xs bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 px-2 py-0.5 rounded font-bold">Anlık İstekler</span>
+            </h2>
+            <p class="text-xs text-slate-500 dark:text-slate-400">Ustalar ve departmanlar buradan forklift çağırır; operatör görevi yolda ve tamamlandı olarak işaretler.</p>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <select id="filter-forklift-status" class="text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg py-1.5 px-2.5 font-medium text-slate-700 dark:text-slate-200">
+              <option value="ALL">Tüm Çağrılar</option>
+              <option value="Bekliyor">⏳ Bekleyenler</option>
+              <option value="Yolda">🚀 Yoldakiler</option>
+              <option value="Tamamlandı">✓ Tamamlananlar</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Forklift Çağrı Kartları -->
+        <div id="forklift-requests-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+          <!-- JavaScript tarafından doldurulur -->
+        </div>
       </div>
+
+      <!-- ALT PANE 2: FORKLİFT PARKURU & CANLI DURUM -->
+      <div id="subpane-forklift-fleet" class="hidden space-y-4">
+        <div class="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 class="text-base font-extrabold text-slate-800 dark:text-white flex items-center gap-2">
+              <span>🚜 Fabrika Forklift Filosu & Parkuru</span>
+              <span class="text-xs bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300 px-2 py-0.5 rounded font-bold">Canlı Takip</span>
+            </h2>
+            <p class="text-xs text-slate-500 dark:text-slate-400">Marka, tonaj, yakıt türü (Dizel, Benzin, Elektrikli) ve anlık durumları (Aktif, Şarjda -yalnızca elektrikli için-, Arızalı).</p>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <select id="filter-forklift-fleet-status" class="text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg py-1.5 px-2.5 font-medium text-slate-700 dark:text-slate-200">
+              <option value="ALL">Tüm Durumlar</option>
+              <option value="Aktif">🟢 Aktif</option>
+              <option value="Şarjda">⚡ Şarjda (Elektrikli)</option>
+              <option value="Arızalı">🔴 Arızalı</option>
+            </select>
+            <select id="filter-forklift-fleet-fuel" class="text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg py-1.5 px-2.5 font-medium text-slate-700 dark:text-slate-200">
+              <option value="ALL">Tüm Yakıtlar</option>
+              <option value="Elektrikli">⚡ Elektrikli</option>
+              <option value="Dizel">⛽ Dizel</option>
+              <option value="Benzin/LPG">⛽ Benzin/LPG</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Forklift Filo Kartları -->
+        <div id="forklift-fleet-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+          <!-- JavaScript tarafından doldurulur -->
+        </div>
+      </div>
+
     </section>
 
     <!-- ==================== SEKME: MAKİNA & ARIZA TAKİP PANOSU ==================== -->
@@ -2135,6 +2198,29 @@
           </div>
         </div>
 
+        <!-- Sesli Anons & Otomatik Arama Webhook Entegrasyonu -->
+        <div class="space-y-2.5 bg-slate-50 p-3 rounded-xl border border-slate-200">
+          <div class="flex items-center gap-2">
+            <input type="checkbox" id="tg-voice-announce" checked class="w-4 h-4 text-blue-600 rounded">
+            <label for="tg-voice-announce" class="text-xs font-extrabold text-slate-800 cursor-pointer">
+              📢 Cihazda Sesli Anons (Tarayıcı Türkçe Konuşması)
+            </label>
+          </div>
+          <p class="text-[11px] text-slate-500 pl-6">
+            Yeni forklift çağrısı veya acil hat duruşu olduğunda cihaz hoparlöründen Türkçe sesli okur: <i>"Dikkat! 1400 Üretim bölümünden acil forklift çağrısı var!"</i>
+          </p>
+
+          <div class="pt-2 border-t border-slate-200">
+            <label class="text-xs font-bold text-slate-700 block mb-1">
+              📞 Otomatik Telefon Araması Webhook URL'si (Opsiyonel):
+            </label>
+            <input type="url" id="tg-webhook-call-url" placeholder="https://api.twilio.com/... veya Bulut Santral Webhook URL" class="w-full text-xs font-mono border border-slate-200 rounded-lg p-2 bg-white text-slate-800">
+            <p class="text-[10px] text-slate-400 mt-1">
+              Acil çağrıda personelin telefonuna otomatik GSM sesli araması veya WhatsApp araması göndermek için harici bulut santral (Twilio, Netgsm, Santral vb.) webhook adresinizi buraya girebilirsiniz.
+            </p>
+          </div>
+        </div>
+
         <!-- Butonlar & Test Mesajı -->
         <div class="pt-2 flex items-center justify-between border-t border-slate-100 flex-wrap gap-2">
           <button type="button" id="btn-telegram-test" class="text-xs font-bold text-blue-600 hover:text-blue-700 py-2 px-3 rounded-lg border border-blue-200 hover:bg-blue-50 transition flex items-center gap-1">
@@ -2144,6 +2230,97 @@
             <button type="button" data-close-modal class="text-xs font-bold text-slate-500 py-2 px-3 rounded-lg hover:bg-slate-100">Kapat</button>
             <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs py-2 px-5 rounded-lg shadow-sm">Ayarları Kaydet</button>
           </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL: FORKLİFT EKLE / DÜZENLE ==================== -->
+  <div id="modal-add-edit-forklift" class="modal-backdrop">
+    <div class="modal-card p-5 max-w-lg">
+      <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 mb-4">
+        <h3 id="modal-forklift-form-title" class="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+          <span>🚜</span> Yeni Forklift Tanımla
+        </h3>
+        <button type="button" data-close-modal class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 font-bold text-lg cursor-pointer">✕</button>
+      </div>
+
+      <form id="form-add-edit-forklift" class="space-y-3.5">
+        <input type="hidden" id="forklift-form-id">
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Forklift Kodu / No: *</label>
+            <input type="text" id="forklift-form-code" required placeholder="Örn: FK-01 veya 16 SPL 01" class="w-full text-xs font-bold border border-slate-200 dark:border-slate-700 rounded-lg p-2.5 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-blue-500">
+          </div>
+
+          <div>
+            <label class="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Marka: *</label>
+            <input type="text" id="forklift-form-brand" required placeholder="Örn: Linde, Toyota, Still, Jungheinrich" class="w-full text-xs font-bold border border-slate-200 dark:border-slate-700 rounded-lg p-2.5 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-blue-500">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Kapasite / Tonaj: *</label>
+            <select id="forklift-form-capacity" class="w-full text-xs font-bold border border-slate-200 dark:border-slate-700 rounded-lg p-2.5 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-blue-500">
+              <option value="1.5 Ton">1.5 Ton</option>
+              <option value="2.0 Ton">2.0 Ton</option>
+              <option value="2.5 Ton" selected>2.5 Ton</option>
+              <option value="3.0 Ton">3.0 Ton</option>
+              <option value="3.5 Ton">3.5 Ton</option>
+              <option value="5.0 Ton">5.0 Ton</option>
+              <option value="Diğer">Diğer Tonaj</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Yakıt Türü: *</label>
+            <select id="forklift-form-fuel" class="w-full text-xs font-bold border border-slate-200 dark:border-slate-700 rounded-lg p-2.5 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-blue-500">
+              <option value="Elektrikli">⚡ Elektrikli</option>
+              <option value="Dizel">⛽ Dizel</option>
+              <option value="Benzin/LPG">⛽ Benzin/LPG</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1.5">O Anki Canlı Durumu: *</label>
+          <div class="grid grid-cols-3 gap-2">
+            <label class="flex items-center justify-center gap-1.5 p-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 cursor-pointer text-xs font-bold transition">
+              <input type="radio" name="forklift-form-status" value="Aktif" checked class="w-4 h-4 text-emerald-600">
+              <span class="text-emerald-700 dark:text-emerald-400">🟢 Aktif</span>
+            </label>
+
+            <!-- SADECE ELEKTRİKLİ FORKLİFTLER İÇİN GEÇERLİ -->
+            <label id="container-status-charge" class="flex items-center justify-center gap-1.5 p-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-amber-50 dark:hover:bg-amber-950/40 cursor-pointer text-xs font-bold transition">
+              <input type="radio" name="forklift-form-status" value="Şarjda" class="w-4 h-4 text-amber-600">
+              <span class="text-amber-700 dark:text-amber-400">⚡ Şarjda</span>
+            </label>
+
+            <label class="flex items-center justify-center gap-1.5 p-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-red-50 dark:hover:bg-red-950/40 cursor-pointer text-xs font-bold transition">
+              <input type="radio" name="forklift-form-status" value="Arızalı" class="w-4 h-4 text-red-600">
+              <span class="text-red-700 dark:text-red-400">🔴 Arızalı</span>
+            </label>
+          </div>
+          <p id="fuel-charge-notice" class="text-[10px] text-amber-600 dark:text-amber-400 mt-1">
+            ℹ️ "Şarjda" seçeneği yalnızca elektrikli akülü forkliftler için kullanılabilir.
+          </p>
+        </div>
+
+        <div>
+          <label class="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Sorumlu / Birincil Operatör (Opsiyonel):</label>
+          <input type="text" id="forklift-form-operator" placeholder="Örn: Sefa veya Boş" class="w-full text-xs border border-slate-200 dark:border-slate-700 rounded-lg p-2.5 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-white outline-none">
+        </div>
+
+        <div>
+          <label class="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Açıklama / Özel Notlar:</label>
+          <input type="text" id="forklift-form-notes" placeholder="Örn: 1400 Sevkiyat rampasında görevli" class="w-full text-xs border border-slate-200 dark:border-slate-700 rounded-lg p-2.5 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-white outline-none">
+        </div>
+
+        <div class="pt-2 flex justify-end gap-2 border-t border-slate-100 dark:border-slate-800">
+          <button type="button" data-close-modal class="text-xs font-bold text-slate-500 py-2 px-3 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer">Vazgeç</button>
+          <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs py-2 px-5 rounded-lg shadow-sm cursor-pointer">Forklifti Kaydet</button>
         </div>
       </form>
     </div>
@@ -3138,7 +3315,14 @@
 
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div>
-            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Şoför Adı Soyadı:</label>
+            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Şoförlük Yapacak Personel:</label>
+            <select id="shuttle-form-driver-user" class="w-full text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500 font-bold">
+              <option value="">-- Personel Seçiniz (Opsiyonel) --</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Şoför İsim / İletişim:</label>
             <input type="text" id="shuttle-form-driver" placeholder="Örn: Ahmet Usta" class="w-full text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500 font-medium">
           </div>
 
@@ -3146,11 +3330,11 @@
             <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Şoför Telefonu:</label>
             <input type="tel" id="shuttle-form-phone" placeholder="0532 555 10 20" class="w-full text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500 font-medium">
           </div>
+        </div>
 
-          <div>
-            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Yolcu Kapasitesi:</label>
-            <input type="number" id="shuttle-form-capacity" value="16" min="1" max="100" class="w-full text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500 font-bold">
-          </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Yolcu Kapasitesi:</label>
+          <input type="number" id="shuttle-form-capacity" value="16" min="1" max="100" class="w-full text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500 font-bold">
         </div>
 
         <div>
@@ -3197,7 +3381,7 @@
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js?v=37').catch(err => {
+        navigator.serviceWorker.register('sw.js?v=38').catch(err => {
           console.log('SW registration failed:', err);
         });
       });
@@ -3205,6 +3389,6 @@
   </script>
 
   <!-- ES Modül Girişi -->
-  <script type="module" src="js/app.js?v=5.6"></script>
+  <script type="module" src="js/app.js?v=5.7"></script>
 </body>
 </html>

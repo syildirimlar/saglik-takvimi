@@ -326,6 +326,9 @@ export const DEFAULT_MACHINES = [
 // Haftalık Üretim Programı & Kalıp Baskı Planları (Kesinlikle Sahte Veri Yoktur, Kullanıcı Kendisi Ekler)
 export const DEFAULT_PRODUCTION_PLANS = [];
 
+// Forklift Parkuru (Kesinlikle Sahte Veri Yoktur, Kullanıcı Kendisi Ekler)
+export const DEFAULT_FORKLIFTS = [];
+
 // Varsayılan Telegram Bot Yapılandırması
 export const DEFAULT_TELEGRAM_CONFIG = {
   botToken: "8946959841:AAFj2Wtzf8n1FNcRjc5gYkJZOrBlci5c1HA",
@@ -336,7 +339,9 @@ export const DEFAULT_TELEGRAM_CONFIG = {
   notifyForkliftDone: true,
   notifyBreakdown: true,
   notifyCalendar: true,
-  notifyProduction: true
+  notifyProduction: true,
+  voiceAnnounceEnabled: true,
+  webhookCallUrl: ""
 };
 
 // Dışarıdan Hizmet Alınan Servis & Bakım Ekipleri Rehberi
@@ -400,6 +405,22 @@ export function playAlertSound(type = "call") {
     }
   } catch (e) {
     console.warn("Audio Context başlatılamadı:", e);
+  }
+}
+
+// Türkçe Sesli Mesaj / Anons Okuyucu (Web Speech API)
+export function speakVoiceAlert(text) {
+  try {
+    if (!('speechSynthesis' in window)) return;
+    if (typeof appState !== "undefined" && appState?.state?.telegramConfig?.voiceAnnounceEnabled === false) return;
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'tr-TR';
+    utterance.rate = 1.0;
+    utterance.pitch = 1.0;
+    window.speechSynthesis.speak(utterance);
+  } catch (e) {
+    console.warn("Sesli anons hatası:", e);
   }
 }
 
@@ -547,8 +568,15 @@ export class StateManager {
           notifyForkliftDone: parsed.telegramConfig.notifyForkliftDone !== false,
           notifyBreakdown: parsed.telegramConfig.notifyBreakdown !== false,
           notifyCalendar: parsed.telegramConfig.notifyCalendar !== false,
-          notifyProduction: parsed.telegramConfig.notifyProduction !== false
+          notifyProduction: parsed.telegramConfig.notifyProduction !== false,
+          voiceAnnounceEnabled: parsed.telegramConfig.voiceAnnounceEnabled !== false,
+          webhookCallUrl: parsed.telegramConfig.webhookCallUrl || ""
         };
+      }
+
+      // Forklift Parkuru (Kesinlikle sahte veri yoktur, kullanıcı ekler)
+      if (!Array.isArray(parsed.forklifts)) {
+        parsed.forklifts = [];
       }
 
       // Yemek Şirketi & Menü Yapılandırması
@@ -599,11 +627,14 @@ export class StateManager {
         overtimeRequests: [],
         breakdowns: [],
         forkliftRequests: JSON.parse(JSON.stringify(DEFAULT_FORKLIFT_REQUESTS)),
+        forklifts: [],
         productionPlans: JSON.parse(JSON.stringify(DEFAULT_PRODUCTION_PLANS)),
         calendarEvents: [],
         companies: [...DEFAULT_COMPANIES],
         machines: JSON.parse(JSON.stringify(DEFAULT_MACHINES)),
         externalServices: [...DEFAULT_EXTERNAL_SERVICES],
+        shuttleRoutes: [],
+        cateringConfig: JSON.parse(JSON.stringify(DEFAULT_CATERING_CONFIG)),
         activityLogs: [],
         currentUser: null,
         telegramConfig: JSON.parse(JSON.stringify(DEFAULT_TELEGRAM_CONFIG))

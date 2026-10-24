@@ -137,8 +137,20 @@ body {
 }
 
 /* Sidebar Mobile Drawer */
+#portal-sidebar {
+  will-change: transform;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  touch-action: pan-y;
+}
+
 #portal-sidebar.open {
   transform: translateX(0) !important;
+}
+
+#sidebar-backdrop {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
 }
 
 #sidebar-backdrop.show {
