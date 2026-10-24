@@ -365,6 +365,9 @@
         <!-- Kullanıcı Haftalık Servis / Şoförlük Bildirim Banner'ı -->
         <div id="user-shuttle-notification-banner" class="space-y-2"></div>
 
+        <!-- Bekleyen Kurumsal Evrak & KVKK İmza Uyarısı -->
+        <div id="user-pending-docs-banner" class="space-y-2 hidden"></div>
+
         <!-- Aktif Arıza Canlı Uyarı Şeridi -->
         <div id="active-breakdowns-banner" class="hidden"></div>
 
@@ -684,6 +687,10 @@
             <span class="text-base">🚐</span>
             <span>Personel Servisleri</span>
           </button>
+          <button id="subtab-btn-docs" class="px-3 sm:px-4 py-2 rounded-md text-xs font-bold transition flex items-center gap-1.5 text-slate-600 hover:text-slate-900 cursor-pointer">
+            <span class="text-base">📋</span>
+            <span>KVKK & Kurumsal Formlar</span>
+          </button>
         </div>
       </div>
 
@@ -932,6 +939,87 @@
                 </tr>
               </thead>
               <tbody id="ik-shuttle-routes-table-tbody" class="divide-y divide-slate-100 dark:divide-slate-800">
+                <!-- JS tarafından doldurulur -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ALT SEKME 5: KVKK & KURUMSAL FORMLAR & E-İMZA YÖNETİMİ -->
+      <div id="subpane-docs" class="hidden space-y-4">
+        <!-- Başlık Kartı -->
+        <div class="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-wrap items-center justify-between gap-3">
+          <div class="flex items-center gap-3">
+            <div class="w-11 h-11 rounded-2xl bg-indigo-100 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-400 flex items-center justify-center text-2xl shadow-inner">
+              📋
+            </div>
+            <div>
+              <h2 class="text-sm sm:text-base font-black text-slate-900 dark:text-white flex items-center gap-2">
+                <span>KVKK & Kurumsal Formlar ve E-İmza Yönetimi</span>
+                <span class="text-[10px] font-bold bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 px-2 py-0.5 rounded-md">Elektronik Onay</span>
+              </h2>
+              <p class="text-xs text-slate-500 dark:text-slate-400">
+                Personeller ilk girişte veya belgeler güncellendiğinde ekran üzerinden imza atar; onaylı nüshalar arşivde saklanır.
+              </p>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <button type="button" id="btn-open-add-document" class="bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white text-xs font-black py-2.5 px-4 rounded-xl shadow-sm transition flex items-center gap-1.5 cursor-pointer">
+              <span>+</span> <span>Yeni Form / Evrak Ekle</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 1. BÖLÜM: KURUMSAL FORM VE METİN TANIMLARI -->
+        <div>
+          <div class="flex items-center justify-between mb-2.5 px-1">
+            <h3 class="text-xs sm:text-sm font-black uppercase tracking-wider text-slate-800 dark:text-white flex items-center gap-1.5">
+              <span>📄</span> <span>Yürürlükteki Kurumsal Formlar & Aydınlatma Metinleri</span>
+            </h3>
+            <span class="text-[11px] text-slate-400">Düzenlendiğinde tüm çalışanlardan yeniden imza istenir</span>
+          </div>
+
+          <div id="docs-definition-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+            <!-- JS tarafından doldurulur -->
+          </div>
+        </div>
+
+        <!-- 2. BÖLÜM: PERSONEL İMZALI EVRAKLAR ARŞİVİ -->
+        <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden mt-6">
+          <div class="p-4 border-b border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h3 class="text-xs sm:text-sm font-black uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-2">
+                <span>✍️</span> <span>Personel İmzalı Evraklar Arşivi</span>
+              </h3>
+              <p class="text-xs text-slate-400 mt-0.5">Personellerin imzaladığı belgeler, imza zamanı ve onaylı dijital nüshaları</p>
+            </div>
+
+            <div class="flex items-center gap-2 flex-wrap">
+              <input type="text" id="filter-docs-search" placeholder="Personel veya form adı ara..." class="text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 w-44 sm:w-56 font-medium">
+              <select id="filter-docs-category" class="text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 outline-none font-bold text-slate-700 dark:text-slate-300">
+                <option value="ALL">Tüm Kategoriler</option>
+                <option value="KVKK">KVKK</option>
+                <option value="İSG">İSG</option>
+                <option value="İç Yönetmelik">İç Yönetmelik</option>
+                <option value="Genel">Genel</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left">
+              <thead class="bg-slate-100 dark:bg-slate-800/80 text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase border-b border-slate-200 dark:border-slate-700">
+                <tr>
+                  <th class="py-2.5 px-3">İmzalayan Personel</th>
+                  <th class="py-2.5 px-3">Form Adı & Sürüm</th>
+                  <th class="py-2.5 px-3">İmza Tarihi & Saati</th>
+                  <th class="py-2.5 px-3">İmza Önizleme</th>
+                  <th class="py-2.5 px-3 text-right">İşlem</th>
+                </tr>
+              </thead>
+              <tbody id="docs-signed-archive-tbody" class="divide-y divide-slate-100 dark:divide-slate-800">
                 <!-- JS tarafından doldurulur -->
               </tbody>
             </table>
@@ -3513,11 +3601,408 @@
   </div>
 
 
+  <!-- ==================== MODAL: ZORUNLU E-İMZA & KVKK ONAYI ==================== -->
+  <div id="modal-mandatory-e-signature" class="modal-backdrop z-50">
+    <div class="modal-content max-w-xl w-full p-5 sm:p-6 space-y-4 max-h-[92vh] flex flex-col shadow-2xl border-2 border-indigo-500">
+      <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+        <div class="flex items-center gap-2.5">
+          <span class="text-2xl">✍️</span>
+          <div>
+            <div class="flex items-center gap-2">
+              <h3 class="text-base font-black text-slate-900 dark:text-white">Kurumsal Onay & E-İmza</h3>
+              <span id="mandatory-sig-counter" class="bg-indigo-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full">Evrak 1 / 1</span>
+            </div>
+            <p class="text-xs text-slate-500 dark:text-slate-400">Sisteme devam edebilmek için lütfen metni okuyup imzalayınız</p>
+          </div>
+        </div>
+      </div>
+
+      <form id="form-mandatory-e-signature" class="flex-1 overflow-y-auto space-y-3.5 pr-1">
+        <!-- Belge Başlığı & Sürüm Bilgisi -->
+        <div class="bg-indigo-50/70 dark:bg-indigo-950/40 p-3 rounded-xl border border-indigo-100 dark:border-indigo-900/60 flex items-center justify-between">
+          <div>
+            <h4 id="mandatory-sig-doc-title" class="font-black text-slate-900 dark:text-white text-sm sm:text-base">KVKK Çalışan Aydınlatma Metni</h4>
+            <span id="mandatory-sig-doc-version" class="text-[11px] font-bold text-indigo-700 dark:text-indigo-300">Sürüm: 1.0</span>
+          </div>
+          <span class="text-[10px] font-black uppercase bg-white dark:bg-slate-800 text-indigo-700 dark:text-indigo-400 px-2.5 py-1 rounded-lg border border-indigo-200 dark:border-indigo-800 shadow-2xs">
+            Zorunlu İmza
+          </span>
+        </div>
+
+        <!-- Evrak Metin Alanı (Kaydırılabilir) -->
+        <div>
+          <label class="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">Evrak / Sözleşme Metni:</label>
+          <div id="mandatory-sig-content" class="p-4 bg-slate-50 dark:bg-slate-800/80 rounded-xl border border-slate-200 dark:border-slate-700 text-xs text-slate-700 dark:text-slate-200 leading-relaxed font-sans max-h-48 overflow-y-auto whitespace-pre-line shadow-inner select-text">
+            <!-- JS Doldurur -->
+          </div>
+        </div>
+
+        <!-- Onay Kutusu -->
+        <label class="flex items-start gap-2.5 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 cursor-pointer select-none text-xs font-bold text-slate-800 dark:text-slate-200">
+          <input type="checkbox" id="mandatory-sig-checkbox" required class="mt-0.5 w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer">
+          <span>Yukarıda yer alan kurumsal formu ve aydınlatma metnini eksiksiz okudum, anladım ve kabul ediyorum.</span>
+        </label>
+
+        <!-- Dokunmatik İmza Alanı (Canvas) -->
+        <div class="space-y-1.5">
+          <div class="flex items-center justify-between">
+            <label class="text-xs font-black text-slate-800 dark:text-white flex items-center gap-1.5">
+              <span>✍️</span> <span>İmzanız (Parmağınız veya Fareniz ile Çiziniz):</span>
+            </label>
+            <button type="button" id="btn-clear-signature" class="text-[11px] text-rose-600 font-bold hover:underline cursor-pointer">
+              🧹 Temizle
+            </button>
+          </div>
+          
+          <div class="border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-xl bg-white overflow-hidden flex justify-center shadow-inner">
+            <canvas id="signature-canvas" width="360" height="130" class="touch-none w-full max-w-md h-[130px] cursor-crosshair bg-white"></canvas>
+          </div>
+
+          <div class="flex items-center justify-between text-[11px] text-slate-400">
+            <span>İmzalayan: <b id="mandatory-sig-user-name" class="text-slate-700 dark:text-slate-300">-</b></span>
+            <span>Tarih: ${new Date().toLocaleDateString('tr-TR')}</span>
+          </div>
+        </div>
+
+        <div class="pt-3 border-t border-slate-100 dark:border-slate-800 flex justify-end">
+          <button type="submit" class="w-full sm:w-auto bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 active:scale-98 text-white font-black text-xs py-2.5 px-6 rounded-xl shadow-md transition flex items-center justify-center gap-2 cursor-pointer">
+            <span>✍️</span> <span>İmzayı Onayla ve Kaydet</span> &rarr;
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+
+  <!-- ==================== MODAL: KURUMSAL FORM EKLE / DÜZENLE (ADMİN / İDARİ) ==================== -->
+  <div id="modal-add-edit-document" class="modal-backdrop">
+    <div class="modal-content max-w-xl w-full p-5 sm:p-6 space-y-4 max-h-[92vh] flex flex-col">
+      <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+        <div class="flex items-center gap-2">
+          <span class="text-xl">📋</span>
+          <h3 id="modal-doc-form-title" class="text-base font-black text-slate-900 dark:text-white">Yeni Kurumsal Form Ekle</h3>
+        </div>
+        <button type="button" data-close-modal class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xl font-black w-8 h-8 rounded-full flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer">
+          ✕
+        </button>
+      </div>
+
+      <form id="form-add-edit-document" class="flex-1 overflow-y-auto space-y-3.5 pr-1">
+        <input type="hidden" id="doc-form-id">
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Form / Belge Başlığı: *</label>
+          <input type="text" id="doc-form-title" required placeholder="Örn: KVKK Çalışan Aydınlatma ve Açık Rıza Metni" class="w-full text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2.5 font-bold outline-none focus:ring-2 focus:ring-indigo-500">
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Kategori: *</label>
+            <select id="doc-form-category" class="w-full text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2.5 font-bold outline-none focus:ring-2 focus:ring-indigo-500">
+              <option value="KVKK">KVKK</option>
+              <option value="İSG">İSG</option>
+              <option value="İç Yönetmelik">İç Yönetmelik</option>
+              <option value="Zimmet / Taahhüt">Zimmet / Taahhüt</option>
+              <option value="Genel">Genel</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Sürüm No: *</label>
+            <input type="text" id="doc-form-version" value="1.0" required placeholder="Örn: 1.0 veya 1.1" class="w-full text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2.5 font-mono font-bold outline-none focus:ring-2 focus:ring-indigo-500">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Kısa Açıklama / Özet:</label>
+          <input type="text" id="doc-form-summary" placeholder="Örn: 6698 sayılı kanun kapsamında çalışan hakları bildirimi" class="w-full text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500">
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Form / Belge İçeriği (Hukuki Metin): *</label>
+          <textarea id="doc-form-content" required rows="8" placeholder="Madde madde form içeriğini buraya yazınız..." class="w-full text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2.5 font-sans outline-none focus:ring-2 focus:ring-indigo-500 leading-relaxed"></textarea>
+        </div>
+
+        <label class="flex items-center gap-2 p-2.5 rounded-lg bg-indigo-50/50 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/50 cursor-pointer select-none text-xs font-bold text-indigo-900 dark:text-indigo-300">
+          <input type="checkbox" id="doc-form-mandatory" checked class="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer">
+          <span>Girişte Zorunlu İmzalansın (Personel bu form onaylanmadan portala devam edemez)</span>
+        </label>
+
+        <div class="pt-3 flex justify-end gap-2 border-t border-slate-100 dark:border-slate-800">
+          <button type="button" data-close-modal class="text-xs font-bold text-slate-500 py-2 px-3 rounded-lg hover:bg-slate-100">Vazgeç</button>
+          <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs py-2 px-5 rounded-lg shadow-sm flex items-center gap-1.5 cursor-pointer">
+            <span>💾</span> <span>Formu Kaydet ve Yayınla</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+
+  <!-- ==================== MODAL: İMZALI EVRAK İNCELEME & YAZDIRMA ==================== -->
+  <div id="modal-view-signed-doc" class="modal-backdrop">
+    <div class="modal-content max-w-2xl w-full p-6 space-y-4 max-h-[92vh] flex flex-col bg-white dark:bg-slate-900 print:shadow-none print:border-none">
+      <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+        <div class="flex items-center gap-2">
+          <span class="text-2xl">📜</span>
+          <div>
+            <h3 id="view-signed-doc-title" class="text-base font-black text-slate-900 dark:text-white">İmzalı Kurumsal Form</h3>
+            <p id="view-signed-doc-meta" class="text-xs text-slate-500 dark:text-slate-400">Resmi onay ve dijital imza dökümü</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2 print:hidden">
+          <button type="button" onclick="window.print()" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs py-1.5 px-3 rounded-lg border border-indigo-200 transition flex items-center gap-1 cursor-pointer">
+            <span>🖨️</span> <span>Yazdır / PDF</span>
+          </button>
+          <button type="button" data-close-modal class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xl font-black w-8 h-8 rounded-full flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer">
+            ✕
+          </button>
+        </div>
+      </div>
+
+      <div class="flex-1 overflow-y-auto space-y-4 pr-1">
+        <!-- Antetli Başlık -->
+        <div class="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-between">
+          <div class="flex items-center gap-2.5">
+            <img src="assets/sodsan-favicon.png" alt="SODSAN" class="h-8 w-8 object-contain">
+            <div>
+              <div class="text-xs font-black text-slate-900 dark:text-white uppercase">SODSAN PLASTİK VE METAL ÜRÜNLERİ SAN. TİC. LTD. ŞTİ.</div>
+              <div class="text-[10px] text-slate-500">Elektronik İmzalı Kurumsal Belge Sureti</div>
+            </div>
+          </div>
+          <span class="text-[10px] font-black bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full">
+            ✅ Onaylandı
+          </span>
+        </div>
+
+        <!-- Belge Metni -->
+        <div id="view-signed-doc-content" class="p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 text-xs text-slate-800 dark:text-slate-200 leading-relaxed font-sans whitespace-pre-line select-text">
+          <!-- JS doldurur -->
+        </div>
+
+        <!-- İmza ve Onay Alanı -->
+        <div class="p-4 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-between flex-wrap gap-3">
+          <div>
+            <div class="text-[10px] text-slate-400 font-bold uppercase">Onaylayan Personel:</div>
+            <div id="view-signed-doc-signer" class="font-black text-slate-900 dark:text-white text-sm">-</div>
+            <div id="view-signed-doc-date" class="text-[11px] text-slate-500 mt-0.5">-</div>
+          </div>
+
+          <div class="flex flex-col items-center">
+            <div class="text-[10px] text-slate-400 font-bold uppercase mb-1">Dijital / Islak İmza:</div>
+            <div class="bg-white border border-slate-200 rounded-lg p-1.5 shadow-2xs">
+              <img id="view-signed-doc-img" src="" alt="İmza" class="h-12 w-auto max-w-[140px] object-contain">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ==================== MODAL: VARDİYA AMİRİ ÜRETİM & PROSES SONUÇ FORMU ==================== -->
+  <div id="modal-shift-production-report" class="modal-backdrop">
+    <div class="modal-content max-w-xl w-full p-5 sm:p-6 space-y-4 max-h-[92vh] flex flex-col">
+      <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+        <div class="flex items-center gap-2">
+          <span class="text-2xl">📝</span>
+          <div>
+            <h3 class="text-sm sm:text-base font-black text-slate-900 dark:text-white">İş Emri Vardiya Raporu & Üretim Sonuç Girişi</h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400">Vardiya amiri ara parametre ve sonuçlarını girer veya üretimi kapatır</p>
+          </div>
+        </div>
+        <button type="button" data-close-modal class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xl font-black w-8 h-8 rounded-full flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer">
+          ✕
+        </button>
+      </div>
+
+      <form id="form-shift-production-report" class="flex-1 overflow-y-auto space-y-3.5 pr-1">
+        <input type="hidden" id="shift-report-plan-id">
+
+        <!-- İş Emri Özeti -->
+        <div class="bg-slate-50 dark:bg-slate-800/60 p-3 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-between flex-wrap gap-2 text-xs">
+          <div>
+            <span class="text-[10px] text-slate-400 font-bold uppercase block">Makine & Kalıp</span>
+            <span id="shift-report-mac-mold-display" class="font-black text-slate-900 dark:text-white">-</span>
+          </div>
+          <div class="text-right">
+            <span class="text-[10px] text-slate-400 font-bold uppercase block">Mevcut Üretim Durumu</span>
+            <span id="shift-report-target-display" class="font-bold text-blue-700 dark:text-blue-400">-</span>
+          </div>
+        </div>
+
+        <!-- Vardiya & Sorumlu -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Vardiya Seçimi: *</label>
+            <select id="shift-report-shift" class="w-full text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2.5 font-bold outline-none focus:ring-2 focus:ring-indigo-500">
+              <option value="08:00 - 16:00">08:00 - 16:00 (1. Vardiya / Gündüz)</option>
+              <option value="16:00 - 24:00">16:00 - 24:00 (2. Vardiya / Akşam)</option>
+              <option value="24:00 - 08:00">24:00 - 08:00 (3. Vardiya / Gece)</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Vardiya Amiri / Usta: *</label>
+            <input type="text" id="shift-report-supervisor" required placeholder="Örn: Ahmet Usta" class="w-full text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2.5 font-bold outline-none focus:ring-2 focus:ring-indigo-500">
+          </div>
+        </div>
+
+        <!-- Makine Parametreleri (Isı, Çevrim, Basınç) -->
+        <div class="bg-indigo-50/50 dark:bg-indigo-950/30 p-3 rounded-xl border border-indigo-100 dark:border-indigo-900/50 space-y-2">
+          <span class="text-[11px] font-black uppercase text-indigo-900 dark:text-indigo-300 flex items-center gap-1">
+            <span>⚙️</span> <span>MAKİNE PROSES PARAMETRELERİ</span>
+          </span>
+          <div class="grid grid-cols-3 gap-2.5">
+            <div>
+              <label class="block text-[10px] font-bold text-slate-600 dark:text-slate-400 mb-0.5">Kovan Sıcaklığı (°C):</label>
+              <input type="number" id="shift-report-temp" placeholder="Örn: 220" class="w-full text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2 font-mono font-bold outline-none focus:ring-2 focus:ring-indigo-500">
+            </div>
+            <div>
+              <label class="block text-[10px] font-bold text-slate-600 dark:text-slate-400 mb-0.5">Çevrim Süresi (sn):</label>
+              <input type="number" id="shift-report-cycle" placeholder="Örn: 42" class="w-full text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2 font-mono font-bold outline-none focus:ring-2 focus:ring-indigo-500">
+            </div>
+            <div>
+              <label class="block text-[10px] font-bold text-slate-600 dark:text-slate-400 mb-0.5">Basınç (Bar):</label>
+              <input type="number" id="shift-report-pressure" placeholder="Örn: 140" class="w-full text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2 font-mono font-bold outline-none focus:ring-2 focus:ring-indigo-500">
+            </div>
+          </div>
+        </div>
+
+        <!-- Üretim Miktarları: Sağlam ve Fire -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div class="bg-emerald-50/60 dark:bg-emerald-950/30 p-3 rounded-xl border border-emerald-200 dark:border-emerald-900/50">
+            <label class="block text-xs font-black text-emerald-900 dark:text-emerald-300 mb-1">
+              Bu Vardiyada Basılan Sağlam Adet: *
+            </label>
+            <input type="number" id="shift-report-produced" required min="0" placeholder="Örn: 1500" class="w-full text-sm font-black bg-white dark:bg-slate-800 border border-emerald-300 dark:border-emerald-700 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-emerald-500 text-emerald-700 dark:text-emerald-300">
+          </div>
+
+          <div class="bg-rose-50/60 dark:bg-rose-950/30 p-3 rounded-xl border border-rose-200 dark:border-rose-900/50">
+            <label class="block text-xs font-black text-rose-900 dark:text-rose-300 mb-1">
+              Hatalı / Fire Ürün Adedi:
+            </label>
+            <input type="number" id="shift-report-scrap" min="0" value="0" placeholder="Örn: 20" class="w-full text-sm font-black bg-white dark:bg-slate-800 border border-rose-300 dark:border-rose-700 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-rose-500 text-rose-700 dark:text-rose-300">
+          </div>
+        </div>
+
+        <!-- Hata Sebepleri (Çoklu Seçim) -->
+        <div>
+          <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Fire / Hata Sebepleri:</label>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-1.5 text-xs">
+            <label class="flex items-center gap-1.5 p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 cursor-pointer select-none">
+              <input type="checkbox" name="shift-defect-reason" value="Çapak" class="rounded text-rose-600">
+              <span>Çapak</span>
+            </label>
+            <label class="flex items-center gap-1.5 p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 cursor-pointer select-none">
+              <input type="checkbox" name="shift-defect-reason" value="Çöküntü / Çekme" class="rounded text-rose-600">
+              <span>Çöküntü</span>
+            </label>
+            <label class="flex items-center gap-1.5 p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 cursor-pointer select-none">
+              <input type="checkbox" name="shift-defect-reason" value="Yanık / Gaz İzi" class="rounded text-rose-600">
+              <span>Yanık İzi</span>
+            </label>
+            <label class="flex items-center gap-1.5 p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 cursor-pointer select-none">
+              <input type="checkbox" name="shift-defect-reason" value="Eksik Dolum" class="rounded text-rose-600">
+              <span>Eksik Dolum</span>
+            </label>
+            <label class="flex items-center gap-1.5 p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 cursor-pointer select-none">
+              <input type="checkbox" name="shift-defect-reason" value="Çarpılma / Deformasyon" class="rounded text-rose-600">
+              <span>Deformasyon</span>
+            </label>
+            <label class="flex items-center gap-1.5 p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 cursor-pointer select-none">
+              <input type="checkbox" name="shift-defect-reason" value="Renk / Leke Farkı" class="rounded text-rose-600">
+              <span>Renk / Leke</span>
+            </label>
+            <label class="flex items-center gap-1.5 p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 cursor-pointer select-none">
+              <input type="checkbox" name="shift-defect-reason" value="Ölçü Bozukluğu" class="rounded text-rose-600">
+              <span>Ölçü Hatası</span>
+            </label>
+            <label class="flex items-center gap-1.5 p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 cursor-pointer select-none">
+              <input type="checkbox" name="shift-defect-reason" value="Hammadde Nemli" class="rounded text-rose-600">
+              <span>Hammadde Nemi</span>
+            </label>
+          </div>
+          <input type="text" id="shift-defect-custom" placeholder="Diğer özel hata sebebi..." class="mt-1.5 w-full text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2 outline-none">
+        </div>
+
+        <!-- Hammadde ve Lot No -->
+        <div>
+          <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Kullanılan Hammadde Cinsi & Lot / Parti No: *</label>
+          <input type="text" id="shift-report-lot" required placeholder="Örn: Polipropilen EP300K - Lot: 2026-X49" class="w-full text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2.5 font-bold outline-none focus:ring-2 focus:ring-indigo-500">
+        </div>
+
+        <!-- Vardiya Notu -->
+        <div>
+          <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Vardiya Notu / Açıklama:</label>
+          <textarea id="shift-report-notes" rows="2" placeholder="Örn: Kalıp soğutma kanalları temizlendi, ısı stabilize edildi." class="w-full text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
+        </div>
+
+        <!-- ÜRETİM DURUM KARARI: DEVAM MI BİTTİ Mİ? -->
+        <div class="p-3.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 space-y-2">
+          <span class="text-xs font-black uppercase text-slate-800 dark:text-white block">
+            Bu İş Emri İçin Üretim Durumu Kararı: *
+          </span>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+            <label class="flex items-center gap-2 p-2.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 cursor-pointer select-none font-bold text-emerald-700 dark:text-emerald-400">
+              <input type="radio" id="shift-report-action-continue" name="shift-report-action" value="DEVAM" checked class="w-4 h-4 text-emerald-600 focus:ring-emerald-500">
+              <span>🟢 Üretim Devam Ediyor (Ara Vardiya)</span>
+            </label>
+            <label class="flex items-center gap-2 p-2.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 cursor-pointer select-none font-black text-rose-700 dark:text-rose-400">
+              <input type="radio" id="shift-report-action-finish" name="shift-report-action" value="BITTI" class="w-4 h-4 text-rose-600 focus:ring-rose-500">
+              <span>🏁 Üretim Bitti (İş Emrini Kapat)</span>
+            </label>
+          </div>
+          <p class="text-[10px] text-slate-400">
+            "Üretim Bitti" seçildiğinde iş emri tamamlanmış sayılarak alt sayfadaki "Kapanan Üretimler" listesine taşınır.
+          </p>
+        </div>
+
+        <div class="pt-3 flex justify-end gap-2 border-t border-slate-100 dark:border-slate-800">
+          <button type="button" data-close-modal class="text-xs font-bold text-slate-500 py-2 px-3 rounded-lg hover:bg-slate-100">Vazgeç</button>
+          <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-black text-xs py-2.5 px-6 rounded-xl shadow-md flex items-center gap-1.5 cursor-pointer">
+            <span>💾</span> <span>Vardiya Raporunu Kaydet</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+
+  <!-- ==================== MODAL: İŞ EMRİ GEÇMİŞ VARDİYA RAPORLARI ==================== -->
+  <div id="modal-view-shift-history" class="modal-backdrop">
+    <div class="modal-content max-w-xl w-full p-5 space-y-4 max-h-[90vh] flex flex-col">
+      <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+        <div class="flex items-center gap-2">
+          <span class="text-xl">📄</span>
+          <div>
+            <h3 id="shift-history-modal-title" class="text-sm sm:text-base font-black text-slate-900 dark:text-white">İş Emri Vardiya Raporları</h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400">Vardiya amirlerinin girdiği tüm proses ve üretim sonuçları</p>
+          </div>
+        </div>
+        <button type="button" data-close-modal class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xl font-black w-8 h-8 rounded-full flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer">
+          ✕
+        </button>
+      </div>
+
+      <div id="shift-history-list" class="flex-1 overflow-y-auto space-y-3 pr-1">
+        <!-- JS doldurur -->
+      </div>
+
+      <div class="pt-2 flex justify-end border-t border-slate-100 dark:border-slate-800 text-xs">
+        <button type="button" data-close-modal class="bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs py-2 px-4 rounded-xl transition cursor-pointer">
+          ✕ Kapat
+        </button>
+      </div>
+    </div>
+  </div>
+
+
   <!-- Service Worker Kaydı (PWA) -->
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js?v=42').catch(err => {
+        navigator.serviceWorker.register('sw.js?v=43').catch(err => {
           console.log('SW registration failed:', err);
         });
       });
@@ -3525,6 +4010,6 @@
   </script>
 
   <!-- ES Modül Girişi -->
-  <script type="module" src="js/app.js?v=6.1"></script>
+  <script type="module" src="js/app.js?v=6.2"></script>
 </body>
 </html>

@@ -467,6 +467,104 @@ export function speakVoiceAlert(text) {
 // Başlangıç İşlem Kayıtları (Audit Log - Boş başlangıç)
 export const DEFAULT_LOGS = [];
 
+// Başlangıç Kurumsal Form ve KVKK Metinleri
+export const DEFAULT_CORPORATE_DOCUMENTS = [
+  {
+    id: "doc_kvkk",
+    title: "KVKK Çalışan Aydınlatma ve Açık Rıza Metni",
+    category: "KVKK",
+    version: "1.0",
+    mandatory: true,
+    active: true,
+    updatedAt: "2026-10-24T00:00:00.000Z",
+    updatedBy: "SODSAN Yönetim",
+    summary: "6698 sayılı Kişisel Verilerin Korunması Kanunu uyarınca çalışan verilerinin işlenmesi, saklanması ve haklarınıza ilişkin aydınlatma metnidir.",
+    content: `SODSAN PLASTİK VE METAL ÜRÜNLERİ SAN. TİC. LTD. ŞTİ.
+ÇALIŞAN AYDINLATMA VE AÇIK RIZA METNİ
+
+1. Veri Sorumlusu
+6698 sayılı Kişisel Verilerin Korunması Kanunu ("KVKK") uyarınca, kişisel verileriniz veri sorumlusu sıfatıyla SODSAN PLASTİK VE METAL ÜRÜNLERİ SAN. TİC. LTD. ŞTİ. ("Şirket") tarafından aşağıda açıklanan kapsamda işlenmektedir.
+
+2. Kişisel Verilerin İşlenme Amaçları
+Kişisel verileriniz (kimlik, iletişim, özlük, mesleki deneyim, sağlık ve güvenlik bilgileri, kamera kayıtları ve fabrika içi operasyon verileri);
+- İş sözleşmesinin ifası ve iş kanunu yükümlülüklerinin yerine getirilmesi,
+- Çalışan haklarının, bordrolama, SGK ve vergi işlemlerinin yürütülmesi,
+- İş sağlığı ve güvenliği faaliyetlerinin mevzuata uygun icrası,
+- Fabrika tesis, makine parkuru, çalışan ve ürün güvenliğinin sağlanması,
+- Vardiya, servis, lojistik ve operasyonel planlamaların yürütülmesi amaçlarıyla işlenmektedir.
+
+3. Kişisel Verilerin Aktarılması
+Kişisel verileriniz, kanuni yükümlülüklerin yerine getirilmesi amacıyla SGK, İŞKUR, yetkili adli/idari merciler, iş sağlığı ve güvenliği ortak sağlık birimleri (OSGB) ve şirketin anlaşmalı olduğu denetim/muhasebe kuruluşlarına aktarılabilecektir.
+
+4. İlgili Kişinin Hakları
+KVKK’nın 11. maddesi uyarınca Şirketimize başvurarak verilerinizin işlenip işlenmediğini öğrenme, düzeltilmesini ve silinmesini talep etme hakkınız saklıdır.
+
+BEYAN VE ONAY:
+Yukarıda yer alan Aydınlatma Metnini okuduğumu, anladığımı ve kişisel verilerimin belirtilen amaçlar doğrultusunda işlenmesine ve aktarılmasına özgür irademle AÇIK RIZA gösterdiğimi kabul, beyan ve taahhüt ederim.`
+  },
+  {
+    id: "doc_isg",
+    title: "İş Sağlığı ve Güvenliği (İSG) Genel Talimat ve Taahhütnamesi",
+    category: "İSG",
+    version: "1.0",
+    mandatory: true,
+    active: true,
+    updatedAt: "2026-10-24T00:00:00.000Z",
+    updatedBy: "SODSAN Yönetim",
+    summary: "6331 sayılı İSG Kanunu uyarınca fabrika sahasında uyulması gereken temel emniyet ve KKD kuralları taahhütnamesidir.",
+    content: `SODSAN FABRİKASI İŞ SAĞLIĞI VE GÜVENLİĞİ (İSG)
+GENEL ÇALIŞMA TALİMATI VE TAAHHÜTNAMESİ
+
+1. Kişisel Koruyucu Donanım (KKD) Kullanımı
+- Fabrika üretim sahasında çelik burunlu iş ayakkabısı, reflektörlü iş yeleği veya iş elbisesi giyilmesi zorunludur.
+- Plastik enjeksiyon, kalıp bağlama, çapak alma ve makine bakım süreçlerinde koruyucu gözlük ve uygun eldiven takılacaktır.
+
+2. Makine ve Kalıp Güvenliği
+- Enjeksiyon makinelerinin kapı emniyet switchleri, hidrolik ve mekanik kilitleri asla baypas edilmeyecektir.
+- Kalıp değişimi, bakımı ve nozul temizliği sırasında makine enerjisi kesilecek, LOTO (Kilitleme-Etiketleme) kurallarına uyulacaktır.
+- Kalıbın altına veya makine mengene arasına hiçbir surette bedenle girilmeyecektir.
+
+3. Fabrika İçi Yaya ve Araç Trafiği
+- Forklift ve servis araçlarının çalışma sahasında belirlenen yaya yolları kullanılacak, forklift çalışma alanlarına 5 metreden fazla yaklaşılmayacaktır.
+
+4. Bildirim Yükümlülüğü
+- Sahada tespit edilen tüm ramak kala olaylar, makine arızaları ve güvensiz durumlar ivedilikle vardiya amirine veya İSG uzmanına bildirilecektir.
+
+TAAHHÜT:
+Yukarıdaki İSG kurallarına eksiksiz uyacağımı, uymamam halinde doğacak yasal ve idari sorumlulukları kabul ettiğimi beyan ve taahhüt ederim.`
+  },
+  {
+    id: "doc_yonetmelik",
+    title: "Fabrika Çalışma Esasları ve İç Disiplin Yönetmeliği",
+    category: "İç Yönetmelik",
+    version: "1.0",
+    mandatory: true,
+    active: true,
+    updatedAt: "2026-10-24T00:00:00.000Z",
+    updatedBy: "SODSAN Yönetim",
+    summary: "Fabrika içi mesai, mola, temizlik, gizlilik ve davranış kurallarını belirleyen iç yönetmeliktir.",
+    content: `SODSAN PLASTİK VE METAL ÜRÜNLERİ SAN. TİC. LTD. ŞTİ.
+FABRİKA ÇALIŞMA ESASLARI VE İÇ DİSİPLİN YÖNETMELİĞİ
+
+1. Mesai ve Vardiya Düzeni
+- Çalışanlar belirlenen vardiya saatlerine (08:00-16:00, 16:00-24:00, 24:00-08:00) tam vaktinde riayet etmekle yükümlüdür.
+- İşe geliş ve çıkışlarda kart okuma / personel imza sistemleri eksiksiz kullanılacaktır.
+
+2. Mola ve Dinlenme Saatleri
+- Çay ve yemek molaları belirlenen saatlerde kullanılacak, molalar üretim bandını aksatmayacak şekilde amir koordinesinde tamamlanacaktır.
+
+3. Fabrika Tertip ve Düzeni (5S)
+- Her operatör ve personel çalıştığı makinenin, kalıp alanının ve tezgahının temizliğinden bizzat sorumludur.
+- Hammadde çuvalları, masterbatch boyalar ve basılan mamul kasaları belirlenen sarı çizgi alanlarında düzenli depolanacaktır.
+
+4. Gizlilik ve Sadakat Yükümlülüğü
+- Şirkete ait üretim teknikleri, kalıp tasarımları, müşteri listeleri, mali bilgiler ve şirket içi yazılımlar ticari sır kapsamındadır. Şirket dışına hiçbir surette çıkartılamaz ve 3. şahıslarla paylaşılamaz.
+
+BEYAN:
+İç Disiplin Yönetmeliğini okuduğumu, hükümlerine harfiyen riayet edeceğimi beyan ederim.`
+  }
+];
+
 // LocalStorage Veri Yükleyici & Saklayıcı
 export class StateManager {
   constructor() {
@@ -656,6 +754,23 @@ export class StateManager {
       // Personel Servis Güzergahları
       if (!Array.isArray(parsed.shuttleRoutes)) {
         parsed.shuttleRoutes = [];
+      }
+
+      // Kurumsal Belgeler & Formlar (KVKK, İSG, İç Yönetmelik)
+      if (!Array.isArray(parsed.corporateDocuments) || parsed.corporateDocuments.length === 0) {
+        parsed.corporateDocuments = JSON.parse(JSON.stringify(DEFAULT_CORPORATE_DOCUMENTS));
+      } else {
+        // Eksik temel belgeleri tamamla
+        DEFAULT_CORPORATE_DOCUMENTS.forEach(defDoc => {
+          if (!parsed.corporateDocuments.some(d => d.id === defDoc.id)) {
+            parsed.corporateDocuments.push(defDoc);
+          }
+        });
+      }
+
+      // Personel İmzalı Evraklar Arşivi
+      if (!Array.isArray(parsed.signedDocuments)) {
+        parsed.signedDocuments = [];
       }
 
       // Varsayılan olarak oturum açılmamış başlar (Giriş ekranı zorunlu)
@@ -1040,6 +1155,182 @@ export class StateManager {
     } catch (e) {
       console.error("Log kaydı oluşturulamadı:", e);
     }
+  }
+
+  // ==========================================
+  // VARDİYA AMİRİ ÜRETİM & SONUÇ RAPORU METOTLARI
+  // ==========================================
+  saveShiftProductionReport(planId, reportData) {
+    if (!Array.isArray(this.state.productionPlans)) return null;
+    const plan = this.state.productionPlans.find(p => p.id === planId);
+    if (!plan) return null;
+
+    if (!Array.isArray(plan.shiftReports)) {
+      plan.shiftReports = [];
+    }
+
+    const produced = Number(reportData.producedQuantity) || 0;
+    const defect = Number(reportData.defectQuantity) || 0;
+
+    const newReport = {
+      id: "shift_rep_" + Date.now() + "_" + Math.floor(Math.random() * 1000),
+      planId: plan.id,
+      timestamp: new Date().toISOString(),
+      dateStr: new Date().toLocaleDateString("tr-TR"),
+      timeStr: new Date().toLocaleTimeString("tr-TR", { hour: '2-digit', minute: '2-digit' }),
+      shift: reportData.shift || "08:00 - 16:00",
+      supervisorName: reportData.supervisorName || (this.state.currentUser?.name || "Vardiya Amiri"),
+      supervisorUserId: this.state.currentUser?.id || "",
+      barrelTemp: reportData.barrelTemp || "",
+      cycleTime: reportData.cycleTime || "",
+      pressure: reportData.pressure || "",
+      producedQuantity: produced,
+      defectQuantity: defect,
+      defectReasons: Array.isArray(reportData.defectReasons) ? reportData.defectReasons : (reportData.defectReasons ? [reportData.defectReasons] : []),
+      rawMaterialLot: reportData.rawMaterialLot || "",
+      notes: reportData.notes || "",
+      action: reportData.action || "DEVAM_EDIYOR" // "DEVAM_EDIYOR" veya "BITTI"
+    };
+
+    plan.shiftReports.unshift(newReport);
+
+    // Üretim ve fire toplamlarını güncelle
+    plan.producedQuantity = (Number(plan.producedQuantity) || 0) + produced;
+    plan.defectQuantity = (Number(plan.defectQuantity) || 0) + defect;
+    if (reportData.barrelTemp) plan.lastBarrelTemp = reportData.barrelTemp;
+    if (reportData.cycleTime) plan.lastCycleTime = reportData.cycleTime;
+    if (reportData.pressure) plan.lastPressure = reportData.pressure;
+    if (reportData.rawMaterialLot) plan.rawMaterialLot = reportData.rawMaterialLot;
+
+    if (reportData.action === "BITTI") {
+      plan.status = "Tamamlandı";
+      plan.closedAt = new Date().toISOString();
+      plan.closedBy = newReport.supervisorName;
+      plan.closedNotes = reportData.notes || "";
+    } else {
+      if (plan.status === "Planlandı" || plan.status === "Kalıp Bağlanıyor") {
+        plan.status = "Üretimde";
+      }
+    }
+
+    this.saveState();
+    this.logActivity(
+      reportData.action === "BITTI" ? "ÜRETİM_KAPANDI" : "VARDİYA_RAPORU_EKLENDİ",
+      `${plan.machineName} - ${plan.moldName}: Vardiya raporu kaydedildi (${reportData.action === 'BITTI' ? 'ÜRETİM KAPATILDI' : 'Üretim devam ediyor'}, +${produced} sağlam, ${defect} fire).`,
+      { planId: plan.id, reportId: newReport.id, action: reportData.action }
+    );
+
+    return { plan, report: newReport };
+  }
+
+  // ==========================================
+  // KURUMSAL FORMLAR & E-İMZA YÖNETİM METOTLARI
+  // ==========================================
+  saveCorporateDocument(docData) {
+    if (!Array.isArray(this.state.corporateDocuments)) {
+      this.state.corporateDocuments = [];
+    }
+
+    const isNew = !docData.id;
+    const docId = docData.id || `doc_${Date.now()}`;
+    const nowIso = new Date().toISOString();
+    const updaterName = this.state.currentUser?.name || "Yönetici";
+
+    if (isNew) {
+      const newDoc = {
+        id: docId,
+        title: docData.title || "Yeni Kurumsal Form",
+        category: docData.category || "Genel",
+        version: docData.version || "1.0",
+        mandatory: docData.mandatory !== false,
+        active: docData.active !== false,
+        summary: docData.summary || "",
+        content: docData.content || "",
+        createdAt: nowIso,
+        updatedAt: nowIso,
+        updatedBy: updaterName
+      };
+      this.state.corporateDocuments.push(newDoc);
+      this.saveState();
+      this.logActivity("KURUMSAL_FORM_EKLENDİ", `Yeni kurumsal form eklendi: ${newDoc.title} (${newDoc.version})`);
+      return newDoc;
+    } else {
+      const idx = this.state.corporateDocuments.findIndex(d => d.id === docId);
+      if (idx !== -1) {
+        const oldDoc = this.state.corporateDocuments[idx];
+        const updated = {
+          ...oldDoc,
+          title: docData.title || oldDoc.title,
+          category: docData.category || oldDoc.category,
+          version: docData.version || oldDoc.version,
+          mandatory: docData.mandatory !== undefined ? docData.mandatory : oldDoc.mandatory,
+          active: docData.active !== undefined ? docData.active : oldDoc.active,
+          summary: docData.summary !== undefined ? docData.summary : oldDoc.summary,
+          content: docData.content !== undefined ? docData.content : oldDoc.content,
+          updatedAt: nowIso,
+          updatedBy: updaterName
+        };
+        this.state.corporateDocuments[idx] = updated;
+        this.saveState();
+        this.logActivity("KURUMSAL_FORM_GÜNCELLENDİ", `Kurumsal form güncellendi: ${updated.title} (Sürüm: ${updated.version})`);
+        return updated;
+      }
+    }
+    return null;
+  }
+
+  deleteCorporateDocument(docId) {
+    if (!Array.isArray(this.state.corporateDocuments)) return false;
+    const doc = this.state.corporateDocuments.find(d => d.id === docId);
+    if (!doc) return false;
+    this.state.corporateDocuments = this.state.corporateDocuments.filter(d => d.id !== docId);
+    this.saveState();
+    this.logActivity("KURUMSAL_FORM_SİLİNDİ", `Kurumsal form silindi: ${doc.title} (${doc.version})`);
+    return true;
+  }
+
+  saveDocumentSignature(sigData) {
+    if (!Array.isArray(this.state.signedDocuments)) {
+      this.state.signedDocuments = [];
+    }
+
+    const user = this.state.currentUser || { id: sigData.userId, name: sigData.userName, role: "PERSONEL" };
+    const newSignature = {
+      id: "sig_" + Date.now() + "_" + Math.floor(Math.random() * 1000),
+      userId: sigData.userId || user.id,
+      userName: sigData.userName || user.name,
+      userRole: sigData.userRole || user.role || "PERSONEL",
+      documentId: sigData.documentId,
+      documentTitle: sigData.documentTitle,
+      documentVersion: sigData.documentVersion,
+      signedAt: new Date().toISOString(),
+      signatureImage: sigData.signatureImage || "", // Kompakt monokrom base64 (~1 KB)
+      ipOrDevice: sigData.ipOrDevice || (typeof navigator !== "undefined" ? navigator.userAgent.substring(0, 60) : "Portal"),
+      confirmed: true
+    };
+
+    // Aynı kullanıcı aynı sürümü daha önce imzalamışsa güncelle, yoksa ekle
+    const existIdx = this.state.signedDocuments.findIndex(s => s.userId === newSignature.userId && s.documentId === newSignature.documentId && s.documentVersion === newSignature.documentVersion);
+    if (existIdx !== -1) {
+      this.state.signedDocuments[existIdx] = newSignature;
+    } else {
+      this.state.signedDocuments.push(newSignature);
+    }
+
+    this.saveState();
+    this.logActivity("FORM_İMZALANDI", `${newSignature.userName} tarafından "${newSignature.documentTitle}" (${newSignature.documentVersion}) dijital olarak imzalandı.`);
+    return newSignature;
+  }
+
+  getPendingDocumentsForUser(user) {
+    if (!user || !Array.isArray(this.state.corporateDocuments)) return [];
+    const activeDocs = this.state.corporateDocuments.filter(d => d.active !== false && d.mandatory === true);
+    const signed = this.state.signedDocuments || [];
+
+    return activeDocs.filter(doc => {
+      const isSigned = signed.some(s => s.userId === user.id && s.documentId === doc.id && s.documentVersion === doc.version);
+      return !isSigned;
+    });
   }
 }
 
