@@ -2531,10 +2531,6 @@
               <input type="checkbox" id="perm-add-maintenance" class="w-4 h-4 text-blue-600 rounded">
               <span>📅 Takvime Bakım Ekleme</span>
             </label>
-            <label class="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" id="perm-access-admin" class="w-4 h-4 text-blue-600 rounded">
-              <span>⚙️ Admin Paneline Erişim</span>
-            </label>
           </div>
         </div>
 
@@ -2606,10 +2602,6 @@
             <label class="flex items-center gap-2 cursor-pointer">
               <input type="checkbox" id="edit-perm-add-maintenance" class="w-4 h-4 text-blue-600 rounded">
               <span>📅 Takvime Bakım Ekleme</span>
-            </label>
-            <label class="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" id="edit-perm-access-admin" class="w-4 h-4 text-blue-600 rounded">
-              <span>⚙️ Admin Paneline Erişim</span>
             </label>
           </div>
         </div>
@@ -3381,7 +3373,7 @@
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js?v=39').catch(err => {
+        navigator.serviceWorker.register('sw.js?v=40').catch(err => {
           console.log('SW registration failed:', err);
         });
       });
@@ -3389,6 +3381,6 @@
   </script>
 
   <!-- ES Modül Girişi -->
-  <script type="module" src="js/app.js?v=5.8"></script>
+  <script type="module" src="js/app.js?v=5.9"></script>
 </body>
 </html>

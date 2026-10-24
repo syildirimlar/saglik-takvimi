@@ -567,7 +567,7 @@ export class AdminModule {
       if (perms.canApproveOvertime) pillList.push("👔 Mesai Onay");
       if (perms.canAddSupply) pillList.push("🛒 Sarf İhtiyaç");
       if (perms.canAddMaintenance) pillList.push("📅 Bakım Planı");
-      if (perms.canAccessAdmin) pillList.push("⚙️ Admin");
+      if (r.key === "ADMIN") pillList.push("🛡️ Admin Paneli");
 
       const pillsHtml = pillList.map(p => `
         <span class="bg-slate-100 text-slate-700 text-[10px] font-bold px-2 py-0.5 rounded mr-1 mb-1 inline-block border border-slate-200">
@@ -620,7 +620,6 @@ export class AdminModule {
           if (document.getElementById("edit-perm-approve-overtime")) document.getElementById("edit-perm-approve-overtime").checked = !!p.canApproveOvertime;
           document.getElementById("edit-perm-add-supply").checked = !!p.canAddSupply;
           document.getElementById("edit-perm-add-maintenance").checked = !!p.canAddMaintenance;
-          document.getElementById("edit-perm-access-admin").checked = !!p.canAccessAdmin;
 
           document.getElementById("modal-edit-role").classList.add("show");
         }
@@ -673,7 +672,7 @@ export class AdminModule {
         canApproveOvertime: document.getElementById("perm-approve-overtime") ? document.getElementById("perm-approve-overtime").checked : false,
         canAddSupply: document.getElementById("perm-add-supply").checked,
         canAddMaintenance: document.getElementById("perm-add-maintenance").checked,
-        canAccessAdmin: document.getElementById("perm-access-admin").checked
+        canAccessAdmin: false // Admin paneline erişim kural gereği kesinlikle başka role verilemez, sadece ADMIN'e aittir
       }
     };
 
@@ -719,7 +718,7 @@ export class AdminModule {
         canApproveOvertime: document.getElementById("edit-perm-approve-overtime") ? document.getElementById("edit-perm-approve-overtime").checked : false,
         canAddSupply: document.getElementById("edit-perm-add-supply").checked,
         canAddMaintenance: document.getElementById("edit-perm-add-maintenance").checked,
-        canAccessAdmin: document.getElementById("edit-perm-access-admin").checked
+        canAccessAdmin: (key === "ADMIN") // Sadece ve sadece ADMIN rolünde true kalabilir
       };
 
       appState.saveState();

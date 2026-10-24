@@ -1,5 +1,5 @@
 // SODSAN Fabrika Portalı - Service Worker (sw.js)
-const CACHE_NAME = 'sodsan-portal-v39';
+const CACHE_NAME = 'sodsan-portal-v40';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',

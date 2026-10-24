@@ -138,14 +138,13 @@ export function getRoleInfo(roleKey) {
 }
 
 // Oturum açan kullanıcının Sistem Yöneticisi (Admin) olup olmadığını denetler
+// Admin paneline erişim yetkisi kural gereği SADECE ve YALNIZCA Admin kullanıcısına aittir
 export function isAdmin() {
   if (typeof appState === "undefined" || !appState || !appState.state || !appState.state.currentUser) return false;
   const user = appState.state.currentUser;
   const role = String(user.role || "").trim().toUpperCase();
   const username = String(user.username || "").trim().toLowerCase();
-  if (role === "ADMIN" || username === "admin" || user.id === "u_admin") return true;
-  const roleDef = (appState.state.roles || []).find(r => String(r.key || "").trim().toUpperCase() === role);
-  return !!(roleDef && roleDef.permissions && roleDef.permissions.canAccessAdmin);
+  return (role === "ADMIN" || username === "admin" || user.id === "u_admin");
 }
 
 // Oturum açan kullanıcının İdari İşler (İK) veya Admin olup olmadığını denetler
@@ -157,7 +156,7 @@ export function isIdariIslerOrAdmin() {
   const depId = String(user.departmentId || "").trim().toLowerCase();
   if (role === "IK" || role === "IDARI_ISLER" || role === "YONETICI" || depId === "dep_ik" || depId === "dep_yonetim") return true;
   const roleDef = (appState.state.roles || []).find(r => String(r.key || "").trim().toUpperCase() === role);
-  return !!(roleDef && roleDef.permissions && (roleDef.permissions.canAccessAdmin || roleDef.permissions.canApproveLeave || roleDef.permissions.canApproveOvertime));
+  return !!(roleDef && roleDef.permissions && (roleDef.permissions.canApproveLeave || roleDef.permissions.canApproveOvertime));
 }
 
 // Oturum açan kullanıcının İK / Yönetici yetkisine sahip olup olmadığını denetler
@@ -483,9 +482,14 @@ export class StateManager {
         });
       }
 
-      // Roller
+      // Roller: Sadece ADMIN rolünde canAccessAdmin true olabilir, diğer tüm rollerde kural gereği kesinlikle false olmalıdır!
       if (!Array.isArray(parsed.roles) || parsed.roles.length === 0) {
         parsed.roles = JSON.parse(JSON.stringify(DEFAULT_ROLES));
+      } else {
+        parsed.roles.forEach(r => {
+          if (!r.permissions) r.permissions = {};
+          r.permissions.canAccessAdmin = (r.key === "ADMIN");
+        });
       }
 
       // Kullanıcılar (users): Kesinlikle hiçbir kullanıcı silinmez!
