@@ -40,14 +40,23 @@ export class OvertimeModule {
     }
   }
 
-  // Tüm kayıtlı fabrika çalışanlarını hem employees hem users tablosundan eksiksiz derler
+  // Admin kullanıcısını mesai listelerinden kesin olarak ayıklar
+  isAdminEmployee(p) {
+    if (!p) return false;
+    const r = String(p.role || "").trim().toUpperCase();
+    const n = String(p.name || "").trim().toLowerCase();
+    const u = String(p.username || "").trim().toLowerCase();
+    return p.id === "u_admin" || p.userId === "u_admin" || r === "ADMIN" || n === "admin" || n === "sistem yöneticisi" || u === "admin";
+  }
+
+  // Tüm kayıtlı fabrika çalışanlarını hem employees hem users tablosundan eksiksiz derler (Admin hariç)
   getFactoryEmployees() {
     const list = [];
     const seen = new Set();
 
-    // 1. İK Personel Çizelgesindeki kayıtlar (employees)
+    // 1. İK Personel Çizelgesindeki kayıtlar (employees) - Admin hariç
     (appState.state.employees || []).forEach(emp => {
-      if (emp && emp.name && emp.name.trim()) {
+      if (emp && emp.name && emp.name.trim() && !this.isAdminEmployee(emp)) {
         const key = emp.name.trim().toLowerCase();
         if (!seen.has(key)) {
           seen.add(key);
@@ -56,9 +65,9 @@ export class OvertimeModule {
       }
     });
 
-    // 2. Sistemde kayıtlı kullanıcılar (users) - çalışan olarak da seçilebilsinler
+    // 2. Sistemde kayıtlı kullanıcılar (users) - Admin hariç
     (appState.state.users || []).forEach(u => {
-      if (u && u.name && u.name.trim()) {
+      if (u && u.name && u.name.trim() && !this.isAdminEmployee(u)) {
         const key = u.name.trim().toLowerCase();
         if (!seen.has(key)) {
           seen.add(key);
@@ -560,111 +569,129 @@ export class OvertimeModule {
 
       let statusBadge = "";
       if (req.status === "Beklemede") {
-        statusBadge = `<span class="bg-amber-100 text-amber-800 text-xs px-2.5 py-1 rounded-full font-bold inline-flex items-center gap-1">⏳ İK Onayı Bekliyor</span>`;
+        statusBadge = `<span class="bg-amber-100 text-amber-800 text-[11px] px-2.5 py-0.5 rounded-full font-bold inline-flex items-center gap-1">⏳ Bekliyor</span>`;
       } else if (req.status === "Onaylandı") {
-        statusBadge = `<span class="bg-emerald-100 text-emerald-800 text-xs px-2.5 py-1 rounded-full font-bold inline-flex items-center gap-1">✅ Onaylandı</span>`;
+        statusBadge = `<span class="bg-emerald-100 text-emerald-800 text-[11px] px-2.5 py-0.5 rounded-full font-bold inline-flex items-center gap-1">✅ Onaylandı</span>`;
       } else if (req.status === "Revize İstendi") {
-        statusBadge = `<span class="bg-purple-100 text-purple-800 text-xs px-2.5 py-1 rounded-full font-bold inline-flex items-center gap-1">🔄 Revize İstendi</span>`;
+        statusBadge = `<span class="bg-purple-100 text-purple-800 text-[11px] px-2.5 py-0.5 rounded-full font-bold inline-flex items-center gap-1">🔄 Revize</span>`;
       } else {
-        statusBadge = `<span class="bg-red-100 text-red-800 text-xs px-2.5 py-1 rounded-full font-bold inline-flex items-center gap-1">❌ Reddedildi</span>`;
+        statusBadge = `<span class="bg-red-100 text-red-800 text-[11px] px-2.5 py-0.5 rounded-full font-bold inline-flex items-center gap-1">❌ Reddedildi</span>`;
       }
 
-      const reqDateFormatted = new Date(req.date).toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric", weekday: "long" });
+      const reqDateFormatted = new Date(req.date).toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric", weekday: "short" });
 
       return `
-        <div class="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-sm space-y-3 hover:border-slate-300 transition">
-          <!-- Üst Başlık & Durum -->
-          <div class="flex flex-wrap items-start justify-between gap-2 border-b border-slate-100 pb-3">
-            <div>
-              <div class="flex flex-wrap items-center gap-2">
-                <span class="text-base font-extrabold text-slate-900">${req.employeeNames}</span>
-                <span class="text-[11px] bg-blue-50 text-blue-700 font-bold px-2 py-0.5 rounded-full border border-blue-200">${personCount} Personel</span>
-                <span class="text-[11px] bg-slate-100 text-slate-700 font-semibold px-2 py-0.5 rounded">${req.rateType}</span>
+        <!-- Aşağıya Açılır Mesai Talebi Kartı -->
+        <details class="group bg-white rounded-2xl border border-slate-200 shadow-xs hover:border-blue-300 transition-all overflow-hidden" ${req.status === "Beklemede" ? "open" : ""}>
+          <summary class="p-3.5 sm:p-4 flex items-center justify-between gap-3 cursor-pointer select-none bg-white hover:bg-slate-50 transition list-none">
+            <div class="flex items-center gap-3 min-w-0 flex-1">
+              <div class="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-sm font-bold flex-shrink-0 group-open:bg-blue-600 group-open:text-white transition">
+                ⏰
               </div>
-              <div class="text-xs text-slate-500 mt-1 flex flex-wrap items-center gap-2">
-                <span>Departman: <b class="text-slate-700">${dep.icon} ${dep.name}</b></span>
-                <span class="bg-slate-100 text-slate-700 px-2 py-0.5 rounded font-bold">👤 Talep Eden Usta: ${req.requestedBy}</span>
-                ${req.processedBy ? `<span class="bg-blue-100 text-blue-800 px-2 py-0.5 rounded font-bold">👔 İK Sorumlusu: ${req.processedBy}</span>` : ''}
+              <div class="min-w-0 flex-1">
+                <div class="flex flex-wrap items-center gap-2">
+                  <span class="text-xs sm:text-sm font-black text-slate-900 truncate">${req.employeeNames}</span>
+                  <span class="text-[10px] bg-blue-50 text-blue-700 font-bold px-2 py-0.5 rounded-full border border-blue-200">${personCount} Personel</span>
+                  <span class="text-[10px] bg-slate-100 text-slate-700 font-semibold px-2 py-0.5 rounded">${req.rateType}</span>
+                </div>
+                <div class="text-[11px] text-slate-500 mt-0.5 flex flex-wrap items-center gap-2">
+                  <span>📅 <b>${reqDateFormatted}</b></span>
+                  <span>• ⏱️ <b class="text-blue-700">${req.startTime} - ${req.endTime} (${req.hours} Saat)</b></span>
+                  <span>• 🏢 ${dep.name}</span>
+                </div>
               </div>
             </div>
-            <div>${statusBadge}</div>
+            <div class="flex items-center gap-2.5 flex-shrink-0">
+              <div>${statusBadge}</div>
+              <span class="text-slate-400 group-open:rotate-180 transition-transform duration-200 text-xs font-bold p-1 rounded-lg hover:bg-slate-100">
+                ▼
+              </span>
+            </div>
+          </summary>
+
+          <!-- Aşağıya Açılan Detay Bölümü -->
+          <div class="p-4 border-t border-slate-100 bg-slate-50/60 space-y-3">
+            <!-- Mesai Zamanı ve Bilgileri -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 bg-white p-3 rounded-xl border border-slate-200/70 text-xs">
+              <div>
+                <span class="text-slate-400 block font-medium">Mesai Tarihi:</span>
+                <span class="font-bold text-slate-800">${reqDateFormatted}</span>
+              </div>
+              <div>
+                <span class="text-slate-400 block font-medium">Saat Aralığı:</span>
+                <span class="font-bold text-slate-800">${req.startTime} - ${req.endTime}</span>
+              </div>
+              <div>
+                <span class="text-slate-400 block font-medium">Kişi Başı Süre:</span>
+                <span class="font-bold text-blue-700">${req.hours} Saat</span>
+              </div>
+              <div>
+                <span class="text-slate-400 block font-medium">Toplam İş Gücü:</span>
+                <span class="font-bold text-indigo-700">${totalBatchHours} Adam/Saat</span>
+              </div>
+            </div>
+
+            <!-- Mesai Nedeni / Gerekçesi -->
+            <div class="text-xs bg-amber-50/70 p-3 rounded-xl border border-amber-200/60 text-slate-700">
+              <span class="font-bold text-amber-900 block mb-0.5">⚡ Mesai Gerekçesi & İş Emri:</span>
+              <span>${req.reason}</span>
+            </div>
+
+            <!-- Lojistik & Yemek Rozetleri -->
+            <div class="flex flex-wrap items-center gap-2 text-xs">
+              <div class="px-2.5 py-1.5 rounded-lg font-medium flex items-center gap-1.5 ${req.needTransport ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-white border border-slate-200 text-slate-500'}">
+                <span>🚌</span>
+                <span><b>Servis:</b> ${req.needTransport ? req.transportDetail : 'Gerek Yok (Kendi İmkanı)'}</span>
+              </div>
+              <div class="px-2.5 py-1.5 rounded-lg font-medium flex items-center gap-1.5 ${req.needMeal ? 'bg-amber-50 text-amber-800 border border-amber-200' : 'bg-white border border-slate-200 text-slate-500'}">
+                <span>🍲</span>
+                <span><b>Yemek:</b> ${req.needMeal ? req.mealDetail : 'Gerek Yok'}</span>
+              </div>
+            </div>
+
+            ${req.notes ? `
+              <div class="text-xs text-slate-500 italic bg-white p-2.5 rounded-xl border border-slate-200/70">
+                <b>Usta Notu:</b> ${req.notes}
+              </div>
+            ` : ''}
+
+            ${req.hrNotes ? `
+              <div class="text-xs text-blue-900 bg-blue-50/80 p-3 rounded-xl border border-blue-200">
+                <span class="font-bold block mb-0.5">👔 İK Değerlendirme & Karar Notu:</span>
+                <span>${req.hrNotes}</span>
+              </div>
+            ` : ''}
+
+            <div class="text-[11px] text-slate-400 flex flex-wrap items-center justify-between gap-2 pt-1">
+              <span>👤 Talep Eden Usta: <b class="text-slate-600">${req.requestedBy}</b></span>
+              ${req.processedBy ? `<span>👔 İşleyen İK: <b class="text-blue-700">${req.processedBy}</b></span>` : ''}
+            </div>
+
+            <!-- İK Karar Butonları -->
+            ${isHrOrAdmin && req.status === "Beklemede" ? `
+              <div class="flex flex-wrap gap-2 pt-2 border-t border-slate-200">
+                <button data-action-overtime="Onaylandı" data-overtime-id="${req.id}" class="flex-1 min-w-[120px] bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs py-2 px-3 rounded-xl font-bold transition flex items-center justify-center gap-1.5 shadow-sm cursor-pointer">
+                  <span>✓</span> <span>Onayla</span>
+                </button>
+                <button data-action-overtime="Revize İstendi" data-overtime-id="${req.id}" class="flex-1 min-w-[120px] bg-purple-600 hover:bg-purple-700 active:scale-95 text-white text-xs py-2 px-3 rounded-xl font-bold transition flex items-center justify-center gap-1.5 shadow-sm cursor-pointer">
+                  <span>🔄</span> <span>Revize İste</span>
+                </button>
+                <button data-action-overtime="Reddedildi" data-overtime-id="${req.id}" class="flex-1 min-w-[120px] bg-red-600 hover:bg-red-700 active:scale-95 text-white text-xs py-2 px-3 rounded-xl font-bold transition flex items-center justify-center gap-1.5 shadow-sm cursor-pointer">
+                  <span>✕</span> <span>Reddet</span>
+                </button>
+                <button data-delete-overtime="${req.id}" class="bg-slate-200 hover:bg-red-100 hover:text-red-600 text-slate-600 text-xs py-2 px-3 rounded-xl font-bold transition cursor-pointer" title="Talebi Sil">
+                  <span>🗑️</span>
+                </button>
+              </div>
+            ` : (isHrOrAdmin ? `
+              <div class="flex justify-end pt-1 border-t border-slate-200">
+                <button data-delete-overtime="${req.id}" class="text-slate-400 hover:text-red-600 text-xs font-semibold transition cursor-pointer">
+                  Talebi Sistemden Sil 🗑️
+                </button>
+              </div>
+            ` : '')}
           </div>
-
-          <!-- Mesai Zamanı ve Bilgileri -->
-          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 bg-slate-50 p-3 rounded-lg text-xs">
-            <div>
-              <span class="text-slate-400 block font-medium">Mesai Tarihi:</span>
-              <span class="font-bold text-slate-800">${reqDateFormatted}</span>
-            </div>
-            <div>
-              <span class="text-slate-400 block font-medium">Saat Aralığı:</span>
-              <span class="font-bold text-slate-800">${req.startTime} - ${req.endTime}</span>
-            </div>
-            <div>
-              <span class="text-slate-400 block font-medium">Kişi Başı Süre:</span>
-              <span class="font-bold text-blue-700">${req.hours} Saat</span>
-            </div>
-            <div>
-              <span class="text-slate-400 block font-medium">Toplam İş Gücü:</span>
-              <span class="font-bold text-indigo-700">${totalBatchHours} Adam/Saat</span>
-            </div>
-          </div>
-
-          <!-- Mesai Nedeni / Gerekçesi -->
-          <div class="text-xs bg-amber-50/60 p-2.5 rounded-lg border border-amber-100 text-slate-700">
-            <span class="font-bold text-amber-900 block mb-0.5">⚡ Mesai Gerekçesi & İş Emri:</span>
-            <span>${req.reason}</span>
-          </div>
-
-          <!-- Lojistik & Yemek Rozetleri -->
-          <div class="flex flex-wrap items-center gap-2 text-xs">
-            <div class="px-2.5 py-1 rounded-md font-medium flex items-center gap-1.5 ${req.needTransport ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-slate-100 text-slate-500'}">
-              <span>🚌</span>
-              <span><b>Servis:</b> ${req.needTransport ? req.transportDetail : 'Gerek Yok (Kendi İmkanı)'}</span>
-            </div>
-            <div class="px-2.5 py-1 rounded-md font-medium flex items-center gap-1.5 ${req.needMeal ? 'bg-amber-50 text-amber-800 border border-amber-200' : 'bg-slate-100 text-slate-500'}">
-              <span>🍲</span>
-              <span><b>Yemek:</b> ${req.needMeal ? req.mealDetail : 'Gerek Yok'}</span>
-            </div>
-          </div>
-
-          ${req.notes ? `
-            <div class="text-xs text-slate-500 italic">
-              <b>Usta Notu:</b> ${req.notes}
-            </div>
-          ` : ''}
-
-          ${req.hrNotes ? `
-            <div class="text-xs text-blue-900 bg-blue-50/70 p-2.5 rounded-lg border border-blue-200">
-              <span class="font-bold block mb-0.5">👔 İK Değerlendirme & Karar Notu:</span>
-              <span>${req.hrNotes}</span>
-            </div>
-          ` : ''}
-
-          <!-- İK Karar Butonları -->
-          ${isHrOrAdmin && req.status === "Beklemede" ? `
-            <div class="flex flex-wrap gap-2 pt-2 border-t border-slate-100">
-              <button data-action-overtime="Onaylandı" data-overtime-id="${req.id}" class="flex-1 min-w-[120px] bg-emerald-600 hover:bg-emerald-700 text-white text-xs py-2 px-3 rounded-lg font-bold transition flex items-center justify-center gap-1.5 shadow-sm">
-                <span>✓</span> <span>Onayla</span>
-              </button>
-              <button data-action-overtime="Revize İstendi" data-overtime-id="${req.id}" class="flex-1 min-w-[120px] bg-purple-600 hover:bg-purple-700 text-white text-xs py-2 px-3 rounded-lg font-bold transition flex items-center justify-center gap-1.5 shadow-sm">
-                <span>🔄</span> <span>Revize İste</span>
-              </button>
-              <button data-action-overtime="Reddedildi" data-overtime-id="${req.id}" class="flex-1 min-w-[120px] bg-red-600 hover:bg-red-700 text-white text-xs py-2 px-3 rounded-lg font-bold transition flex items-center justify-center gap-1.5 shadow-sm">
-                <span>✕</span> <span>Reddet</span>
-              </button>
-              <button data-delete-overtime="${req.id}" class="bg-slate-100 hover:bg-red-50 hover:text-red-600 text-slate-600 text-xs py-2 px-3 rounded-lg font-bold transition">
-                <span>🗑️</span>
-              </button>
-            </div>
-          ` : (isHrOrAdmin ? `
-            <div class="flex justify-end pt-1">
-              <button data-delete-overtime="${req.id}" class="text-slate-400 hover:text-red-600 text-xs font-semibold transition">
-                Talebi Sistemden Sil
-              </button>
-            </div>
-          ` : '')}
-        </div>
+        </details>
       `;
     }).join("");
 
@@ -689,7 +716,7 @@ export class OvertimeModule {
     const tbody = document.getElementById("overtime-employee-table-body");
     if (!tbody) return;
 
-    const employees = appState.state.employees || [];
+    const employees = (appState.state.employees || []).filter(e => !this.isAdminEmployee(e));
     const overtimeRequests = appState.state.overtimeRequests || [];
     const approvedRequests = overtimeRequests.filter(r => r.status === "Onaylandı");
 
