@@ -1,5 +1,5 @@
 // SODSAN Fabrika Portalı - Haftalık Üretim Programı & Kalıp Baskı Planlama Modülü (production.js)
-import { appState, playAlertSound, logSystemAction } from './data.js?v=4.9';
+import { appState, playAlertSound, logSystemAction, isIdariIslerOrAdmin } from './data.js';
 
 export class ProductionModule {
   constructor() {
@@ -194,6 +194,10 @@ export class ProductionModule {
         // 2. Boş makineye hızlı kalıp atama
         const quickAddBtn = e.target.closest("[data-quick-add-plan]");
         if (quickAddBtn) {
+          if (!isIdariIslerOrAdmin()) {
+            alert("Yetki Hatası: Kalıp baskı planı ekleme yetkisi yalnızca İdari İşler ve Yönetici (Admin) hesaplarına aittir!");
+            return;
+          }
           const macId = quickAddBtn.getAttribute("data-quick-add-plan");
           const macName = quickAddBtn.getAttribute("data-mac-name");
           this.openAddPlanModal(macId || macName);
@@ -203,6 +207,10 @@ export class ProductionModule {
         // 3. Plan silme
         const delBtn = e.target.closest("[data-delete-plan]");
         if (delBtn) {
+          if (!isIdariIslerOrAdmin()) {
+            alert("Yetki Hatası: Kalıp baskı planı silme yetkisi yalnızca İdari İşler ve Yönetici (Admin) hesaplarına aittir!");
+            return;
+          }
           const planId = delBtn.getAttribute("data-delete-plan");
           if (confirm("Bu kalıp baskı planını silmek istediğinize emin misiniz?")) {
             appState.deleteProductionPlan(planId);
@@ -240,6 +248,10 @@ export class ProductionModule {
   }
 
   openAddPlanModal(preselectedMachineId = "") {
+    if (!isIdariIslerOrAdmin()) {
+      alert("Yetki Hatası: Kalıp baskı planı ekleme yetkisi yalnızca İdari İşler ve Yönetici (Admin) hesaplarına aittir!");
+      return;
+    }
     this.populateMachineDropdowns();
     this.populateOperatorDropdowns();
     const form = document.getElementById("form-add-production-plan");
@@ -291,6 +303,11 @@ export class ProductionModule {
   }
 
   handleSaveProductionPlan() {
+    if (!isIdariIslerOrAdmin()) {
+      alert("Yetki Hatası: Kalıp baskı planı kaydetme yetkiniz bulunmamaktadır!");
+      return;
+    }
+
     const machineSelect = document.getElementById("plan-machine-select");
     const moldCodeInput = document.getElementById("plan-mold-code");
     const moldNameInput = document.getElementById("plan-mold-name");
@@ -465,6 +482,12 @@ export class ProductionModule {
   render() {
     const weekInfo = this.getWeekInfo(this.currentWeekOffset);
 
+    // Yetki kontrolü: Yeni Plan Ekle butonu yalnızca İdari İşler & Admin için görünür
+    const btnOpenAddPlan = document.getElementById("btn-open-add-production-plan");
+    if (btnOpenAddPlan) {
+      btnOpenAddPlan.style.display = isIdariIslerOrAdmin() ? "" : "none";
+    }
+
     // Hafta Başlığını Güncelle
     const titleEl = document.getElementById("prod-week-title");
     if (titleEl) {
@@ -572,6 +595,7 @@ export class ProductionModule {
     const container = document.getElementById("prod-view-container");
     if (!container) return;
 
+    const canManagePlan = isIdariIslerOrAdmin();
     const rawMachines = appState.state.machines || [];
     const machines = rawMachines.map(m => typeof m === "string" ? { id: m, name: m, code: "" } : m);
 
@@ -605,9 +629,11 @@ export class ProductionModule {
             <span class="text-xs font-bold bg-slate-800 text-slate-200 px-3 py-1 rounded-lg border border-slate-700">
               ${displayMachines.length} Kayıtlı Makine
             </span>
-            <button data-open-add-plan-empty class="bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-extrabold text-xs px-3 py-1 rounded-lg transition shadow-sm cursor-pointer flex items-center gap-1">
-              <span>+</span> <span>Kalıp Planı Ekle</span>
-            </button>
+            ${canManagePlan ? `
+              <button data-open-add-plan-empty class="bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-extrabold text-xs px-3 py-1 rounded-lg transition shadow-sm cursor-pointer flex items-center gap-1">
+                <span>+</span> <span>Kalıp Planı Ekle</span>
+              </button>
+            ` : ''}
           </div>
         </div>
 
@@ -643,9 +669,11 @@ export class ProductionModule {
                         Bu hafta için kalıp baskı planı henüz girilmedi.
                       </td>
                       <td class="py-3.5 px-3 sm:px-4 text-right">
-                        <button data-quick-add-plan="${mac.id}" data-mac-name="${mac.name}" class="text-[11px] font-bold bg-blue-50 text-blue-700 hover:bg-blue-100 active:scale-95 px-3 py-1.5 rounded-lg transition border border-blue-200 cursor-pointer shadow-sm">
-                          + Kalıp Ata
-                        </button>
+                        ${canManagePlan ? `
+                          <button data-quick-add-plan="${mac.id}" data-mac-name="${mac.name}" class="text-[11px] font-bold bg-blue-50 text-blue-700 hover:bg-blue-100 active:scale-95 px-3 py-1.5 rounded-lg transition border border-blue-200 cursor-pointer shadow-sm">
+                            + Kalıp Ata
+                          </button>
+                        ` : '<span class="text-[11px] text-slate-300">-</span>'}
                       </td>
                     </tr>
                   `;
@@ -718,9 +746,11 @@ export class ProductionModule {
                           <button data-change-status="${plan.id}" class="bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-700 p-1.5 rounded-lg border border-slate-200 transition cursor-pointer" title="Durum Değiştir">
                             ⚙️
                           </button>
-                          <button data-delete-plan="${plan.id}" class="text-slate-400 hover:text-red-600 p-1.5 rounded-lg hover:bg-red-50 transition cursor-pointer" title="Planı Sil">
-                            🗑️
-                          </button>
+                          ${canManagePlan ? `
+                            <button data-delete-plan="${plan.id}" class="text-slate-400 hover:text-red-600 p-1.5 rounded-lg hover:bg-red-50 transition cursor-pointer" title="Planı Sil">
+                              🗑️
+                            </button>
+                          ` : ''}
                         </div>
                       </td>
                     </tr>
@@ -738,17 +768,21 @@ export class ProductionModule {
     const container = document.getElementById("prod-view-container");
     if (!container) return;
 
+    const canManagePlan = isIdariIslerOrAdmin();
+
     if (plans.length === 0) {
       container.innerHTML = `
         <div class="bg-white rounded-2xl border border-slate-200 p-8 text-center text-slate-500 shadow-sm space-y-3">
           <span class="text-4xl block">📋</span>
           <p class="font-bold text-slate-800 text-sm">Bu hafta için henüz kalıp baskı planı girilmedi.</p>
           <p class="text-xs text-slate-400 max-w-md mx-auto">Fabrika enjeksiyon makinelerinize hangi kalıbın kaç adet basılacağını hemen planlayabilirsiniz.</p>
-          <div class="pt-2">
-            <button data-open-add-plan-empty class="bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-black text-xs py-2.5 px-5 rounded-xl shadow-sm transition inline-flex items-center gap-1.5 cursor-pointer">
-              <span>+</span> <span>Yeni Kalıp Baskı Planı Ekle</span>
-            </button>
-          </div>
+          ${canManagePlan ? `
+            <div class="pt-2">
+              <button data-open-add-plan-empty class="bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-black text-xs py-2.5 px-5 rounded-xl shadow-sm transition inline-flex items-center gap-1.5 cursor-pointer">
+                <span>+</span> <span>Yeni Kalıp Baskı Planı Ekle</span>
+              </button>
+            </div>
+          ` : ''}
         </div>
       `;
       return;
@@ -838,9 +872,11 @@ export class ProductionModule {
                 <button data-change-status="${plan.id}" class="bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-700 font-bold text-xs py-2 px-2.5 rounded-xl transition cursor-pointer" title="Durum Güncelle">
                   ⚙️
                 </button>
-                <button data-delete-plan="${plan.id}" class="bg-red-50 hover:bg-red-100 active:scale-95 text-red-600 font-bold text-xs py-2 px-2.5 rounded-xl transition cursor-pointer" title="Planı Sil">
-                  🗑️
-                </button>
+                ${canManagePlan ? `
+                  <button data-delete-plan="${plan.id}" class="bg-red-50 hover:bg-red-100 active:scale-95 text-red-600 font-bold text-xs py-2 px-2.5 rounded-xl transition cursor-pointer" title="Planı Sil">
+                    🗑️
+                  </button>
+                ` : ''}
               </div>
             </div>
           `;

@@ -262,10 +262,10 @@
           <div role="button" tabindex="0" class="nav-tab-btn w-full select-none cursor-pointer" data-tab="tab-admin">
             <span class="text-lg">🛡️</span>
             <div class="flex-1 text-left min-w-0">
-              <div class="text-xs font-bold leading-tight">Yönetim & İK Paneli</div>
-              <div class="text-[10px] text-slate-400 dark:text-slate-500 font-normal truncate">Kullanıcılar, Roller & Yedek</div>
+              <div class="text-xs font-bold leading-tight">Admin & Yönetim Ayarları</div>
+              <div class="text-[10px] text-slate-400 dark:text-slate-500 font-normal truncate">Kullanıcılar, Roller & Fabrika Ayarları</div>
             </div>
-            <span class="badge-tab text-[10px] font-bold text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950 px-1.5 py-0.5 rounded">Admin</span>
+            <span class="badge-tab text-[10px] font-bold text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950 px-1.5 py-0.5 rounded">Ayar</span>
             <div class="reorder-actions hidden items-center gap-0.5 ml-1">
               <span role="button" tabindex="0" class="btn-move-tab-up p-1 text-[11px] hover:bg-slate-200 dark:hover:bg-slate-700 rounded text-slate-500 hover:text-blue-600 transition cursor-pointer" title="Yukarı Taşı">▲</span>
               <span role="button" tabindex="0" class="btn-move-tab-down p-1 text-[11px] hover:bg-slate-200 dark:hover:bg-slate-700 rounded text-slate-500 hover:text-blue-600 transition cursor-pointer" title="Aşağı Taşı">▼</span>
@@ -880,7 +880,7 @@
             <button type="button" data-open-catering-menu class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2 px-3.5 rounded-xl shadow-sm transition flex items-center gap-1.5 cursor-pointer">
               <span>🔍</span> <span>Menüyü Büyüt / İncele</span>
             </button>
-            <button type="button" onclick="window.portalApp.switchTab('tab-admin')" class="bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold py-2 px-3 rounded-xl border border-slate-200 dark:border-slate-700 transition flex items-center gap-1 cursor-pointer">
+            <button type="button" id="btn-open-catering-admin" onclick="window.portalApp.switchTab('tab-admin')" class="bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold py-2 px-3 rounded-xl border border-slate-200 dark:border-slate-700 transition flex items-center gap-1 cursor-pointer">
               <span>⚙️</span> <span>Yemekçi Ayarları</span>
             </button>
           </div>
@@ -3381,7 +3381,7 @@
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js?v=38').catch(err => {
+        navigator.serviceWorker.register('sw.js?v=39').catch(err => {
           console.log('SW registration failed:', err);
         });
       });
@@ -3389,6 +3389,6 @@
   </script>
 
   <!-- ES Modül Girişi -->
-  <script type="module" src="js/app.js?v=5.7"></script>
+  <script type="module" src="js/app.js?v=5.8"></script>
 </body>
 </html>

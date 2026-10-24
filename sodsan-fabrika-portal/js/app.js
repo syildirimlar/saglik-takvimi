@@ -1,5 +1,5 @@
 // SODSAN Fabrika Portalı - Ana Uygulama Yöneticisi (app.js)
-import { appState, ROLES, getRoleInfo, logSystemAction } from './data.js?v=4.9';
+import { appState, ROLES, getRoleInfo, logSystemAction, isAdmin, isIdariIslerOrAdmin } from './data.js?v=4.9';
 import { CalendarModule } from './calendar.js?v=3.9';
 import { ProductsModule } from './products.js';
 import { SuppliesModule } from './supplies.js';
@@ -159,12 +159,16 @@ class App {
     }
 
     // Yetki bazlı sekmeleri gizle/göster (Masaüstü ve Mobil)
+    // Yalnızca İdari İşler ve Yönetici (Admin) ayar sayfasını görebilir
+    const hasAdminAccess = isIdariIslerOrAdmin();
     const adminTabBtns = document.querySelectorAll('[data-tab="tab-admin"]');
     adminTabBtns.forEach(btn => {
-      if (user.role === "ADMIN") {
-        btn.style.display = "";
+      if (hasAdminAccess) {
+        btn.style.display = "flex";
+        btn.classList.remove("hidden");
       } else {
         btn.style.display = "none";
+        btn.classList.add("hidden");
         if (this.activeTab === "tab-admin") {
           this.switchTab("tab-calendar");
         }
@@ -378,6 +382,11 @@ class App {
   }
 
   switchTab(tabId) {
+    if (tabId === "tab-admin" && !isIdariIslerOrAdmin()) {
+      alert("Yetki Hatası: Yönetim ve İK Ayarlar sayfasına erişim yetkiniz bulunmamaktadır!");
+      tabId = "tab-calendar";
+    }
+
     this.activeTab = tabId;
 
     // Buton aktiflikleri
@@ -582,10 +591,19 @@ class App {
     finalOrder.unshift("tab-calendar");
 
     // Sıralamayı DOM'a uygula
+    const hasAdminAccess = isIdariIslerOrAdmin();
     finalOrder.forEach(tabId => {
       const btn = navList.querySelector(`.nav-tab-btn[data-tab="${tabId}"]`);
       if (btn) {
         navList.appendChild(btn);
+        if (tabId === "tab-admin") {
+          btn.style.display = hasAdminAccess ? "flex" : "none";
+          if (hasAdminAccess) {
+            btn.classList.remove("hidden");
+          } else {
+            btn.classList.add("hidden");
+          }
+        }
       }
     });
   }

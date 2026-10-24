@@ -989,6 +989,16 @@ export class CateringShuttleModule {
     }
 
     // 2. İK Ekranındaki Bölümleri Güncelle
+    const isAllowed = isManagerOrHr();
+    const btnCateringAdmin = document.getElementById("btn-open-catering-admin");
+    if (btnCateringAdmin) {
+      btnCateringAdmin.style.display = isAllowed ? "" : "none";
+    }
+    const btnAddShuttle = document.getElementById("btn-open-add-shuttle");
+    if (btnAddShuttle) {
+      btnAddShuttle.style.display = isAllowed ? "" : "none";
+    }
+
     this.renderCateringSection();
     this.renderShuttleSection();
   }
