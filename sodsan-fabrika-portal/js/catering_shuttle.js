@@ -251,22 +251,26 @@ export class CateringShuttleModule {
     const todayBanner = document.getElementById("modal-catering-today-banner");
     const editBtn = document.getElementById("modal-catering-edit-btn");
 
+    // Güvenlik Kuralı: Yemek şirketinin şifreli yönetim sayfasına personelin yeni sekmede açmasına kesinlikle izin verilmez!
+    if (linkBtn) {
+      linkBtn.classList.add("hidden");
+      linkBtn.style.display = "none";
+    }
+
+    // Yalnızca içinde bulunduğumuz aktif ayın menüsünü göster
+    const now = new Date();
+    const currentYearMonth = now.toISOString().slice(0, 7); // Örn: "2026-10"
+    const monthNamesTr = ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"];
+    const currentMonthName = monthNamesTr[now.getMonth()];
+    const currentYear = now.getFullYear();
+    const currentMonthTitle = `${currentMonthName} ${currentYear}`;
+
     if (titleEl) {
-      titleEl.textContent = `🍽️ ${config.menuMonth || "Aylık"} Yemek Menüsü`;
+      titleEl.textContent = `🍽️ ${currentMonthTitle} Yemek Menüsü`;
     }
 
     if (subtitleEl) {
-      subtitleEl.textContent = config.companyName ? `Tedarikçi: ${config.companyName}` : "SODSAN Fabrika Yemek Menüsü";
-    }
-
-    // Yemek Şirketinin Sitesine Git Butonu
-    if (linkBtn) {
-      if (config.websiteUrl) {
-        linkBtn.classList.remove("hidden");
-        linkBtn.onclick = () => this.openCateringWebsiteWithCredentials();
-      } else {
-        linkBtn.classList.add("hidden");
-      }
+      subtitleEl.innerHTML = `Tedarikçi: <b class="text-slate-800 dark:text-slate-200">${config.companyName || "Kayra Yemek"}</b> &bull; SODSAN Fabrika Aylık Yemek Listesi`;
     }
 
     // Yetkili Güncelle Butonu (Sadece Admin ayarları açabilir)
@@ -274,7 +278,6 @@ export class CateringShuttleModule {
       if (isAdmin()) {
         editBtn.classList.remove("hidden");
         editBtn.onclick = () => {
-          // İK veya Admin panelindeki yemek menüsü ayarına götür
           const modal = document.getElementById("modal-catering-menu");
           if (modal) modal.classList.remove("show");
           if (window.portalApp) {
@@ -292,31 +295,43 @@ export class CateringShuttleModule {
       }
     }
 
-    // Bugünün Yemekleri Banner'ı (Eğer günlük menü tanımlıysa)
-    if (todayBanner) {
-      const todayStr = new Date().toISOString().split("T")[0];
-      const todayMeal = (config.menuDays || []).find(m => m.date === todayStr);
+    // Bugünün Tarihi
+    const todayStr = now.toISOString().split("T")[0];
 
-      if (todayMeal && (todayMeal.soup || todayMeal.mainDish)) {
+    // Sadece içinde bulunulan aya ait menü günlerini filtrele
+    const monthDays = (config.menuDays || []).filter(d => d.date && d.date.startsWith(currentYearMonth));
+
+    // Bugünün Yemekleri Banner'ı
+    if (todayBanner) {
+      const todayMeal = monthDays.find(m => m.date === todayStr);
+
+      if (todayMeal && (todayMeal.soup || todayMeal.mainDish || (Array.isArray(todayMeal.items) && todayMeal.items.length > 0))) {
+        const soup = todayMeal.soup || (todayMeal.items && todayMeal.items[0]) || "";
+        const main = todayMeal.mainDish || (todayMeal.items && todayMeal.items[1]) || "";
+        const side = todayMeal.sideDish || (todayMeal.items && todayMeal.items[2]) || "";
+        const extra = todayMeal.extra || (todayMeal.items && todayMeal.items[3]) || "";
+
         todayBanner.classList.remove("hidden");
         todayBanner.innerHTML = `
-          <div class="bg-gradient-to-r from-emerald-600 to-teal-700 text-white p-3.5 rounded-2xl shadow-md flex items-center justify-between flex-wrap gap-2">
-            <div class="flex items-center gap-3">
-              <span class="text-2xl">🍲</span>
-              <div>
+          <div class="bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 text-white p-4 rounded-2xl shadow-md border border-emerald-500 flex items-center justify-between flex-wrap gap-3">
+            <div class="flex items-center gap-3 min-w-0">
+              <span class="text-3xl bg-white/20 p-2.5 rounded-xl flex-shrink-0">🍲</span>
+              <div class="min-w-0">
                 <div class="text-[11px] font-black uppercase tracking-wider text-emerald-100 flex items-center gap-2">
-                  <span>BUGÜNÜN MENÜSÜ</span>
-                  <span class="bg-white/20 px-1.5 py-0.2 rounded text-[10px]">${todayMeal.date}</span>
+                  <span>⭐ BUGÜNÜN MENÜSÜ</span>
+                  <span class="bg-white/25 px-2 py-0.5 rounded text-[10px] font-bold">${todayMeal.date} &bull; ${todayMeal.dayName || ''}</span>
                 </div>
-                <div class="text-xs sm:text-sm font-black mt-0.5 flex flex-wrap gap-x-3 gap-y-1">
-                  ${todayMeal.soup ? `<span>🥣 ${todayMeal.soup}</span>` : ""}
-                  ${todayMeal.mainDish ? `<span>🥩 ${todayMeal.mainDish}</span>` : ""}
-                  ${todayMeal.sideDish ? `<span>🍚 ${todayMeal.sideDish}</span>` : ""}
-                  ${todayMeal.extra ? `<span>🥗 ${todayMeal.extra}</span>` : ""}
+                <div class="text-xs sm:text-sm font-bold mt-1 flex flex-wrap gap-x-4 gap-y-1 text-white">
+                  ${soup ? `<span>🥣 <b class="font-black">${soup}</b></span>` : ""}
+                  ${main ? `<span>🥩 <b class="font-black">${main}</b></span>` : ""}
+                  ${side ? `<span>🍚 <b class="font-black">${side}</b></span>` : ""}
+                  ${extra ? `<span>🥗 <b class="font-black">${extra}</b></span>` : ""}
                 </div>
               </div>
             </div>
-            <span class="text-xs font-bold bg-white text-emerald-800 px-2.5 py-1 rounded-lg">Afiyet Olsun!</span>
+            <span class="text-xs font-black bg-white text-emerald-800 px-3 py-1.5 rounded-xl shadow-xs flex-shrink-0">
+              Afiyet Olsun! 😋
+            </span>
           </div>
         `;
       } else {
@@ -325,29 +340,128 @@ export class CateringShuttleModule {
       }
     }
 
-    // Menü Görseli Gösterimi
+    // Menü İçerik Alanı (Aylık Liste & Kartlar)
     if (container) {
-      if (config.menuImage) {
+      if (monthDays.length > 0) {
         container.innerHTML = `
-          <div class="relative bg-slate-900 rounded-2xl p-2 flex flex-col items-center justify-center min-h-[300px] overflow-hidden group">
-            <img id="catering-modal-img" src="${config.menuImage}" alt="Aylık Yemek Menüsü" class="max-h-[72vh] w-auto max-w-full object-contain rounded-xl shadow-2xl transition duration-200 cursor-zoom-in" title="Büyütmek için tıklayın">
-            
-            <div class="absolute bottom-4 right-4 flex items-center gap-2 opacity-90 group-hover:opacity-100 transition">
-              <a href="${config.menuImage}" download="SODSAN-Yemek-Menusu.png" target="_blank" class="bg-white/90 hover:bg-white text-slate-800 text-xs font-black px-3 py-1.5 rounded-lg shadow-md transition flex items-center gap-1.5 backdrop-blur-xs">
-                <span>⬇️</span> <span>Görseli İndir</span>
-              </a>
-              <button type="button" id="btn-fullscreen-menu" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-black px-3 py-1.5 rounded-lg shadow-md transition flex items-center gap-1.5">
-                <span>🔍</span> <span>Tam Ekran</span>
-              </button>
+          <div class="space-y-4">
+            <!-- Arama & Filtreleme Çubuğu -->
+            <div class="flex items-center justify-between flex-wrap gap-2.5 bg-slate-50 dark:bg-slate-800/60 p-3 rounded-2xl border border-slate-200 dark:border-slate-700">
+              <div class="flex-1 min-w-[200px] relative">
+                <input type="text" id="input-search-catering-menu" placeholder="Menüde yemek ara... (Örn: Köfte, Çorba, Fasulye, Makarna)" class="w-full text-xs pl-8 pr-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 outline-none focus:ring-2 focus:ring-blue-500 text-slate-800 dark:text-slate-100 font-medium">
+                <span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs">🔍</span>
+              </div>
+              <div class="text-xs font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                <span class="bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-md font-black text-[11px]">${monthDays.length} Gün</span>
+                <span>${currentMonthTitle}</span>
+              </div>
+              ${config.menuImage ? `
+                <div class="flex items-center gap-1.5">
+                  <button type="button" id="btn-toggle-menu-view-list" class="bg-blue-600 text-white text-[11px] font-bold px-2.5 py-1.5 rounded-lg transition cursor-pointer">📋 Günlük Liste</button>
+                  <button type="button" id="btn-toggle-menu-view-img" class="bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-[11px] font-bold px-2.5 py-1.5 rounded-lg transition cursor-pointer">🖼️ Menü Görseli</button>
+                </div>
+              ` : ''}
             </div>
+
+            <!-- Günlük Kartlar Izgarası -->
+            <div id="catering-days-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              ${monthDays.map(day => {
+                const isToday = day.date === todayStr;
+                const soup = day.soup || (day.items && day.items[0]) || "-";
+                const main = day.mainDish || (day.items && day.items[1]) || "-";
+                const side = day.sideDish || (day.items && day.items[2]) || "-";
+                const extra = day.extra || (day.items && day.items[3]) || "-";
+
+                return `
+                  <div class="catering-day-card p-3.5 rounded-2xl border transition ${isToday ? 'border-emerald-500 bg-emerald-50/40 dark:bg-emerald-950/20 ring-2 ring-emerald-500/30' : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700'}" data-menu-text="${(day.items || [soup, main, side, extra]).join(' ').toLowerCase()}">
+                    <div class="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800 mb-2">
+                      <div class="flex items-center gap-1.5">
+                        <span class="text-xs font-black ${isToday ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-800 dark:text-slate-200'}">
+                          ${day.date.split('-')[2]} ${currentMonthName}
+                        </span>
+                        <span class="text-[11px] text-slate-500 dark:text-slate-400 font-semibold">(${day.dayName || ''})</span>
+                      </div>
+                      ${isToday ? '<span class="bg-emerald-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full">BUGÜN</span>' : ''}
+                    </div>
+
+                    <div class="space-y-1.5 text-xs">
+                      <div class="flex items-start gap-1.5">
+                        <span class="text-[13px] leading-tight">🥣</span>
+                        <span class="font-bold text-slate-800 dark:text-slate-200">${soup}</span>
+                      </div>
+                      <div class="flex items-start gap-1.5">
+                        <span class="text-[13px] leading-tight">🥩</span>
+                        <span class="font-black text-blue-700 dark:text-blue-400">${main}</span>
+                      </div>
+                      <div class="flex items-start gap-1.5">
+                        <span class="text-[13px] leading-tight">🍚</span>
+                        <span class="font-semibold text-slate-700 dark:text-slate-300">${side}</span>
+                      </div>
+                      <div class="flex items-start gap-1.5">
+                        <span class="text-[13px] leading-tight">🥗</span>
+                        <span class="font-medium text-slate-600 dark:text-slate-400">${extra}</span>
+                      </div>
+                    </div>
+                  </div>
+                `;
+              }).join("")}
+            </div>
+
+            <!-- Görsel Menü Görünümü (Varsa ve kullanıcı tıklandığında gösterilir) -->
+            ${config.menuImage ? `
+              <div id="catering-image-view" class="hidden relative bg-slate-900 rounded-2xl p-2 flex flex-col items-center justify-center min-h-[300px] overflow-hidden group">
+                <img id="catering-modal-img" src="${config.menuImage}" alt="Aylık Menü Görseli" class="max-h-[72vh] w-auto max-w-full object-contain rounded-xl shadow-2xl transition duration-200 cursor-zoom-in">
+                <div class="absolute bottom-4 right-4 flex items-center gap-2 opacity-90 group-hover:opacity-100 transition">
+                  <button type="button" id="btn-fullscreen-menu" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-black px-3 py-1.5 rounded-lg shadow-md transition flex items-center gap-1.5 cursor-pointer">
+                    <span>🔍</span> <span>Tam Ekran</span>
+                  </button>
+                </div>
+              </div>
+            ` : ''}
           </div>
         `;
 
+        // Arama kutusu canlı filtreleme
+        const searchInput = container.querySelector("#input-search-catering-menu");
+        if (searchInput) {
+          searchInput.addEventListener("input", (e) => {
+            const query = (e.target.value || "").trim().toLowerCase();
+            const cards = container.querySelectorAll(".catering-day-card");
+            cards.forEach(card => {
+              const text = card.getAttribute("data-menu-text") || "";
+              if (!query || text.includes(query)) {
+                card.style.display = "";
+              } else {
+                card.style.display = "none";
+              }
+            });
+          });
+        }
+
+        // Liste / Görsel sekme geçişi
+        const btnViewList = container.querySelector("#btn-toggle-menu-view-list");
+        const btnViewImg = container.querySelector("#btn-toggle-menu-view-img");
+        const gridView = container.querySelector("#catering-days-grid");
+        const imgView = container.querySelector("#catering-image-view");
+
+        if (btnViewList && btnViewImg && gridView && imgView) {
+          btnViewList.addEventListener("click", () => {
+            gridView.classList.remove("hidden");
+            imgView.classList.add("hidden");
+            btnViewList.className = "bg-blue-600 text-white text-[11px] font-bold px-2.5 py-1.5 rounded-lg transition cursor-pointer";
+            btnViewImg.className = "bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-[11px] font-bold px-2.5 py-1.5 rounded-lg transition cursor-pointer";
+          });
+          btnViewImg.addEventListener("click", () => {
+            gridView.classList.add("hidden");
+            imgView.classList.remove("hidden");
+            btnViewImg.className = "bg-blue-600 text-white text-[11px] font-bold px-2.5 py-1.5 rounded-lg transition cursor-pointer";
+            btnViewList.className = "bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-[11px] font-bold px-2.5 py-1.5 rounded-lg transition cursor-pointer";
+          });
+        }
+
         const imgEl = container.querySelector("#catering-modal-img");
         const fsBtn = container.querySelector("#btn-fullscreen-menu");
-        if (imgEl) {
-          imgEl.onclick = () => this.toggleImageZoom(imgEl);
-        }
+        if (imgEl) imgEl.onclick = () => this.toggleImageZoom(imgEl);
         if (fsBtn && imgEl) {
           fsBtn.onclick = () => {
             if (imgEl.requestFullscreen) {
@@ -357,34 +471,40 @@ export class CateringShuttleModule {
             }
           };
         }
+      } else if (config.menuImage) {
+        // Sadece görsel varsa görseli göster
+        container.innerHTML = `
+          <div class="relative bg-slate-900 rounded-2xl p-2 flex flex-col items-center justify-center min-h-[300px] overflow-hidden group">
+            <img id="catering-modal-img" src="${config.menuImage}" alt="Aylık Yemek Menüsü" class="max-h-[72vh] w-auto max-w-full object-contain rounded-xl shadow-2xl transition duration-200 cursor-zoom-in" title="Büyütmek için tıklayın">
+            <div class="absolute bottom-4 right-4 flex items-center gap-2 opacity-90 group-hover:opacity-100 transition">
+              <button type="button" id="btn-fullscreen-menu" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-black px-3 py-1.5 rounded-lg shadow-md transition flex items-center gap-1.5 cursor-pointer">
+                <span>🔍</span> <span>Tam Ekran</span>
+              </button>
+            </div>
+          </div>
+        `;
+        const imgEl = container.querySelector("#catering-modal-img");
+        const fsBtn = container.querySelector("#btn-fullscreen-menu");
+        if (imgEl) imgEl.onclick = () => this.toggleImageZoom(imgEl);
+        if (fsBtn && imgEl) {
+          fsBtn.onclick = () => {
+            if (imgEl.requestFullscreen) imgEl.requestFullscreen();
+            else window.open(config.menuImage, "_blank");
+          };
+        }
       } else {
-        // Görsel henüz yüklenmemiş
+        // Menü henüz bulunmuyor
         container.innerHTML = `
           <div class="bg-slate-50 dark:bg-slate-800/60 border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-3xl p-8 sm:p-12 text-center flex flex-col items-center justify-center">
             <div class="w-16 h-16 rounded-2xl bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center text-3xl mb-3 shadow-inner">
               🍽️
             </div>
-            <h4 class="text-base font-black text-slate-800 dark:text-white">Menü Görseli Henüz Yüklenmedi</h4>
+            <h4 class="text-base font-black text-slate-800 dark:text-white">${currentMonthTitle} Menüsü Hazırlanmaktadır</h4>
             <p class="text-xs text-slate-500 dark:text-slate-400 max-w-md mt-1 mb-4">
-              Bu aya ait yemek menüsü görseli henüz sisteme yüklenmemiştir. İK veya Yönetici panelinden güncel menü görselini tek tıkla yükleyebilirsiniz.
+              Bu aya ait yemek menüsü bilgileri yemek şirketinden güncellendiğinde burada otomatik olarak yayınlanacaktır.
             </p>
-            ${isManagerOrHr() ? `
-              <button type="button" id="btn-quick-upload-menu-modal" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-black py-2.5 px-5 rounded-xl shadow-md transition flex items-center gap-2 cursor-pointer">
-                <span>📸</span> <span>Menü Görseli Yükle</span>
-              </button>
-            ` : `
-              <span class="text-xs text-slate-400 font-medium">İK birimi güncel menüyü yüklediğinde burada görünecektir.</span>
-            `}
           </div>
         `;
-
-        const quickUploadBtn = container.querySelector("#btn-quick-upload-menu-modal");
-        if (quickUploadBtn) {
-          quickUploadBtn.onclick = () => {
-            const input = document.getElementById("catering-admin-image-file");
-            if (input) input.click();
-          };
-        }
       }
     }
   }
@@ -401,15 +521,20 @@ export class CateringShuttleModule {
   }
 
   openCateringWebsiteWithCredentials() {
+    // Güvenlik Kuralı: Yemek şirketinin portalına doğrudan giriş yalnızca Sistem Yöneticisi (Admin) içindir!
+    if (!isAdmin()) {
+      alert("Yetki Hatası: Yemek şirketi yönetim sayfasına erişim yalnızca Sistem Yöneticisi (Admin) yetkisindedir!");
+      return;
+    }
+
     const config = appState.state.cateringConfig || {};
     if (!config.websiteUrl) {
       alert("Yemek şirketinin web sitesi adresi henüz yapılandırılmamış!");
       return;
     }
 
-    // Kullanıcı adı ve şifreyi panoya kopyalama seçeneği
     if (config.username || config.password) {
-      const msg = `Yemek Şirketi Giriş Bilgileri:\nKullanıcı: ${config.username || '-'}\nŞifre: ${config.password || '-'}\n\nWeb sitesi yeni sekmede açılıyor...`;
+      const msg = `Yemek Şirketi Giriş Bilgileri:\nKullanıcı: ${config.username || '-'}\nŞifre: ${config.password || '-'}\n\nYönetici olarak web sitesi yeni sekmede açılıyor...`;
       if (navigator.clipboard && config.password) {
         navigator.clipboard.writeText(config.password).catch(() => {});
       }
@@ -1081,10 +1206,10 @@ export class CateringShuttleModule {
     const menuUrlInput = document.getElementById("catering-admin-menu-url");
     const previewContainer = document.getElementById("catering-admin-image-preview");
 
-    if (companyInput && !companyInput.value) companyInput.value = config.companyName || "";
-    if (websiteInput && !websiteInput.value) websiteInput.value = config.websiteUrl || "";
-    if (userInput && !userInput.value) userInput.value = config.username || "";
-    if (passInput && !passInput.value) passInput.value = config.password || "";
+    if (companyInput && !companyInput.value) companyInput.value = config.companyName || "Kayra Yemek";
+    if (websiteInput && !websiteInput.value) websiteInput.value = config.websiteUrl || "https://musteri.kayrayemek.com.tr:4638/AylikMenu";
+    if (userInput && !userInput.value) userInput.value = config.username || "Sodsan";
+    if (passInput && !passInput.value) passInput.value = config.password || "2025";
     if (monthInput && !monthInput.value) monthInput.value = config.menuMonth || "Ekim 2026";
     if (menuUrlInput && !menuUrlInput.value) menuUrlInput.value = config.menuUrl || "";
 

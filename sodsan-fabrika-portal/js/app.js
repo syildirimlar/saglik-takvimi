@@ -870,18 +870,20 @@ class App {
               appState.state.currentUser = targetUser;
               if (typeof window !== "undefined") window.__portalCurrentUser = targetUser;
               sessionStorage.setItem("sodsan_session_user_id", targetUser.id);
+              if (localStorage.getItem("sodsan_auth_user_id")) {
+                localStorage.setItem("sodsan_auth_user_id", targetUser.id);
+              }
               appState.saveState();
               this.updateUserSessionUI();
               modalSwitch.classList.remove("show");
-              this.products.render();
-              this.supplies.render();
-              this.leave.render();
-              this.overtime.render();
-              this.forklift.render();
-              this.breakdown.render();
-              if (this.production && typeof this.production.render === "function") {
-                this.production.render();
+
+              // Eğer yönetici sekmesindeyse ve seçilen kullanıcının idari/admin yetkisi yoksa takvime aktar
+              if (!isIdariIslerOrAdmin() && this.activeTab === "tab-admin") {
+                this.switchTab("tab-calendar");
               }
+
+              // Tüm modülleri yeni kullanıcının yetki düzeyine göre baştan çiz
+              this.refreshAllActiveViews();
             }
           });
         });

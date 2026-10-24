@@ -3360,11 +3360,8 @@
         </div>
 
         <div class="flex items-center gap-2">
-          <button type="button" id="modal-catering-website-btn" class="hidden bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-1.5 px-3 rounded-lg shadow-xs transition flex items-center gap-1 cursor-pointer">
-            <span>🌐</span> <span class="hidden sm:inline">Yemek Şirketi Portalı</span>
-          </button>
           <button type="button" id="modal-catering-edit-btn" class="hidden bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 text-xs font-bold py-1.5 px-3 rounded-lg transition flex items-center gap-1 cursor-pointer">
-            <span>✏️</span> <span>Güncelle</span>
+            <span>✏️</span> <span>Yönetim</span>
           </button>
           <button type="button" data-close-modal class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xl font-black w-8 h-8 rounded-full flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer" title="Kapat">
             ✕
@@ -3376,12 +3373,12 @@
       <div id="modal-catering-today-banner" class="hidden"></div>
 
       <!-- Menü Resmi Alanı -->
-      <div id="modal-catering-image-container" class="flex-1 overflow-y-auto">
+      <div id="modal-catering-image-container" class="flex-1 overflow-y-auto pr-1">
         <!-- JS tarafından doldurulur -->
       </div>
 
       <div class="pt-2 flex items-center justify-between border-t border-slate-100 dark:border-slate-800 text-xs text-slate-500">
-        <span class="text-[11px]">Resme tıklayarak yakınlaştırabilir veya "Tam Ekran" ile büyük açabilirsiniz.</span>
+        <span class="text-[11px] text-slate-500 dark:text-slate-400">Yemek şirketi menüsü yalnızca içinde bulunulan aktif ay için personele listelenir.</span>
         <button type="button" data-close-modal class="bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs py-2 px-4 rounded-xl transition cursor-pointer">
           ✕ Kapat
         </button>
@@ -4002,7 +3999,7 @@
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js?v=43').catch(err => {
+        navigator.serviceWorker.register('sw.js?v=44').catch(err => {
           console.log('SW registration failed:', err);
         });
       });
@@ -4010,6 +4007,6 @@
   </script>
 
   <!-- ES Modül Girişi -->
-  <script type="module" src="js/app.js?v=6.2"></script>
+  <script type="module" src="js/app.js?v=6.3"></script>
 </body>
 </html>
