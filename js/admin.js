@@ -136,10 +136,6 @@ export class AdminModule {
       btnExportLogs.addEventListener("click", () => this.exportLogsCsv());
     }
 
-    if (btnClearLogs) {
-      btnClearLogs.addEventListener("click", () => this.clearLogs());
-    }
-
     // Korumalı Fabrika Sıfırlama Dinleyicileri
     const btnOpenGuardedReset = document.getElementById("btn-open-guarded-reset") || document.getElementById("btn-reset-factory");
     const modalGuardedReset = document.getElementById("modal-guarded-reset");
@@ -878,16 +874,6 @@ export class AdminModule {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-  }
-
-  clearLogs() {
-    if (confirm("DİKKAT: Tüm işlem geçmişi ve denetim kayıtları temizlenecek. Devam etmek istiyor musunuz?")) {
-      appState.state.activityLogs = [];
-      appState.saveState();
-      logSystemAction("DENETİM_TEMİZLEME", "İşlem geçmişi (Audit Log) yönetici tarafından temizlendi.");
-      this.renderAuditLogsTable();
-      alert("İşlem geçmişi temizlendi.");
-    }
   }
 
   exportBackup() {

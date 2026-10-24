@@ -1177,6 +1177,68 @@
 
     <!-- ==================== SEKME 5: YÖNETİCİ & ADMIN PANELİ ==================== -->
     <section id="tab-admin" class="tab-pane hidden space-y-6">
+      <!-- ARAÇ, FORKLİFT & SERVİS LOJİSTİK YÖNETİMİ (HIZLI İŞLEMLER) -->
+      <div class="bg-gradient-to-r from-slate-900 to-indigo-950 text-white rounded-2xl p-5 shadow-sm border border-slate-800">
+        <div class="flex items-center justify-between flex-wrap gap-2 border-b border-slate-800 pb-3 mb-4">
+          <div class="flex items-center gap-2.5">
+            <span class="text-2xl">🚜</span>
+            <div>
+              <h3 class="text-sm sm:text-base font-black text-white">Forklift Filosu & Servis Araçları Yönetimi</h3>
+              <p class="text-xs text-slate-300">Yeni forklift ekleme, servis güzergahları ve Arvento canlı takip ayarları</p>
+            </div>
+          </div>
+          <span class="bg-indigo-600/60 text-indigo-200 border border-indigo-500/40 text-[10px] font-bold px-2.5 py-0.5 rounded-full">Sadece Yönetici</span>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- 1. Forklift Filosu Kartı -->
+          <div class="bg-slate-800/80 border border-slate-700/80 rounded-xl p-4 flex flex-col justify-between space-y-3">
+            <div>
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-black text-amber-400 flex items-center gap-1.5">
+                  <span>🚜</span> <span>FORKLİFT FİLOSU</span>
+                </span>
+                <span class="text-[10px] text-slate-400">Marka, Tonaj & Yakıt</span>
+              </div>
+              <p class="text-xs text-slate-300 mt-2">
+                Fabrikadaki forkliftleri tanımlayın. Akülü/Elektrikli, Dizel ve Benzinli forkliftlerin durumunu (Aktif, Şarjda, Arızalı) yönetin.
+              </p>
+            </div>
+            <div class="flex items-center gap-2 pt-2 border-t border-slate-700/50">
+              <button type="button" onclick="window.portalApp.forklift.openAddForkliftModal()" class="flex-1 bg-amber-500 hover:bg-amber-600 active:scale-95 text-slate-950 font-black text-xs py-2 px-3 rounded-lg shadow-sm transition flex items-center justify-center gap-1.5 cursor-pointer">
+                <span>+</span> <span>Yeni Forklift Ekle</span>
+              </button>
+              <button type="button" onclick="window.portalApp.switchTab('tab-forklift')" class="bg-slate-700 hover:bg-slate-600 text-white font-bold text-xs py-2 px-3 rounded-lg transition flex items-center gap-1 cursor-pointer">
+                <span>👁️</span> <span>Forklift Ekranı</span> &rarr;
+              </button>
+            </div>
+          </div>
+
+          <!-- 2. Servis Araçları Kartı -->
+          <div class="bg-slate-800/80 border border-slate-700/80 rounded-xl p-4 flex flex-col justify-between space-y-3">
+            <div>
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-black text-indigo-400 flex items-center gap-1.5">
+                  <span>🚐</span> <span>SERVİS ARAÇLARI & ARVENTO TAKİP</span>
+                </span>
+                <span class="text-[10px] text-slate-400">Plaka, Şoför & Güzergah</span>
+              </div>
+              <p class="text-xs text-slate-300 mt-2">
+                Vardiya servis araçlarını, şoförlerini, binecek personelleri ve Arvento canlı araç takip linkini tanımlayın.
+              </p>
+            </div>
+            <div class="flex items-center gap-2 pt-2 border-t border-slate-700/50">
+              <button type="button" onclick="window.portalApp.cateringShuttle.openAddShuttleModal()" class="flex-1 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-black text-xs py-2 px-3 rounded-lg shadow-sm transition flex items-center justify-center gap-1.5 cursor-pointer">
+                <span>+</span> <span>Yeni Servis Ekle</span>
+              </button>
+              <button type="button" onclick="window.portalApp.switchTab('tab-leave'); window.portalApp.cateringShuttle.switchIkSubtab('shuttle');" class="bg-slate-700 hover:bg-slate-600 text-white font-bold text-xs py-2 px-3 rounded-lg transition flex items-center gap-1 cursor-pointer">
+                <span>👁️</span> <span>Servis Güzergahları</span> &rarr;
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Departman Yönetimi -->
       <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
         <div class="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
@@ -1364,9 +1426,6 @@
           <div class="flex items-center gap-2">
             <button id="btn-export-logs-csv" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold py-1.5 px-3 rounded-lg border border-slate-200 transition flex items-center gap-1">
               <span>📊</span> <span>CSV / Excel İndir</span>
-            </button>
-            <button id="btn-clear-logs" class="bg-red-50 hover:bg-red-100 text-red-600 text-xs font-bold py-1.5 px-3 rounded-lg border border-red-200 transition flex items-center gap-1">
-              <span>🗑️</span> <span>Geçmişi Temizle</span>
             </button>
           </div>
         </div>
@@ -3358,6 +3417,29 @@
           <input type="text" id="shuttle-form-notes" placeholder="Örn: Sabah 08:00 vardiyası için geçerlidir" class="w-full text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-500">
         </div>
 
+        <!-- Arvento Araç Takip Entegrasyonu (Opsiyonel) -->
+        <div class="bg-indigo-50/70 dark:bg-indigo-950/40 p-3.5 rounded-xl border border-indigo-100 dark:border-indigo-900/50 space-y-2.5">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-black text-indigo-900 dark:text-indigo-300 flex items-center gap-1.5">
+              <span>🛰️</span> <span>Arvento Araç Takip Entegrasyonu (Opsiyonel)</span>
+            </span>
+            <span class="text-[10px] text-indigo-700 dark:text-indigo-400 font-bold bg-white dark:bg-slate-800 px-2 py-0.5 rounded-md border border-indigo-200 dark:border-indigo-800">Canlı Takip</span>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
+            <div>
+              <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">Arvento Web Takip URL / Linki:</label>
+              <input type="url" id="shuttle-form-arvento-url" placeholder="https://takip.arvento.com/..." class="w-full text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2 outline-none focus:ring-2 focus:ring-indigo-500 font-mono">
+            </div>
+            <div>
+              <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">Arvento Araç / Cihaz No:</label>
+              <input type="text" id="shuttle-form-arvento-id" placeholder="Örn: 16SPL40" class="w-full text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2 outline-none focus:ring-2 focus:ring-indigo-500 font-medium">
+            </div>
+          </div>
+          <p class="text-[10px] text-slate-500 dark:text-slate-400 leading-tight">
+            💡 Personel ve şoför "Anlık Konum Göster" butonuna bastığında bu link tek tıkla açılır. Arka planda asla pil veya internet tüketmez.
+          </p>
+        </div>
+
         <div class="pt-3 flex justify-end gap-2 border-t border-slate-100 dark:border-slate-800">
           <button type="button" data-close-modal class="text-xs font-bold text-slate-500 py-2 px-3 rounded-lg hover:bg-slate-100">Vazgeç</button>
           <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs py-2 px-5 rounded-lg shadow-sm flex items-center gap-1.5 cursor-pointer">
@@ -3369,11 +3451,73 @@
   </div>
 
 
+  <!-- ==================== MODAL: SERVİS ANLIK KONUM (ARVENTO) ==================== -->
+  <div id="modal-live-shuttle-location" class="modal-backdrop">
+    <div class="modal-content max-w-xl w-full p-4 sm:p-5 space-y-4 max-h-[92vh] flex flex-col">
+      <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+        <div class="flex items-center gap-2">
+          <span class="text-2xl">📍</span>
+          <div>
+            <h3 class="text-sm sm:text-base font-black text-slate-900 dark:text-white">Servis Anlık Konumu (Arvento Takip)</h3>
+            <p id="live-loc-subtitle" class="text-xs text-slate-500 dark:text-slate-400">Aracın güncel konumu ve Arvento canlı takip ekranı</p>
+          </div>
+        </div>
+        <button type="button" data-close-modal class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xl font-black w-8 h-8 rounded-full flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer" title="Kapat">
+          ✕
+        </button>
+      </div>
+
+      <div class="space-y-3 flex-1 overflow-y-auto pr-1">
+        <!-- Araç & Şoför Özet Kartı -->
+        <div class="bg-indigo-50/70 dark:bg-indigo-950/40 p-3.5 rounded-2xl border border-indigo-100 dark:border-indigo-900/60 flex items-center justify-between flex-wrap gap-2">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center text-lg font-black shadow-xs flex-shrink-0">
+              🚐
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <span id="live-loc-plate" class="font-mono font-black text-xs sm:text-sm bg-slate-900 text-white px-2 py-0.5 rounded">16 SPL 40</span>
+                <span id="live-loc-route" class="text-xs font-bold text-slate-800 dark:text-slate-100">Servis Güzergahı</span>
+              </div>
+              <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 flex items-center gap-2">
+                <span>👤 Şoför: <b id="live-loc-driver" class="text-slate-700 dark:text-slate-300">Belirtilmedi</b></span>
+              </div>
+            </div>
+          </div>
+          <div id="live-loc-phone-box">
+            <!-- JS doldurur -->
+          </div>
+        </div>
+
+        <!-- Arvento Canlı Konum Ekranı / Bilgi Kutusu -->
+        <div id="live-loc-frame-container" class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/80 p-5 text-center min-h-[180px] flex flex-col items-center justify-center space-y-3">
+          <!-- JS doldurur -->
+        </div>
+
+        <!-- Pil ve İnternet Tasarrufu Bilgi Notu -->
+        <div class="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900/50 p-2.5 rounded-xl flex items-center gap-2 text-[11px] text-emerald-800 dark:text-emerald-300">
+          <span class="text-base flex-shrink-0">🔋</span>
+          <span><b>Sıfır Pil & Kota Tüketimi:</b> Konum yalnızca butona bastığınızda anlık sorgulanır, arka planda şarj ve internet tüketmez.</span>
+        </div>
+      </div>
+
+      <div class="pt-2 flex items-center justify-between border-t border-slate-100 dark:border-slate-800 text-xs">
+        <button type="button" id="btn-refresh-live-location" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs py-2 px-3 rounded-xl border border-indigo-200 transition flex items-center gap-1 cursor-pointer">
+          <span>🔄</span> <span>Yenile</span>
+        </button>
+        <button type="button" data-close-modal class="bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs py-2 px-4 rounded-xl transition cursor-pointer">
+          ✕ Kapat
+        </button>
+      </div>
+    </div>
+  </div>
+
+
   <!-- Service Worker Kaydı (PWA) -->
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js?v=41').catch(err => {
+        navigator.serviceWorker.register('sw.js?v=42').catch(err => {
           console.log('SW registration failed:', err);
         });
       });
@@ -3381,6 +3525,6 @@
   </script>
 
   <!-- ES Modül Girişi -->
-  <script type="module" src="js/app.js?v=6.0"></script>
+  <script type="module" src="js/app.js?v=6.1"></script>
 </body>
 </html>
