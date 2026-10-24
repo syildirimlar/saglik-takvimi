@@ -11,13 +11,14 @@ export class CateringShuttleModule {
     this.render();
   }
 
-  // Tüm kayıtlı personelleri (employees + users) tek listede birleştirir
+  // Tüm kayıtlı personelleri (employees + users) tek listede birleştirir (Admin hariç)
   getFactoryEmployees() {
     const list = [];
     const seen = new Set();
+    const isAdminPerson = (p) => p && (p.id === 'u_admin' || p.userId === 'u_admin' || String(p.role || '').toUpperCase() === 'ADMIN' || String(p.name || '').toLowerCase() === 'admin' || String(p.name || '').toLowerCase() === 'sistem yöneticisi');
 
     (appState.state.employees || []).forEach(emp => {
-      if (emp && emp.name && emp.name.trim()) {
+      if (emp && emp.name && emp.name.trim() && !isAdminPerson(emp)) {
         const key = emp.name.trim().toLowerCase();
         if (!seen.has(key)) {
           seen.add(key);
@@ -27,7 +28,7 @@ export class CateringShuttleModule {
     });
 
     (appState.state.users || []).forEach(u => {
-      if (u && u.name && u.name.trim()) {
+      if (u && u.name && u.name.trim() && !isAdminPerson(u)) {
         const key = u.name.trim().toLowerCase();
         if (!seen.has(key)) {
           seen.add(key);

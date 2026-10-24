@@ -19,14 +19,23 @@ export class LeaveModule {
     this.render();
   }
 
-  // Tüm kayıtlı fabrika çalışanlarını hem employees hem users tablosundan eksiksiz derler
+  // Admin kullanıcısını izin ve mesai personel listelerinden kesin olarak ayıklar
+  isAdminEmployee(p) {
+    if (!p) return false;
+    const r = String(p.role || "").trim().toUpperCase();
+    const n = String(p.name || "").trim().toLowerCase();
+    const u = String(p.username || "").trim().toLowerCase();
+    return p.id === "u_admin" || p.userId === "u_admin" || r === "ADMIN" || n === "admin" || n === "sistem yöneticisi" || u === "admin";
+  }
+
+  // Tüm kayıtlı fabrika çalışanlarını hem employees hem users tablosundan eksiksiz derler (Admin hariç)
   getFactoryEmployees() {
     const list = [];
     const seen = new Set();
 
-    // 1. İK Personel Çizelgesindeki kayıtlar (employees)
+    // 1. İK Personel Çizelgesindeki kayıtlar (employees) - Admin hariç
     (appState.state.employees || []).forEach(emp => {
-      if (emp && emp.name && emp.name.trim()) {
+      if (emp && emp.name && emp.name.trim() && !this.isAdminEmployee(emp)) {
         const key = emp.name.trim().toLowerCase();
         if (!seen.has(key)) {
           seen.add(key);
@@ -35,9 +44,9 @@ export class LeaveModule {
       }
     });
 
-    // 2. Sistemde kayıtlı kullanıcılar (users) - çalışan olarak da seçilebilsinler
+    // 2. Sistemde kayıtlı kullanıcılar (users) - Admin hariç
     (appState.state.users || []).forEach(u => {
-      if (u && u.name && u.name.trim()) {
+      if (u && u.name && u.name.trim() && !this.isAdminEmployee(u)) {
         const key = u.name.trim().toLowerCase();
         if (!seen.has(key)) {
           seen.add(key);
@@ -481,7 +490,7 @@ export class LeaveModule {
     const tableBody = document.getElementById("leave-balances-table-body");
     if (!tableBody) return;
 
-    const employees = appState.state.employees || [];
+    const employees = (appState.state.employees || []).filter(e => !this.isAdminEmployee(e));
 
     // Sayaçları güncelle
     const fieldCount = employees.filter(e => (e.role || "PERSONEL") === "PERSONEL").length;

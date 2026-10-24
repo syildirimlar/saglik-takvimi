@@ -1,14 +1,14 @@
 // SODSAN Fabrika Portalı - Ana Uygulama Yöneticisi (app.js)
-import { appState, ROLES, getRoleInfo, logSystemAction, isAdmin, isIdariIslerOrAdmin } from './data.js?v=4.9';
-import { CalendarModule } from './calendar.js?v=3.9';
+import { appState, ROLES, getRoleInfo, logSystemAction, isAdmin, isIdariIslerOrAdmin } from './data.js';
+import { CalendarModule } from './calendar.js';
 import { ProductsModule } from './products.js';
 import { SuppliesModule } from './supplies.js';
 import { LeaveModule } from './leave.js';
 import { OvertimeModule } from './overtime.js';
-import { ForkliftModule } from './forklift.js?v=3.9';
-import { BreakdownModule } from './breakdown.js?v=3.9';
-import { ProductionModule } from './production.js?v=4.9';
-import { AdminModule } from './admin.js?v=4.3';
+import { ForkliftModule } from './forklift.js';
+import { BreakdownModule } from './breakdown.js';
+import { ProductionModule } from './production.js';
+import { AdminModule } from './admin.js';
 import { CateringShuttleModule, getUserShuttleBanners } from './catering_shuttle.js';
 
 class App {
@@ -77,6 +77,7 @@ class App {
       const user = appState.state.users.find(u => u.id === sessionUserId);
       if (user) {
         appState.state.currentUser = user;
+        if (typeof window !== "undefined") window.__portalCurrentUser = user;
         this.hideLoginScreen();
         return true;
       }
@@ -88,6 +89,7 @@ class App {
       const user = appState.state.users.find(u => u.id === rememberedId);
       if (user) {
         appState.state.currentUser = user;
+        if (typeof window !== "undefined") window.__portalCurrentUser = user;
         this.hideLoginScreen();
         return true;
       }
@@ -95,6 +97,7 @@ class App {
 
     // 3. Oturum yok -> Her zaman Giriş Ekranını Aç
     appState.state.currentUser = null;
+    if (typeof window !== "undefined") window.__portalCurrentUser = null;
     this.showLoginScreen();
     return false;
   }
@@ -131,6 +134,7 @@ class App {
     localStorage.removeItem("sodsan_auth_user_id");
     sessionStorage.removeItem("sodsan_session_user_id");
     appState.state.currentUser = null;
+    if (typeof window !== "undefined") window.__portalCurrentUser = null;
     try {
       appState.saveState();
     } catch (e) {}
@@ -140,6 +144,7 @@ class App {
   updateUserSessionUI() {
     const user = appState.state.currentUser;
     if (!user) return;
+    if (typeof window !== "undefined") window.__portalCurrentUser = user;
 
     const nameEl = document.getElementById("current-user-name");
     const roleEl = document.getElementById("current-user-role");
@@ -776,6 +781,8 @@ class App {
             const targetUser = appState.state.users.find(u => u.id === uid);
             if (targetUser) {
               appState.state.currentUser = targetUser;
+              if (typeof window !== "undefined") window.__portalCurrentUser = targetUser;
+              sessionStorage.setItem("sodsan_session_user_id", targetUser.id);
               appState.saveState();
               this.updateUserSessionUI();
               modalSwitch.classList.remove("show");
@@ -857,6 +864,7 @@ class App {
 
     // Başarılı Giriş
     appState.state.currentUser = targetUser;
+    if (typeof window !== "undefined") window.__portalCurrentUser = targetUser;
     try {
       appState.saveState();
     } catch (e) {

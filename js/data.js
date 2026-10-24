@@ -140,18 +140,41 @@ export function getRoleInfo(roleKey) {
 // Oturum açan kullanıcının Sistem Yöneticisi (Admin) olup olmadığını denetler
 // Admin paneline erişim yetkisi kural gereği SADECE ve YALNIZCA Admin kullanıcısına aittir
 export function isAdmin() {
-  if (typeof appState === "undefined" || !appState || !appState.state || !appState.state.currentUser) return false;
-  const user = appState.state.currentUser;
-  const role = String(user.role || "").trim().toUpperCase();
-  const username = String(user.username || "").trim().toLowerCase();
-  return (role === "ADMIN" || username === "admin" || user.id === "u_admin");
+  // 1. appState.state.currentUser kontrolü
+  const curUser = (typeof appState !== "undefined" && appState && appState.state) ? appState.state.currentUser : null;
+  if (curUser) {
+    const role = String(curUser.role || "").trim().toUpperCase();
+    const username = String(curUser.username || "").trim().toLowerCase();
+    if (role === "ADMIN" || username === "admin" || curUser.id === "u_admin") return true;
+  }
+
+  // 2. window.__portalCurrentUser kontrolü
+  if (typeof window !== "undefined" && window.__portalCurrentUser) {
+    const wRole = String(window.__portalCurrentUser.role || "").trim().toUpperCase();
+    const wName = String(window.__portalCurrentUser.username || "").trim().toLowerCase();
+    if (wRole === "ADMIN" || wName === "admin" || window.__portalCurrentUser.id === "u_admin") return true;
+  }
+
+  // 3. Tarayıcı oturum belirteçleri (sessionStorage ve localStorage)
+  if (typeof sessionStorage !== "undefined") {
+    const sessId = sessionStorage.getItem("sodsan_session_user_id");
+    if (sessId === "u_admin" || sessId === "admin") return true;
+  }
+  if (typeof localStorage !== "undefined") {
+    const authId = localStorage.getItem("sodsan_auth_user_id");
+    if (authId === "u_admin" || authId === "admin") return true;
+  }
+
+  return false;
 }
 
 // Oturum açan kullanıcının İdari İşler (İK) veya Admin olup olmadığını denetler
 export function isIdariIslerOrAdmin() {
-  if (typeof appState === "undefined" || !appState || !appState.state || !appState.state.currentUser) return false;
   if (isAdmin()) return true;
-  const user = appState.state.currentUser;
+  const user = (typeof appState !== "undefined" && appState && appState.state && appState.state.currentUser) 
+    ? appState.state.currentUser 
+    : (typeof window !== "undefined" ? window.__portalCurrentUser : null);
+  if (!user) return false;
   const role = String(user.role || "").trim().toUpperCase();
   const depId = String(user.departmentId || "").trim().toLowerCase();
   if (role === "IK" || role === "IDARI_ISLER" || role === "YONETICI" || depId === "dep_ik" || depId === "dep_yonetim") return true;
@@ -189,9 +212,8 @@ export const DEFAULT_USERS = [
   { id: "u_1792699659049", username: "buke", name: "Büke", role: "IK", departmentId: "dep_ik", phone: "", pin: "1234" }
 ];
 
-// Başlangıç Gerçek Fabrika Personel Listesi (İzin Bakiye Takibi)
+// Başlangıç Gerçek Fabrika Personel Listesi (İzin Bakiye Takibi - Admin hariç!)
 export const DEFAULT_EMPLOYEES = [
-  { id: "u_admin", userId: "u_admin", name: "Sistem Yöneticisi", role: "ADMIN", departmentId: "dep_yonetim", totalLeave: 14, usedLeave: 0, remainingLeave: 14, hireDate: "2024-01-01" },
   { id: "u_ik", userId: "u_ik", name: "Gürkan", role: "IK", departmentId: "dep_ik", totalLeave: 14, usedLeave: 0, remainingLeave: 14, hireDate: "2024-01-01" },
   { id: "u_ahmet", userId: "u_ahmet", name: "Ayhan", role: "USTA", departmentId: "dep_1792617714014", totalLeave: 14, usedLeave: 0, remainingLeave: 14, hireDate: "2024-01-01" },
   { id: "u_mehmet", userId: "u_mehmet", name: "Eray", role: "USTA", departmentId: "dep_1792617873852", totalLeave: 14, usedLeave: 0, remainingLeave: 14, hireDate: "2024-01-01" },
@@ -450,6 +472,9 @@ export class StateManager {
   constructor() {
     this.state = this.loadState();
     this.syncUsersToEmployees();
+    if (typeof window !== "undefined") {
+      window.__sodsanAppState = this;
+    }
   }
 
   loadState() {
@@ -510,7 +535,7 @@ export class StateManager {
         });
       }
 
-      // Personel (employees): Kesinlikle silinmez!
+      // Personel (employees): Kesinlikle silinmez! Admin personel listesine dahil EDİLMEZ!
       if (!Array.isArray(parsed.employees) || parsed.employees.length === 0) {
         parsed.employees = JSON.parse(JSON.stringify(DEFAULT_EMPLOYEES));
       } else {
@@ -520,6 +545,14 @@ export class StateManager {
           }
         });
       }
+      // Admin kullanıcısını çalışan listesinden tamamen temizle (İzin ve mesai personelleri arasında yer alamaz)
+      parsed.employees = parsed.employees.filter(e => 
+        e.id !== "u_admin" && 
+        e.userId !== "u_admin" && 
+        String(e.role || "").trim().toUpperCase() !== "ADMIN" && 
+        String(e.name || "").trim().toLowerCase() !== "admin" && 
+        String(e.name || "").trim().toLowerCase() !== "sistem yöneticisi"
+      );
 
       // Makineler (machines): Sadece kullanıcının gerçek fabrika makineleri korunur. Sahte/örnek makineler kesinlikle temizlenir!
       const FAKE_MACHINE_IDS = new Set(["mac_inj800", "mac_inj650", "mac_inj450", "mac_inj250", "mac_vkm01", "mac_vkm02", "mac_dsm01"]);
@@ -887,13 +920,27 @@ export class StateManager {
     return plan;
   }
 
-  // Tüm kullanıcıları (Ustalar, İdari, Bakım, Saha) otomatik çalışan listesine senkronize eder
+  // Tüm kullanıcıları (Ustalar, İdari, Bakım, Saha) otomatik çalışan listesine senkronize eder (Admin hariç!)
   syncUsersToEmployees() {
     if (!this.state) return;
     if (!Array.isArray(this.state.employees)) {
       this.state.employees = [];
     }
-    const users = this.state.users || [];
+
+    // Admin kullanıcısını çalışan listesinden kesin olarak ayıkla
+    this.state.employees = this.state.employees.filter(e => 
+      e.id !== "u_admin" && 
+      e.userId !== "u_admin" && 
+      String(e.role || "").trim().toUpperCase() !== "ADMIN" && 
+      String(e.name || "").trim().toLowerCase() !== "admin" && 
+      String(e.name || "").trim().toLowerCase() !== "sistem yöneticisi"
+    );
+
+    const users = (this.state.users || []).filter(u => 
+      String(u.role || "").trim().toUpperCase() !== "ADMIN" && 
+      String(u.username || "").trim().toLowerCase() !== "admin" && 
+      u.id !== "u_admin"
+    );
     let changed = false;
 
     users.forEach(u => {
