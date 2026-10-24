@@ -1,5 +1,5 @@
 // SODSAN Fabrika Portalı - Yemek Menüsü & Personel Servisleri Modülü (catering_shuttle.js)
-import { appState, isManagerOrHr, logSystemAction } from './data.js';
+import { appState, isManagerOrHr, logSystemAction, isAdmin } from './data.js';
 
 export class CateringShuttleModule {
   constructor() {
@@ -257,9 +257,9 @@ export class CateringShuttleModule {
       }
     }
 
-    // Yetkili Güncelle Butonu
+    // Yetkili Güncelle Butonu (Sadece Admin ayarları açabilir)
     if (editBtn) {
-      if (isManagerOrHr()) {
+      if (isAdmin()) {
         editBtn.classList.remove("hidden");
         editBtn.onclick = () => {
           // İK veya Admin panelindeki yemek menüsü ayarına götür
@@ -440,8 +440,8 @@ export class CateringShuttleModule {
   }
 
   saveCateringAdminConfig() {
-    if (!isManagerOrHr()) {
-      alert("Yetki Hatası: Yalnızca İK ve Sistem Yöneticisi yemek şirketi ayarlarını değiştirebilir!");
+    if (!isAdmin()) {
+      alert("Yetki Hatası: Yalnızca Sistem Yöneticisi (Admin) yemek şirketi ayarlarını değiştirebilir!");
       return;
     }
 
@@ -989,14 +989,13 @@ export class CateringShuttleModule {
     }
 
     // 2. İK Ekranındaki Bölümleri Güncelle
-    const isAllowed = isManagerOrHr();
     const btnCateringAdmin = document.getElementById("btn-open-catering-admin");
     if (btnCateringAdmin) {
-      btnCateringAdmin.style.display = isAllowed ? "" : "none";
+      btnCateringAdmin.style.display = isAdmin() ? "" : "none";
     }
     const btnAddShuttle = document.getElementById("btn-open-add-shuttle");
     if (btnAddShuttle) {
-      btnAddShuttle.style.display = isAllowed ? "" : "none";
+      btnAddShuttle.style.display = isManagerOrHr() ? "" : "none";
     }
 
     this.renderCateringSection();
