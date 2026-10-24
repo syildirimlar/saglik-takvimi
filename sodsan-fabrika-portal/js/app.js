@@ -10,6 +10,7 @@ import { BreakdownModule } from './breakdown.js';
 import { ProductionModule } from './production.js';
 import { AdminModule } from './admin.js';
 import { CateringShuttleModule, getUserShuttleBanners } from './catering_shuttle.js';
+import { DocumentsModule } from './documents.js';
 
 class App {
   constructor() {
@@ -23,6 +24,7 @@ class App {
     this.production = new ProductionModule();
     this.admin = new AdminModule();
     this.cateringShuttle = new CateringShuttleModule();
+    this.documents = new DocumentsModule();
     this.activeTab = "tab-calendar"; // Operasyon Takvimi her halükarda en üstte ve ilk sırada açılsın
   }
 
@@ -51,7 +53,8 @@ class App {
       { name: "breakdown", inst: this.breakdown },
       { name: "production", inst: this.production },
       { name: "admin", inst: this.admin },
-      { name: "cateringShuttle", inst: this.cateringShuttle }
+      { name: "cateringShuttle", inst: this.cateringShuttle },
+      { name: "documents", inst: this.documents }
     ];
 
     modules.forEach(m => {
@@ -119,6 +122,7 @@ class App {
       this.production?.render?.();
       this.admin?.render?.();
       this.cateringShuttle?.render?.();
+      this.documents?.render?.();
       this.renderUserShuttleNotificationBanner();
     } catch (e) {
       console.error("refreshAllActiveViews hatası:", e);
@@ -134,6 +138,9 @@ class App {
         appState.state.currentUser = user;
         if (typeof window !== "undefined") window.__portalCurrentUser = user;
         this.hideLoginScreen();
+        setTimeout(() => {
+          this.documents?.checkPendingSignaturesAndPrompt?.(user);
+        }, 350);
         return true;
       }
     }
@@ -146,6 +153,9 @@ class App {
         appState.state.currentUser = user;
         if (typeof window !== "undefined") window.__portalCurrentUser = user;
         this.hideLoginScreen();
+        setTimeout(() => {
+          this.documents?.checkPendingSignaturesAndPrompt?.(user);
+        }, 350);
         return true;
       }
     }
@@ -240,6 +250,9 @@ class App {
 
     // Haftalık Servis & Şoförlük Bildirim Banner'ını Göster
     this.renderUserShuttleNotificationBanner();
+
+    // Bekleyen Zorunlu Kurumsal Evrak Uyarısını Göster
+    this.documents?.renderUserPendingAlert?.();
   }
 
   renderUserShuttleNotificationBanner() {
@@ -962,6 +975,11 @@ class App {
     this.updateUserSessionUI();
     this.switchTab(this.activeTab);
 
+    // İlk giriş veya güncellenen evraklar için zorunlu imza kontrolü
+    setTimeout(() => {
+      this.documents?.checkPendingSignaturesAndPrompt?.(targetUser);
+    }, 350);
+
     // Giriş sonrası modül içeriklerini ve yetki görünümlerini tazele
     try {
       if (this.production && typeof this.production.render === "function") this.production.render();
@@ -1020,5 +1038,6 @@ class App {
 // Uygulamayı DOM hazır olunca ayağa kaldır
 document.addEventListener("DOMContentLoaded", () => {
   window.portalApp = new App();
+  window.portalApp.documentsModule = window.portalApp.documents;
   window.portalApp.init();
 });
