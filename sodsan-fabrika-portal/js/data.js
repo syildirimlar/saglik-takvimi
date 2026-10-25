@@ -1152,7 +1152,7 @@ export class StateManager {
   }
 
   exportDataJson() {
-    return JSON.stringify(this.state, null, 2);
+    return JSON.stringify(this.state);
   }
 
   importDataJson(jsonString) {
@@ -1400,6 +1400,9 @@ export class StateManager {
 
   getPendingDocumentsForUser(user) {
     if (!user || !Array.isArray(this.state.corporateDocuments)) return [];
+    // Yöneticiye (Admin) kesinlikle imza formlarını çıkarma
+    if (user.role === "ADMIN" || user.id === "u_admin") return [];
+
     const activeDocs = this.state.corporateDocuments.filter(d => d.active !== false && d.mandatory === true);
     const signed = this.state.signedDocuments || [];
 

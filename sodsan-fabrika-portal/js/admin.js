@@ -112,10 +112,14 @@ export class AdminModule {
         if (window.__cloudSyncService) {
           btnForcePull.disabled = true;
           btnForcePull.textContent = "⏳ Çekiliyor...";
-          await window.__cloudSyncService.pullFromCloud(true);
+          const res = await window.__cloudSyncService.pullFromCloud(true);
           btnForcePull.disabled = false;
           btnForcePull.innerHTML = "<span>⬇️</span> <span>Buluttan Çek</span>";
-          alert("✅ En güncel fabrika verisi buluttan çekildi ve arayüz tazelendi!");
+          if (res && res.success) {
+            alert("✅ En güncel fabrika verisi buluttan çekildi ve arayüz tazelendi!" + (res.updatedAt ? ` (Son Güncelleme: ${res.updatedAt})` : ""));
+          } else {
+            alert("ℹ️ " + (res?.message || res?.error || "Cihazınızdaki veriler zaten en güncel sürümde."));
+          }
         }
       });
     }
@@ -124,10 +128,14 @@ export class AdminModule {
         if (window.__cloudSyncService) {
           btnForcePush.disabled = true;
           btnForcePush.textContent = "⏳ Dağıtılıyor...";
-          await window.__cloudSyncService.pushToCloud();
+          const res = await window.__cloudSyncService.pushToCloud();
           btnForcePush.disabled = false;
           btnForcePush.innerHTML = "<span>⬆️</span> <span>Buluta Dağıt</span>";
-          alert("✅ Bu cihazdaki tüm veriler buluta yüklendi ve diğer cihazlara (tablet, telefon) dağıtıldı!");
+          if (res && res.success) {
+            alert("✅ Bu cihazdaki tüm veriler buluta yüklendi ve diğer cihazlara (tablet, telefon) dağıtıldı!");
+          } else {
+            alert("⚠️ Buluta yüklenirken hata oluştu: " + (res?.error || "Lütfen internet bağlantınızı kontrol ediniz."));
+          }
         }
       });
     }

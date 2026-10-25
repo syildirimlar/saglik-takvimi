@@ -173,7 +173,9 @@ class App {
         if (typeof window !== "undefined") window.__portalCurrentUser = user;
         this.hideLoginScreen();
         setTimeout(() => {
-          this.documents?.checkPendingSignaturesAndPrompt?.(user);
+          if (user.role !== "ADMIN" && user.id !== "u_admin") {
+            this.documents?.checkPendingSignaturesAndPrompt?.(user);
+          }
         }, 350);
         return true;
       }
@@ -188,7 +190,9 @@ class App {
         if (typeof window !== "undefined") window.__portalCurrentUser = user;
         this.hideLoginScreen();
         setTimeout(() => {
-          this.documents?.checkPendingSignaturesAndPrompt?.(user);
+          if (user.role !== "ADMIN" && user.id !== "u_admin") {
+            this.documents?.checkPendingSignaturesAndPrompt?.(user);
+          }
         }, 350);
         return true;
       }
@@ -1001,9 +1005,11 @@ class App {
     this.updateUserSessionUI();
     this.switchTab(this.activeTab);
 
-    // İlk giriş veya güncellenen evraklar için zorunlu imza kontrolü
+    // İlk giriş veya güncellenen evraklar için zorunlu imza kontrolü (Yönetici hariç)
     setTimeout(() => {
-      this.documents?.checkPendingSignaturesAndPrompt?.(targetUser);
+      if (targetUser.role !== "ADMIN" && targetUser.id !== "u_admin") {
+        this.documents?.checkPendingSignaturesAndPrompt?.(targetUser);
+      }
     }, 350);
 
     // Giriş sonrası modül içeriklerini ve yetki görünümlerini tazele

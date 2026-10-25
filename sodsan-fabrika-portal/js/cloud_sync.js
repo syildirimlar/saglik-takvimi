@@ -1,12 +1,10 @@
 // SODSAN Fabrika Portalı - Çoklu Cihaz Bulut Senkronizasyon Modülü (cloud_sync.js)
-// PC, Tablet ve Telefonlar arasında sıfır kurulumla anlık veri senkronizasyonu sağlar.
+// PC, Tablet ve Telefonlar arasında sıfır kurulum ve sınırsız kota ile anlık canlı senkronizasyon sağlar.
 
 import { appState } from "./data.js";
 
 const DEFAULT_SYNC_ROOM = "sodsan_fabrika_live_sync_2026";
-const CLOUD_STORAGE_OBJ_ID = "ff808181a09d98f701a17295860a05e4";
-const CLOUD_ENDPOINT = `https://api.restful-api.dev/objects/${CLOUD_STORAGE_OBJ_ID}`;
-const NOTIFY_URL = `https://ntfy.sh/${DEFAULT_SYNC_ROOM}`;
+const NTFY_BASE = "https://ntfy.sh";
 
 export class CloudSyncService {
   constructor() {
@@ -18,6 +16,7 @@ export class CloudSyncService {
     this.pollInterval = null;
     this.lastSyncedTimestamp = 0;
     this.isSyncing = false;
+    this.lastUploadedFileUrl = "";
   }
 
   getOrCreateDeviceId() {
@@ -32,10 +31,10 @@ export class CloudSyncService {
   init() {
     console.log("[CloudSync] Başlatılıyor. Cihaz ID:", this.deviceId);
 
-    // 1. Başlangıçta buluttan en güncel veriyi çek
-    this.pullFromCloud(true);
+    // 1. Başlangıçta buluttan en güncel veriyi sessizce çek
+    this.pullFromCloud(false);
 
-    // 2. Canlı Dinleme (Server-Sent Events / SSE üzerinden anlık bildirim)
+    // 2. Canlı Dinleme (Server-Sent Events / SSE üzerinden 100ms anlık bildirim)
     this.startLiveListener();
 
     // 3. Ekran Kilidi Açılınca veya Sekmeye Geri Dönünce Otomatik Eşitle
@@ -48,12 +47,12 @@ export class CloudSyncService {
       this.pullFromCloud(false);
     });
 
-    // 4. Periyodik Akıllı Eşitleme (Yalnızca sekme açık ve görünürken her 25 saniyede bir)
+    // 4. Periyodik Akıllı Eşitleme (Yalnızca sekme açık ve görünürken her 60 saniyede bir)
     this.pollInterval = setInterval(() => {
       if (document.visibilityState === "visible" && !this.isSyncing) {
         this.pullFromCloud(false);
       }
-    }, 25000);
+    }, 60000);
 
     // 5. İnternet Bağlantı Değişikliklerini Dinle
     window.addEventListener("online", () => {
@@ -76,37 +75,37 @@ export class CloudSyncService {
         this.eventSource.close();
       }
 
-      this.eventSource = new EventSource(`${NOTIFY_URL}/sse`);
+      this.eventSource = new EventSource(`${NTFY_BASE}/${this.syncRoom}/sse`);
 
-      this.eventSource.onmessage = (event) => {
+      this.eventSource.onmessage = async (event) => {
         try {
           const data = JSON.parse(event.data);
-          if (data && data.message) {
-            const payload = JSON.parse(data.message);
-            // Kendi cihazımızın gönderdiği bildirimi yok say
-            if (payload.deviceId && payload.deviceId === this.deviceId) {
+          if (data && data.event === "message" && data.attachment && data.attachment.url) {
+            const titleParts = (data.title || "").split("|");
+            const senderDeviceId = titleParts[1] || "";
+
+            // Kendi yüklediğimiz bildirimi yok say
+            if (senderDeviceId === this.deviceId) {
               return;
             }
-            if (payload.type === "DATA_CHANGED") {
-              console.log("[CloudSync] Diğer cihazdan güncelleme sinyali alındı. Veri çekiliyor...");
-              this.pullFromCloud(false);
-            }
+
+            console.log("[CloudSync] Diğer cihazdan anlık canlı güncelleme alındı. İndiriliyor...");
+            await this.pullFromCloud(true);
           }
         } catch (e) {
-          // Düz metin pingleri
-          this.pullFromCloud(false);
+          console.warn("[CloudSync] SSE parse hatası:", e);
         }
       };
 
       this.eventSource.onerror = () => {
-        // Hata durumunda EventSource otomatik yeniden bağlanır
+        // SSE bağlantı koptuğunda otomatik yeniden dener
       };
     } catch (err) {
       console.warn("[CloudSync] Live listener hatası:", err);
     }
   }
 
-  // Yerel veride değişiklik olduğunda buluta göndermeyi sıraya al (Debounce: 1.2 sn)
+  // Yerel veride değişiklik olduğunda buluta göndermeyi sıraya al (Debounce: 1.5 sn)
   notifyLocalChange() {
     if (this.pushDebounceTimer) {
       clearTimeout(this.pushDebounceTimer);
@@ -114,127 +113,155 @@ export class CloudSyncService {
     this.updateStatus("SYNCING", "Buluta aktarılıyor...");
     this.pushDebounceTimer = setTimeout(() => {
       this.pushToCloud();
-    }, 1200);
+    }, 1500);
   }
 
   async pushToCloud() {
     if (!navigator.onLine) {
       this.updateStatus("OFFLINE", "Çevrimdışı (Yerel)");
-      return;
+      return { success: false, error: "İnternet bağlantınız bulunmuyor." };
     }
 
     try {
       this.isSyncing = true;
+      this.updateStatus("SYNCING", "Buluta aktarılıyor...");
       const nowIso = new Date().toISOString();
       const statePayload = appState.exportDataJson();
 
-      const requestBody = {
-        name: "SODSAN Factory State",
-        data: {
-          updatedAt: nowIso,
-          updatedByDevice: this.deviceId,
-          payload: statePayload
-        }
-      };
-
-      const resp = await fetch(CLOUD_ENDPOINT, {
+      const resp = await fetch(`${NTFY_BASE}/${this.syncRoom}`, {
         method: "PUT",
         headers: {
-          "Content-Type": "application/json"
+          "Filename": "sodsan_state.json",
+          "Title": `SODSAN_UPDATE|${this.deviceId}|${nowIso}`,
+          "Tags": "factory,sync"
         },
-        body: JSON.stringify(requestBody)
+        body: statePayload
       });
 
       if (resp.ok) {
+        const resJson = await resp.json();
         this.lastSyncedTimestamp = Date.now();
+        this.lastUploadedFileUrl = resJson.attachment?.url || "";
+        appState.state._lastSyncTime = nowIso;
+        localStorage.setItem("sodsan_last_sync_time", nowIso);
         this.updateStatus("SYNCED", "Bulut Eşitlendi");
-        console.log("[CloudSync] Buluta başarıyla kaydedildi.");
-
-        // Diğer cihazlara ntfy üzerinden anında haber ver
-        fetch(NOTIFY_URL, {
-          method: "POST",
-          headers: { "Content-Type": "text/plain" },
-          body: JSON.stringify({
-            type: "DATA_CHANGED",
-            deviceId: this.deviceId,
-            timestamp: Date.now()
-          })
-        }).catch(() => {});
+        console.log("[CloudSync] Buluta başarıyla yüklendi:", resJson.attachment?.url);
+        return { success: true, url: resJson.attachment?.url, updatedAt: nowIso };
       } else {
-        this.updateStatus("ERROR", "Bulut Eşitleme Hatası");
+        const errText = await resp.text();
+        console.warn("[CloudSync] Push hatası:", resp.status, errText);
+        this.updateStatus("ERROR", "Bulut Hatası");
+        return { success: false, error: `Sunucu yanıtı: ${resp.status}` };
       }
     } catch (e) {
-      console.warn("[CloudSync] Push hatası:", e);
-      this.updateStatus("OFFLINE", "Bulut Bağlantı Sorunu");
+      console.warn("[CloudSync] Push bağlantı hatası:", e);
+      this.updateStatus("OFFLINE", "Bağlantı Hatası");
+      return { success: false, error: e.message || "Ağ hatası" };
     } finally {
       this.isSyncing = false;
     }
   }
 
-  async pullFromCloud(isInitial = false) {
+  async pullFromCloud(force = false) {
     if (!navigator.onLine) {
       this.updateStatus("OFFLINE", "Çevrimdışı (Yerel)");
-      return;
+      return { success: false, error: "İnternet bağlantınız bulunmuyor." };
     }
 
     try {
       this.isSyncing = true;
-      if (isInitial) {
+      if (force) {
         this.updateStatus("SYNCING", "Buluttan yükleniyor...");
       }
 
-      const resp = await fetch(CLOUD_ENDPOINT, {
+      // ntfy son mesajları JSON lines formatında döner
+      const resp = await fetch(`${NTFY_BASE}/${this.syncRoom}/json?poll=1&since=all`, {
         method: "GET",
         headers: { "Cache-Control": "no-cache" }
       });
 
       if (!resp.ok) {
-        this.updateStatus("SYNCED", "Yerel Mod Aktif");
-        return;
+        this.updateStatus("SYNCED", "Bulut Aktif");
+        return { success: false, error: `Sunucu sorgu hatası: ${resp.status}` };
       }
 
-      const resJson = await resp.json();
-      if (!resJson || !resJson.data || !resJson.data.payload) {
+      const text = await resp.text();
+      const lines = text.split("\n").filter(l => l.trim().length > 0);
+      let latestMessage = null;
+
+      // Tersten arayarak geçerli dosya eki olan en son mesajı bul
+      for (let i = lines.length - 1; i >= 0; i--) {
+        try {
+          const parsed = JSON.parse(lines[i]);
+          if (parsed.event === "message" && parsed.attachment && parsed.attachment.url) {
+            latestMessage = parsed;
+            break;
+          }
+        } catch (e) {}
+      }
+
+      if (!latestMessage) {
         this.updateStatus("SYNCED", "Bulut Eşitlendi");
-        return;
+        return { success: true, message: "Bulutta henüz yeni bir kayıt bulunmuyor." };
       }
 
-      const remoteData = resJson.data;
-      const remoteUpdatedAt = new Date(remoteData.updatedAt || 0).getTime();
-      const localState = appState.state;
-      const localUpdatedAt = new Date(localState._lastSyncTime || 0).getTime();
+      // Başlıktan gönderici cihaz ve zaman bilgisini ayıkla
+      const titleParts = (latestMessage.title || "").split("|");
+      const senderDeviceId = titleParts[1] || "";
+      const remoteUpdatedAtStr = titleParts[2] || (latestMessage.time ? new Date(latestMessage.time * 1000).toISOString() : "");
+      const remoteUpdatedAt = new Date(remoteUpdatedAtStr).getTime() || (latestMessage.time * 1000);
 
-      // Eğer uzaktaki veri daha yeni ise içeri aktar
-      if (remoteUpdatedAt > localUpdatedAt || isInitial) {
-        console.log("[CloudSync] Uzak veri uygulandı. Son güncelleme:", remoteData.updatedAt);
+      const localUpdatedAtStr = appState.state._lastSyncTime || localStorage.getItem("sodsan_last_sync_time") || 0;
+      const localUpdatedAt = new Date(localUpdatedAtStr).getTime() || 0;
+
+      // Kendi gönderdiğimiz ve zorlanmayan güncellemeleri atla
+      if (senderDeviceId === this.deviceId && !force) {
+        this.updateStatus("SYNCED", "Bulut Eşitlendi");
+        return { success: true, message: "Cihazınız zaten en güncel sürümde." };
+      }
+
+      // Eğer uzaktaki veri daha yeni ise veya kullanıcı zorla çek dediyse
+      if (remoteUpdatedAt > localUpdatedAt || force) {
+        console.log("[CloudSync] Uzak veri indiriliyor:", latestMessage.attachment.url);
+        const fileResp = await fetch(latestMessage.attachment.url, {
+          headers: { "Cache-Control": "no-cache" }
+        });
+
+        if (!fileResp.ok) {
+          throw new Error("Dosya indirilemedi: " + fileResp.status);
+        }
+
+        const remoteJsonText = await fileResp.text();
         const currentUser = appState.state.currentUser;
 
-        // Veriyi içe aktar
-        const success = appState.importDataJson(remoteData.payload);
-        if (success) {
-          // Mevcut oturumu koru
+        const imported = appState.importDataJson(remoteJsonText);
+        if (imported) {
           if (currentUser) {
             appState.state.currentUser = currentUser;
           }
-          appState.state._lastSyncTime = remoteData.updatedAt;
+          appState.state._lastSyncTime = remoteUpdatedAtStr;
+          localStorage.setItem("sodsan_last_sync_time", remoteUpdatedAtStr);
           this.lastSyncedTimestamp = Date.now();
           this.updateStatus("SYNCED", "Bulut Eşitlendi");
 
-          // Tüm açık ekranları yeni verilerle sessizce tazele
           if (window.portalApp && typeof window.portalApp.refreshAllActiveViews === "function") {
             window.portalApp.refreshAllActiveViews();
           }
 
-          if (!isInitial) {
+          if (!force) {
             this.showToast("🔄 Diğer cihazdaki değişiklikler senkronize edildi!");
           }
+          const timeFormatted = new Date(remoteUpdatedAt).toLocaleTimeString("tr-TR");
+          return { success: true, updatedAt: timeFormatted };
         }
-      } else {
-        this.updateStatus("SYNCED", "Bulut Eşitlendi");
       }
+
+      this.updateStatus("SYNCED", "Bulut Eşitlendi");
+      return { success: true, message: "Cihazınızdaki veriler güncel." };
     } catch (e) {
       console.warn("[CloudSync] Pull hatası:", e);
-      this.updateStatus("SYNCED", "Bulut Eşitlendi");
+      this.updateStatus("SYNCED", "Bulut Aktif");
+      return { success: false, error: e.message || "Buluttan çekilemedi" };
     } finally {
       this.isSyncing = false;
     }
@@ -293,22 +320,24 @@ export class CloudSyncService {
     }, 2800);
   }
 
-  showSyncModal() {
+  async showSyncModal() {
     const lastSyncTimeStr = this.lastSyncedTimestamp ? new Date(this.lastSyncedTimestamp).toLocaleTimeString("tr-TR") : "Az önce";
-    const msg = `🌐 SODSAN Çoklu Cihaz Bulut Eşitlemesi\n\n` +
+    const msg = `🌐 SODSAN Çoklu Cihaz Canlı Bulut Eşitlemesi\n\n` +
       `Durum: ${this.syncText || 'Bağlı'}\n` +
       `Cihaz ID: ${this.deviceId}\n` +
       `Son Senkronizasyon: ${lastSyncTimeStr}\n` +
-      `Fabrika Eşitleme Kodu: ${this.syncRoom}\n\n` +
-      `PC, tablet ve telefonlarınız bu kod üzerinden otomatik olarak birbirine bağlıdır.\n\n` +
-      `Şimdi buluttan en son verileri çekip güncellemek istiyor musunuz?`;
+      `Kanal: ${this.syncRoom}\n\n` +
+      `PC, tablet ve telefonlarınız bu kanal üzerinden anlık olarak eşzamanlanır.\n\n` +
+      `Şimdi buluttan en güncel verileri çekmek istiyor musunuz?`;
 
     if (confirm(msg)) {
-      this.updateStatus("SYNCING", "Elle eşitleniyor...");
-      this.pullFromCloud(true);
-      setTimeout(() => {
-        alert("✅ Senkronizasyon başarıyla tamamlandı!");
-      }, 900);
+      this.updateStatus("SYNCING", "Buluttan çekiliyor...");
+      const res = await this.pullFromCloud(true);
+      if (res && res.success) {
+        alert("✅ Senkronizasyon başarıyla tamamlandı! " + (res.updatedAt ? `(Saat: ${res.updatedAt})` : ""));
+      } else {
+        alert("ℹ️ " + (res?.message || res?.error || "Veriler güncellendi."));
+      }
     }
   }
 }
