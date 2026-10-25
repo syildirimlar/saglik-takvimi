@@ -11,6 +11,7 @@ import { ProductionModule } from './production.js';
 import { AdminModule } from './admin.js';
 import { CateringShuttleModule, getUserShuttleBanners } from './catering_shuttle.js';
 import { DocumentsModule } from './documents.js';
+import { cloudSync } from './cloud_sync.js';
 
 class App {
   constructor() {
@@ -26,6 +27,8 @@ class App {
     this.cateringShuttle = new CateringShuttleModule();
     this.documents = new DocumentsModule();
     this.activeTab = "tab-calendar"; // Operasyon Takvimi her halükarda en üstte ve ilk sırada açılsın
+    this.renderedTabs = new Set();
+    this.dirtyTabs = new Set();
   }
 
   init() {
@@ -73,6 +76,12 @@ class App {
     // Canlı Çapraz Ekran Senkronizasyonu (Sıfır pil & kota tüketimi - anlık yerel tetikleme)
     this.initLiveSync();
 
+    // Çoklu Cihaz Bulut Eşitlemesi (PC, Tablet ve Telefonlar Arası Sıfır Kurulum)
+    if (typeof window !== "undefined") {
+      window.__cloudSyncService = cloudSync;
+    }
+    cloudSync.init();
+
     console.log("SODSAN Fabrika Portalı Başlatıldı.");
   }
 
@@ -110,20 +119,45 @@ class App {
     });
   }
 
+  renderActiveTabOnly(tabId) {
+    try {
+      if (tabId === "tab-production") this.production?.render?.();
+      else if (tabId === "tab-calendar") this.calendar?.render?.();
+      else if (tabId === "tab-products") this.products?.render?.();
+      else if (tabId === "tab-supplies") this.supplies?.render?.();
+      else if (tabId === "tab-leave") {
+        this.leave?.render?.();
+        this.overtime?.render?.();
+      }
+      else if (tabId === "tab-forklift") this.forklift?.render?.();
+      else if (tabId === "tab-breakdown") this.breakdown?.render?.();
+      else if (tabId === "tab-admin") {
+        this.admin?.render?.();
+        this.cateringShuttle?.render?.();
+        this.documents?.render?.();
+      }
+      this.renderedTabs.add(tabId);
+      this.dirtyTabs.delete(tabId);
+    } catch (err) {
+      console.error("renderActiveTabOnly hatası:", tabId, err);
+    }
+  }
+
   refreshAllActiveViews() {
     try {
-      this.calendar?.render?.();
-      this.products?.render?.();
-      this.supplies?.render?.();
-      this.leave?.render?.();
-      this.overtime?.render?.();
-      this.forklift?.render?.();
-      this.breakdown?.render?.();
-      this.production?.render?.();
-      this.admin?.render?.();
-      this.cateringShuttle?.render?.();
-      this.documents?.render?.();
+      // Yalnızca şu an kullanıcının baktığı aktif sekmeyi hemen render et (Mobil CPU ve RAM tasarrufu)
+      this.renderActiveTabOnly(this.activeTab);
+
+      // Gizli olan diğer sekmeleri "yenilenmeli" olarak işaretle (kullanıcı o sekmeye geçtiğinde render edilecek)
+      const allTabs = ["tab-calendar", "tab-production", "tab-products", "tab-supplies", "tab-leave", "tab-forklift", "tab-breakdown", "tab-admin"];
+      allTabs.forEach(t => {
+        if (t !== this.activeTab) {
+          this.dirtyTabs.add(t);
+        }
+      });
+
       this.renderUserShuttleNotificationBanner();
+      this.documents?.renderUserPendingAlert?.();
     } catch (e) {
       console.error("refreshAllActiveViews hatası:", e);
     }
@@ -510,18 +544,8 @@ class App {
     // Sayfa başlık metinlerini güncelle
     this.updateActivePageTitle(tabId);
 
-    // İlgili modülün render'ını tazele
-    if (tabId === "tab-production") this.production.render();
-    if (tabId === "tab-calendar") this.calendar.render();
-    if (tabId === "tab-products") this.products.render();
-    if (tabId === "tab-supplies") this.supplies.render();
-    if (tabId === "tab-leave") {
-      this.leave.render();
-      this.overtime.render();
-    }
-    if (tabId === "tab-forklift") this.forklift.render();
-    if (tabId === "tab-breakdown") this.breakdown.render();
-    if (tabId === "tab-admin") this.admin.render();
+    // İlgili modülün render'ını tazele (Yalnızca aktif sekme için çalışır - 60 FPS akıcılık)
+    this.renderActiveTabOnly(tabId);
 
     // Mobilde menü açıksa kapat
     this.closeMobileSidebar();

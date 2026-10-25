@@ -541,3 +541,49 @@ html.dark ::-webkit-scrollbar-thumb:hover {
     color: #0f172a !important;
   }
 }
+
+/* ========================================================
+   MOBİL VE TABLET PERFORMANS HIZLANDIRMA (60 FPS OPTİMİZASYONU)
+   ======================================================== */
+* {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+/* Donanım hızlandırmalı ve optimize dokunmatik kaydırma */
+html, body {
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+  text-rendering: optimizeSpeed;
+}
+
+/* Yalnızca görünür alandaki içeriği hesapla (GPU / CPU rahatlatma) */
+.tab-pane {
+  contain: content;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Modallarda ve animasyonlarda donanım hızlandırma */
+.modal-backdrop {
+  contain: strict;
+  will-change: opacity;
+}
+
+.modal-content {
+  transform: translateZ(0);
+  will-change: transform, opacity;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Düğmelerde anında dokunma tepkisi (300ms gecikmeyi sıfırlar) */
+button, [role="button"], a {
+  touch-action: manipulation;
+}
+
+/* Büyük tablolarda ve kart ızgaralarında akıcı kaydırma */
+.table-responsive,
+#catering-days-grid,
+#shift-history-list,
+#activity-log-table {
+  -webkit-overflow-scrolling: touch;
+}

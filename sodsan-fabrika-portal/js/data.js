@@ -854,12 +854,18 @@ export class StateManager {
 
   saveState() {
     try {
+      this.state._lastSyncTime = new Date().toISOString();
       const dataStr = JSON.stringify(this.state);
       localStorage.setItem(STORAGE_KEY, dataStr);
       // Ayrıca yedek anahtarına da kaydet (veri kaybını %100 önlemek için)
       localStorage.setItem("sodsan_auto_backup_latest", dataStr);
-      if (typeof window !== "undefined" && typeof window.__broadcastPortalChange === "function") {
-        window.__broadcastPortalChange();
+      if (typeof window !== "undefined") {
+        if (typeof window.__broadcastPortalChange === "function") {
+          window.__broadcastPortalChange();
+        }
+        if (window.__cloudSyncService && typeof window.__cloudSyncService.notifyLocalChange === "function") {
+          window.__cloudSyncService.notifyLocalChange();
+        }
       }
     } catch (e) {
       console.error("State kaydedilemedi:", e);
