@@ -41,7 +41,7 @@
   <script defer src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   
   <!-- Custom CSS -->
-  <link rel="stylesheet" href="css/style.css?v=6.8">
+  <link rel="stylesheet" href="css/style.css?v=6.9">
 </head>
 <body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 min-h-screen">
 
@@ -319,7 +319,8 @@
             <img src="assets/sodsan-logo.png" alt="SODSAN" class="h-5 w-auto object-contain block">
             <span class="text-[7px] font-black tracking-widest text-blue-600 dark:text-blue-400 uppercase -mt-0.5">PORTAL</span>
           </div>
-          <div class="min-w-0 flex-1 overflow-hidden">
+          <!-- Başlık Alanı (Mobilde butonların üstüne binmemesi için gizlendi, masaüstü/tablette görünür) -->
+          <div class="min-w-0 flex-1 overflow-hidden hidden md:block">
             <h1 id="current-page-title" class="text-xs sm:text-sm md:text-base font-black text-slate-900 dark:text-white tracking-tight truncate flex items-center gap-1.5">
               📅 Fabrika Operasyon & Planlama Takvimi
             </h1>
@@ -342,12 +343,12 @@
           </button>
 
           <!-- Hızlı Arıza Bildir Butonu (Üst Çubukta da hazır) -->
-          <button data-open-report-breakdown class="bg-red-600 hover:bg-red-700 text-white font-extrabold text-xs px-2 py-1.5 sm:px-2.5 sm:py-1.5 rounded-lg shadow-xs transition flex items-center gap-1 cursor-pointer flex-shrink-0" title="Acil Arıza Bildir">
+          <button data-open-report-breakdown class="bg-red-600 hover:bg-red-700 active:scale-95 text-white font-extrabold text-xs px-2 py-1.5 sm:px-2.5 sm:py-1.5 rounded-lg shadow-xs transition flex items-center gap-1 cursor-pointer flex-shrink-0" title="Acil Arıza Bildir">
             <span>🚨</span> <span class="hidden sm:inline">Arıza</span>
           </button>
 
-          <!-- Hızlı Forklift Çağır Butonu -->
-          <button data-open-call-forklift class="pulse-emergency bg-amber-500 hover:bg-amber-600 text-white font-extrabold text-xs px-2 py-1.5 sm:px-2.5 sm:py-1.5 rounded-lg shadow-xs transition flex items-center gap-1 cursor-pointer flex-shrink-0" title="Forklift Operatörü Çağır">
+          <!-- Hızlı Forklift Çağır Butonu (Titreme engellendi, temiz buton) -->
+          <button data-open-call-forklift class="bg-amber-500 hover:bg-amber-600 active:scale-95 text-white font-extrabold text-xs px-2 py-1.5 sm:px-2.5 sm:py-1.5 rounded-lg shadow-xs transition flex items-center gap-1 cursor-pointer flex-shrink-0" title="Forklift Operatörü Çağır">
             <span>🚜</span> <span class="hidden sm:inline">Forklift</span>
           </button>
 
@@ -4043,11 +4044,33 @@
   </div>
 
 
-  <!-- Service Worker Kaydı (PWA) -->
+  <!-- Service Worker Kaydı (PWA & Anında Canlı Otomatik Güncelleme) -->
   <script>
     if ('serviceWorker' in navigator) {
+      let refreshing = false;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (!refreshing) {
+          refreshing = true;
+          window.location.reload();
+        }
+      });
+
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js?v=49').catch(err => {
+        navigator.serviceWorker.register('sw.js?v=50').then(reg => {
+          reg.onupdatefound = () => {
+            const installingWorker = reg.installing;
+            if (installingWorker) {
+              installingWorker.onstatechange = () => {
+                if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  if (!refreshing) {
+                    refreshing = true;
+                    window.location.reload();
+                  }
+                }
+              };
+            }
+          };
+        }).catch(err => {
           console.log('SW registration failed:', err);
         });
       });
@@ -4055,6 +4078,6 @@
   </script>
 
   <!-- ES Modül Girişi -->
-  <script type="module" src="js/app.js?v=6.8"></script>
+  <script type="module" src="js/app.js?v=6.9"></script>
 </body>
 </html>

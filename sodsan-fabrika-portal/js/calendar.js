@@ -179,7 +179,7 @@ export class CalendarModule {
     );
 
     const badgesContainer = document.createElement("div");
-    badgesContainer.className = "flex flex-row sm:flex-col flex-wrap sm:flex-nowrap gap-0.5 sm:gap-1 overflow-hidden mt-0.5 min-w-0";
+    badgesContainer.className = "flex flex-row flex-wrap sm:flex-col sm:flex-nowrap gap-0.5 sm:gap-1 mt-0.5 min-w-0";
 
     // KÜÇÜK SİMGELER HALİNDE TAKVİM HÜCRESİNDE GÖSTER
     // 1. Sevkiyatlar, Bakımlar & Eğitimler
