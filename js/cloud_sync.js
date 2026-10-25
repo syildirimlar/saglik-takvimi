@@ -39,16 +39,28 @@ export class CloudSyncService {
 
     // 3. Ekran Kilidi Açılınca veya Sekmeye Geri Dönünce Otomatik Eşitle
     document.addEventListener("visibilitychange", () => {
+      const loginScreen = document.getElementById("screen-auth-login");
+      if (loginScreen && !loginScreen.classList.contains("hidden") && loginScreen.style.display !== "none") {
+        return; // Kullanıcı giriş yaparken araya girme
+      }
       if (document.visibilityState === "visible") {
         this.pullFromCloud(false);
       }
     });
     window.addEventListener("focus", () => {
+      const loginScreen = document.getElementById("screen-auth-login");
+      if (loginScreen && !loginScreen.classList.contains("hidden") && loginScreen.style.display !== "none") {
+        return; // Kullanıcı giriş yaparken araya girme
+      }
       this.pullFromCloud(false);
     });
 
     // 4. Periyodik Akıllı Eşitleme (Yalnızca sekme açık ve görünürken her 60 saniyede bir)
     this.pollInterval = setInterval(() => {
+      const loginScreen = document.getElementById("screen-auth-login");
+      if (loginScreen && !loginScreen.classList.contains("hidden") && loginScreen.style.display !== "none") {
+        return;
+      }
       if (document.visibilityState === "visible" && !this.isSyncing) {
         this.pullFromCloud(false);
       }
