@@ -78,29 +78,36 @@ body {
 /* Calendar Styles */
 .calendar-grid {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 4px;
+  width: 100%;
+  min-width: 0;
 }
 
 .calendar-day-header {
   text-align: center;
   font-size: 0.75rem;
-  font-weight: 600;
+  font-weight: 700;
   color: #64748b;
-  padding: 0.4rem 0;
+  padding: 0.35rem 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .calendar-day-cell {
   min-height: 52px;
+  min-width: 0;
   border-radius: 8px;
   border: 1px solid #f1f5f9;
   background: #ffffff;
-  padding: 4px 6px;
+  padding: 3px 4px;
   cursor: pointer;
   transition: all 0.15s ease;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  justify-content: flex-start;
+  overflow: hidden;
 }
 
 .calendar-day-cell:hover {
@@ -128,12 +135,13 @@ body {
 .calendar-badge {
   font-size: 0.65rem;
   border-radius: 4px;
-  padding: 1px 4px;
-  margin-top: 2px;
+  padding: 1px 3px;
+  margin-top: 1px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   line-height: 1.2;
+  min-width: 0;
 }
 
 /* Sidebar Mobile Drawer */
@@ -142,20 +150,62 @@ body {
   -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
   touch-action: pan-y;
+  overscroll-behavior: contain;
 }
 
-#portal-sidebar.open {
-  transform: translateX(0) !important;
+@media (max-width: 1023px) {
+  #portal-sidebar {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    bottom: 0 !important;
+    height: 100dvh !important;
+    height: -webkit-fill-available !important;
+    max-height: 100dvh !important;
+    width: min(86vw, 320px) !important;
+    z-index: 100 !important;
+    transform: translateX(-100%) !important;
+    transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.3) !important;
+    background-color: #ffffff;
+  }
+  #portal-sidebar.open {
+    transform: translateX(0) !important;
+  }
+  #sidebar-backdrop {
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 95 !important;
+    background-color: rgba(15, 23, 42, 0.65) !important;
+    backdrop-filter: blur(2px) !important;
+    -webkit-backdrop-filter: blur(2px) !important;
+    transition: opacity 0.25s ease !important;
+  }
+  #sidebar-backdrop.show {
+    display: block !important;
+    opacity: 1 !important;
+  }
+  #sidebar-nav-list {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    padding-bottom: 2.5rem !important;
+  }
+  #portal-sidebar > div:last-child {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px)) !important;
+  }
 }
 
-#sidebar-backdrop {
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-}
-
-#sidebar-backdrop.show {
-  display: block !important;
-  opacity: 1 !important;
+@media (min-width: 1024px) {
+  #portal-sidebar {
+    position: fixed !important;
+    top: 0 !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    width: 18rem !important;
+    transform: translateX(0) !important;
+    z-index: 40 !important;
+    box-shadow: none !important;
+  }
 }
 
 /* Reorder Actions (Menu Sorting) */
@@ -265,15 +315,23 @@ html.dark .nav-tab-btn.active {
   transform: scale(1);
 }
 
-/* Forklift Pulse Animation */
+/* Forklift Pulse Animation - Titreme ve ekran sarsıntısını önleyen GPU dostu puls */
 @keyframes emergency-pulse {
-  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.7); }
-  70% { transform: scale(1.02); box-shadow: 0 0 0 10px rgba(220, 38, 38, 0); }
-  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
+  0%, 100% {
+    background-color: #f59e0b; /* amber-500 */
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.5);
+  }
+  50% {
+    background-color: #d97706; /* amber-600 */
+    box-shadow: 0 0 8px 2px rgba(245, 158, 11, 0.6);
+  }
 }
 
 .pulse-emergency {
-  animation: emergency-pulse 1.8s infinite;
+  animation: emergency-pulse 2s ease-in-out infinite;
+  transform: translateZ(0); /* Donanım hızlandırma ile izole GPU katmanı */
+  contain: layout paint;
+  will-change: background-color, box-shadow;
 }
 
 /* Feed item hover */
@@ -298,15 +356,25 @@ html.dark .nav-tab-btn.active {
     padding-bottom: calc(0.4rem + env(safe-area-inset-bottom, 0px));
   }
   .calendar-day-cell {
-    min-height: 42px;
-    padding: 2px 3px;
+    min-height: 40px;
+    max-height: 58px;
+    padding: 2px 2px;
+    border-radius: 6px;
   }
   .calendar-day-header {
     font-size: 0.65rem;
+    padding: 0.2rem 0;
   }
   .calendar-badge {
-    font-size: 0.55rem;
-    padding: 0 2px;
+    font-size: 0.6rem;
+    padding: 0 1px;
+    margin-top: 0;
+    justify-content: center;
+    border-radius: 3px;
+  }
+  /* Mobilde takvim hücresinde uzun metinler yerine sadece simge göstererek taşmayı önle */
+  .calendar-badge .cal-badge-text {
+    display: none !important;
   }
   .modal-card {
     max-height: 88vh;

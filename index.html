@@ -123,33 +123,33 @@
   <div id="portal-app-wrapper" class="flex min-h-screen w-full bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100">
 
     <!-- MOBİL İÇİN ARKA PLAN KARARTMASI -->
-    <div id="sidebar-backdrop" class="fixed inset-0 z-40 bg-slate-900/60 lg:hidden hidden transition-opacity"></div>
+    <div id="sidebar-backdrop" class="fixed inset-0 z-[95] bg-slate-900/60 lg:hidden hidden transition-opacity"></div>
 
     <!-- ==================== SOL PANEL (SIDEBAR - YUKARIDAN AŞAĞIYA SIRALI ANA BÖLÜMLER) ==================== -->
-    <aside id="portal-sidebar" class="fixed inset-y-0 left-0 z-40 w-[84vw] max-w-[320px] lg:w-72 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col justify-between transition-transform duration-300 -translate-x-full lg:translate-x-0 shadow-xl lg:shadow-none">
+    <aside id="portal-sidebar" class="fixed inset-y-0 left-0 z-[100] w-[86vw] max-w-[320px] lg:w-72 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col justify-between transition-transform duration-300 -translate-x-full lg:translate-x-0 shadow-2xl lg:shadow-none">
       
       <!-- Üst Kısım: Logo & Menü Başlıkları -->
       <div class="flex-1 flex flex-col min-h-0">
         
         <!-- Logo & Başlık -->
-        <div class="p-4 border-b border-slate-100 dark:border-slate-800 relative flex flex-col items-center justify-center">
+        <div class="p-3 sm:p-4 border-b border-slate-100 dark:border-slate-800 relative flex flex-col items-center justify-center">
           <!-- Mobilde Kapatma Butonu -->
-          <button id="btn-close-sidebar" class="lg:hidden absolute top-3 right-3 p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-lg font-bold cursor-pointer" title="Menüyü Kapat">
+          <button id="btn-close-sidebar" class="lg:hidden absolute top-2.5 right-2.5 w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 flex items-center justify-center text-sm font-black cursor-pointer shadow-xs transition" title="Menüyü Kapat">
             ✕
           </button>
 
           <div class="flex flex-col items-center justify-center text-center">
-            <img src="assets/sodsan-logo.png" alt="SODSAN" class="h-9 w-auto max-w-[170px] object-contain block">
-            <span class="inline-block mt-1.5 px-2.5 py-0.5 rounded text-[10px] font-black tracking-[0.25em] bg-blue-600 text-white uppercase text-center shadow-xs">PORTAL</span>
+            <img src="assets/sodsan-logo.png" alt="SODSAN" class="h-8 sm:h-9 w-auto max-w-[160px] object-contain block">
+            <span class="inline-block mt-1 px-2.5 py-0.5 rounded text-[10px] font-black tracking-[0.25em] bg-blue-600 text-white uppercase text-center shadow-xs">PORTAL</span>
           </div>
         </div>
 
         <!-- Hızlı Acil Aksiyon Butonları (Sidebar Üstü) -->
-        <div class="p-3 grid grid-cols-2 gap-2 border-b border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/40">
-          <button id="btn-open-report-breakdown" class="bg-red-600 hover:bg-red-700 active:scale-98 text-white font-extrabold text-[11px] py-2 px-2 rounded-xl shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer" title="Acil Makine Arıza Bildirimi">
+        <div class="p-2 sm:p-3 grid grid-cols-2 gap-2 border-b border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/40">
+          <button id="btn-open-report-breakdown" class="bg-red-600 hover:bg-red-700 active:scale-98 text-white font-extrabold text-[11px] py-1.5 sm:py-2 px-2 rounded-xl shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer" title="Acil Makine Arıza Bildirimi">
             <span>🚨</span> <span>Arıza Bildir</span>
           </button>
-          <button id="btn-open-call-forklift" class="bg-amber-500 hover:bg-amber-600 active:scale-98 text-white font-extrabold text-[11px] py-2 px-2 rounded-xl shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer" title="Acil Forklift Operatörü Çağır">
+          <button id="btn-open-call-forklift" class="bg-amber-500 hover:bg-amber-600 active:scale-98 text-white font-extrabold text-[11px] py-1.5 sm:py-2 px-2 rounded-xl shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer" title="Acil Forklift Operatörü Çağır">
             <span>🚜</span> <span>Forklift Çağır</span>
           </button>
         </div>
@@ -275,7 +275,7 @@
       </div>
 
       <!-- Alt Kısım: Aktif Kullanıcı Kartı, Tema & Çıkış -->
-      <div class="p-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-950/60">
+      <div class="p-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-950/60 flex-shrink-0">
         <!-- Kullanıcı Profili (Tıklanınca kullanıcı değiştirici açılır) -->
         <div id="btn-switch-user" class="p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs flex items-center justify-between cursor-pointer hover:border-blue-400 transition mb-2" title="Kullanıcı veya Rol Değiştir">
           <div class="flex items-center gap-2.5 min-w-0">
@@ -380,26 +380,26 @@
         <section id="tab-calendar" class="tab-pane space-y-4 pb-16">
           <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
             <!-- Takvim Başlığı ve Kontrolleri -->
-            <div class="p-3.5 sm:p-4 bg-slate-900 text-white flex flex-wrap items-center justify-between gap-3">
-              <div class="flex items-center gap-2.5">
-                <span class="text-2xl">📅</span>
+            <div class="p-3 sm:p-4 bg-slate-900 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3">
+              <div class="flex items-center gap-2">
+                <span class="text-xl sm:text-2xl">📅</span>
                 <div>
-                  <div class="text-[11px] font-black uppercase tracking-widest text-blue-400">PLANLAMA & OPERASYON TAKVİMİ</div>
-                  <h2 id="cal-month-title" class="text-base sm:text-lg font-black tracking-wide text-white">Ekim 2026</h2>
+                  <div class="text-[10px] sm:text-[11px] font-black uppercase tracking-widest text-blue-400">PLANLAMA & OPERASYON TAKVİMİ</div>
+                  <h2 id="cal-month-title" class="text-sm sm:text-lg font-black tracking-wide text-white">Ekim 2026</h2>
                 </div>
               </div>
 
-              <div class="flex items-center gap-2">
-                <button id="cal-prev-month" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold px-2.5 py-1.5 rounded-lg border border-slate-700 transition cursor-pointer">
-                  &larr; Önceki
+              <div class="flex items-center gap-1.5 sm:gap-2 self-end sm:self-auto flex-wrap">
+                <button id="cal-prev-month" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold px-2 sm:px-2.5 py-1.5 rounded-lg border border-slate-700 transition cursor-pointer">
+                  &larr; <span class="hidden sm:inline">Önceki</span>
                 </button>
-                <button id="cal-today-btn" class="bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition cursor-pointer">
+                <button id="cal-today-btn" class="bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold px-2.5 sm:px-3 py-1.5 rounded-lg transition cursor-pointer">
                   Bugün
                 </button>
-                <button id="cal-next-month" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold px-2.5 py-1.5 rounded-lg border border-slate-700 transition cursor-pointer">
-                  Sonraki &rarr;
+                <button id="cal-next-month" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold px-2 sm:px-2.5 py-1.5 rounded-lg border border-slate-700 transition cursor-pointer">
+                  <span class="hidden sm:inline">Sonraki</span> &rarr;
                 </button>
-                <button id="btn-add-calendar-event" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black px-3 py-1.5 rounded-lg shadow-sm transition flex items-center gap-1 cursor-pointer">
+                <button id="btn-add-calendar-event" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black px-2.5 sm:px-3 py-1.5 rounded-lg shadow-sm transition flex items-center gap-1 cursor-pointer">
                   <span>+</span> <span>Plan/Bakım Ekle</span>
                 </button>
               </div>
@@ -408,7 +408,7 @@
             <!-- Takvim İki Kolonlu Gövde: Solda Ay Hücreleri, Sağda Seçili Gün Detayı -->
             <div class="grid grid-cols-1 lg:grid-cols-3 divide-y lg:divide-y-0 lg:divide-x divide-slate-200 dark:divide-slate-800">
               <!-- 7 Günlük Takvim Izgarası -->
-              <div class="lg:col-span-2 p-3 sm:p-4">
+              <div class="lg:col-span-2 p-2 sm:p-4 w-full min-w-0 overflow-x-auto">
                 <div id="cal-grid" class="calendar-grid">
                   <!-- JavaScript tarafından doldurulur -->
                 </div>
@@ -4047,7 +4047,7 @@
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js?v=47').catch(err => {
+        navigator.serviceWorker.register('sw.js?v=48').catch(err => {
           console.log('SW registration failed:', err);
         });
       });
@@ -4055,6 +4055,6 @@
   </script>
 
   <!-- ES Modül Girişi -->
-  <script type="module" src="js/app.js?v=6.6"></script>
+  <script type="module" src="js/app.js?v=6.7"></script>
 </body>
 </html>
