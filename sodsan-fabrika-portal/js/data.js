@@ -803,6 +803,13 @@ export class StateManager {
       // Personel İmzalı Evraklar Arşivi
       if (!Array.isArray(parsed.signedDocuments)) {
         parsed.signedDocuments = [];
+      } else {
+        // Kullanıcı Talebi: Yanlışlıkla Mustafa Kara adına atılan imzaların kalıcı olarak silinmesi ve iptali
+        parsed.signedDocuments = parsed.signedDocuments.filter(s => {
+          const isMustafa = s.userId === "u_1792690211697" || 
+            (s.userName && s.userName.toLowerCase().trim().includes("mustafa kara"));
+          return !isMustafa;
+        });
       }
 
       // Varsayılan olarak oturum açılmamış başlar (Giriş ekranı zorunlu)
@@ -1352,6 +1359,37 @@ export class StateManager {
     this.saveState();
     this.logActivity("FORM_İMZALANDI", `${newSignature.userName} tarafından "${newSignature.documentTitle}" (${newSignature.documentVersion}) dijital olarak imzalandı.`);
     return newSignature;
+  }
+
+  deleteSignedDocument(sigId) {
+    if (!Array.isArray(this.state.signedDocuments)) return false;
+    const sig = this.state.signedDocuments.find(s => s.id === sigId);
+    if (!sig) return false;
+    this.state.signedDocuments = this.state.signedDocuments.filter(s => s.id !== sigId);
+    this.saveState();
+    this.logActivity("İMZALI_FORM_İPTAL", `${sig.userName} adına atılan "${sig.documentTitle}" (${sig.documentVersion}) form imzası iptal edildi ve silindi.`);
+    return true;
+  }
+
+  deleteSignaturesForUser(identifier) {
+    if (!Array.isArray(this.state.signedDocuments)) return 0;
+    const before = this.state.signedDocuments.length;
+    const idLower = (identifier || "").toLowerCase().trim();
+    const removed = this.state.signedDocuments.filter(s => 
+      s.userId === identifier || 
+      (s.userName && s.userName.toLowerCase().trim() === idLower) ||
+      (s.userName && s.userName.toLowerCase().trim().includes(idLower))
+    );
+    this.state.signedDocuments = this.state.signedDocuments.filter(s => 
+      s.userId !== identifier && 
+      (!s.userName || s.userName.toLowerCase().trim() !== idLower) &&
+      (!s.userName || !s.userName.toLowerCase().trim().includes(idLower))
+    );
+    if (this.state.signedDocuments.length !== before) {
+      this.saveState();
+      this.logActivity("PERSONEL_İMZALARI_İPTAL", `${identifier} adlı personelin tüm form imzaları iptal edildi ve silindi (${removed.length} adet evrak).`);
+    }
+    return removed.length;
   }
 
   getPendingDocumentsForUser(user) {

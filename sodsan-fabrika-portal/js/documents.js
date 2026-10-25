@@ -78,6 +78,12 @@ export class DocumentsModule {
         this.renderSignedArchive();
       });
     }
+
+    // Mustafa Kara adına sehven atılan imzaların arayüzden ve depodan silinmesi
+    if (appState && typeof appState.deleteSignaturesForUser === "function") {
+      appState.deleteSignaturesForUser("u_1792690211697");
+      appState.deleteSignaturesForUser("Mustafa Kara");
+    }
   }
 
   switchIkSubtabToDocs() {
@@ -403,6 +409,21 @@ export class DocumentsModule {
     }
   }
 
+  deleteSignedDocument(sigId) {
+    if (!isIdariIslerOrAdmin()) {
+      alert("Yetki Hatası: İmzalı evrakı yalnızca İdari Personel veya Yönetici iptal edebilir!");
+      return;
+    }
+    const sig = (appState.state.signedDocuments || []).find(s => s.id === sigId);
+    if (!sig) return;
+
+    if (confirm(`"${sig.userName}" personeline ait "${sig.documentTitle} (${sig.documentVersion})" form imzasını iptal edip kalıcı olarak silmek istediğinize emin misiniz?`)) {
+      appState.deleteSignedDocument(sigId);
+      this.render();
+      alert("✅ İmzalı form kaydı iptal edildi ve sistemden silindi.");
+    }
+  }
+
   // ==========================================
   // İMZALI EVRAK İNCELEME & YAZDIRMA
   // ==========================================
@@ -627,9 +648,16 @@ export class DocumentsModule {
             ` : '<span class="text-xs text-slate-400">Elektronik Onaylı</span>'}
           </td>
           <td class="p-3 text-right">
-            <button type="button" onclick="window.portalApp.documentsModule.openViewSignedDocumentModal('${s.id}')" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs py-1.5 px-3 rounded-lg transition flex items-center gap-1 ml-auto cursor-pointer">
-              <span>📜</span> <span>İncele / Yazdır</span>
-            </button>
+            <div class="flex items-center justify-end gap-1.5">
+              <button type="button" onclick="window.portalApp.documentsModule.openViewSignedDocumentModal('${s.id}')" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs py-1.5 px-2.5 rounded-lg transition flex items-center gap-1 cursor-pointer">
+                <span>📜</span> <span>İncele / Yazdır</span>
+              </button>
+              ${canManage ? `
+                <button type="button" onclick="window.portalApp.documentsModule.deleteSignedDocument('${s.id}')" class="bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs py-1.5 px-2.5 rounded-lg transition flex items-center gap-1 cursor-pointer" title="İmzayı İptal Et ve Sil">
+                  <span>🗑️</span> <span>İptal Et</span>
+                </button>
+              ` : ''}
+            </div>
           </td>
         </tr>
       `;
