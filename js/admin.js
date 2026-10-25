@@ -104,6 +104,34 @@ export class AdminModule {
       inputImport.addEventListener("change", (e) => this.importBackup(e));
     }
 
+    // Bulut Eşitleme Butonları (PC, Tablet ve Telefonlar Arası)
+    const btnForcePull = document.getElementById("btn-force-pull-cloud");
+    const btnForcePush = document.getElementById("btn-force-push-cloud");
+    if (btnForcePull) {
+      btnForcePull.addEventListener("click", async () => {
+        if (window.__cloudSyncService) {
+          btnForcePull.disabled = true;
+          btnForcePull.textContent = "⏳ Çekiliyor...";
+          await window.__cloudSyncService.pullFromCloud(true);
+          btnForcePull.disabled = false;
+          btnForcePull.innerHTML = "<span>⬇️</span> <span>Buluttan Çek</span>";
+          alert("✅ En güncel fabrika verisi buluttan çekildi ve arayüz tazelendi!");
+        }
+      });
+    }
+    if (btnForcePush) {
+      btnForcePush.addEventListener("click", async () => {
+        if (window.__cloudSyncService) {
+          btnForcePush.disabled = true;
+          btnForcePush.textContent = "⏳ Dağıtılıyor...";
+          await window.__cloudSyncService.pushToCloud();
+          btnForcePush.disabled = false;
+          btnForcePush.innerHTML = "<span>⬆️</span> <span>Buluta Dağıt</span>";
+          alert("✅ Bu cihazdaki tüm veriler buluta yüklendi ve diğer cihazlara (tablet, telefon) dağıtıldı!");
+        }
+      });
+    }
+
     // İşlem Geçmişi (Audit Log) Filtre Dinleyicileri
     const logSearchInput = document.getElementById("filter-log-search");
     const logUserSelect = document.getElementById("filter-log-user");

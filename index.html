@@ -2,7 +2,7 @@
 <html lang="tr">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>SODSAN - Fabrika İçi Operasyon ve Haberleşme Portalı</title>
   
   <!-- PWA & Favicon -->
@@ -37,8 +37,8 @@
     }
   </script>
 
-  <!-- SheetJS (Excel .xlsx okuma & oluşturma) -->
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <!-- SheetJS (Excel .xlsx okuma & oluşturma - Mobil hız için defer ile yüklenir) -->
+  <script defer src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   
   <!-- Custom CSS -->
   <link rel="stylesheet" href="css/style.css">
@@ -355,6 +355,11 @@
           <div class="hidden xl:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-semibold flex-shrink-0">
             <span>🕒</span>
             <span id="portal-live-clock">Canlı Takip</span>
+          </div>
+
+          <!-- Çoklu Cihaz Canlı Bulut Senkronizasyonu Rozeti -->
+          <div id="cloud-sync-status-indicator" class="flex items-center gap-1.5 px-2 sm:px-2.5 py-1 rounded-full text-[10px] sm:text-xs font-bold border transition cursor-pointer shadow-2xs bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800 flex-shrink-0" title="Cihazlar Arası Canlı Eşitleme (PC, Tablet, Telefon)">
+            <span>🟢</span> <span class="hidden md:inline">Bulut Aktif</span>
           </div>
         </div>
       </header>
@@ -1265,6 +1270,49 @@
 
     <!-- ==================== SEKME 5: YÖNETİCİ & ADMIN PANELİ ==================== -->
     <section id="tab-admin" class="tab-pane hidden space-y-6">
+      <!-- ==================== ÇOKLU CİHAZ CANLI BULUT SENKRONİZASYONU ==================== -->
+      <div class="bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 text-white rounded-2xl p-5 shadow-sm border border-blue-800">
+        <div class="flex items-center justify-between flex-wrap gap-2 border-b border-blue-800/80 pb-3 mb-4">
+          <div class="flex items-center gap-2.5">
+            <span class="text-2xl">🌐</span>
+            <div>
+              <h3 class="text-sm sm:text-base font-black text-white">Çoklu Cihaz Canlı Bulut Senkronizasyonu</h3>
+              <p class="text-xs text-blue-200">Bilgisayar, tablet ve telefonlar arasında verilerin anlık ve otomatik eşitlenmesi</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <button type="button" id="btn-force-pull-cloud" class="bg-white/10 hover:bg-white/20 text-white text-xs font-bold py-1.5 px-3 rounded-lg transition border border-white/20 flex items-center gap-1.5 cursor-pointer">
+              <span>⬇️</span> <span>Buluttan Çek</span>
+            </button>
+            <button type="button" id="btn-force-push-cloud" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-1.5 px-3 rounded-lg transition shadow-xs flex items-center gap-1.5 cursor-pointer">
+              <span>⬆️</span> <span>Buluta Dağıt</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+          <div class="p-3 bg-white/5 rounded-xl border border-white/10">
+            <div class="text-[10px] uppercase tracking-wider text-blue-300 font-bold">SENKRONİZASYON DURUMU</div>
+            <div class="font-extrabold text-sm text-emerald-400 mt-1 flex items-center gap-1.5">
+              <span>🟢</span> <span>Canlı & Otomatik Aktif</span>
+            </div>
+            <div class="text-[10px] text-slate-300 mt-0.5">Tüm cihazlar birbirine bağlıdır</div>
+          </div>
+
+          <div class="p-3 bg-white/5 rounded-xl border border-white/10">
+            <div class="text-[10px] uppercase tracking-wider text-blue-300 font-bold">FABRİKA EŞİTLEME KODU</div>
+            <div class="font-mono font-bold text-sm text-white mt-1">sodsan_fabrika_live_sync_2026</div>
+            <div class="text-[10px] text-slate-300 mt-0.5">Sıfır kurulumlu ortak eşitleme kanalı</div>
+          </div>
+
+          <div class="p-3 bg-white/5 rounded-xl border border-white/10">
+            <div class="text-[10px] uppercase tracking-wider text-blue-300 font-bold">ÇALIŞMA PRENSİBİ</div>
+            <div class="font-semibold text-white mt-1">Sıfır Kota & Anlık Dağıtım</div>
+            <div class="text-[10px] text-slate-300 mt-0.5">Bir cihazda kayıt yapıldığında diğer ekranlara otomatik yansır</div>
+          </div>
+        </div>
+      </div>
+
       <!-- ARAÇ, FORKLİFT & SERVİS LOJİSTİK YÖNETİMİ (HIZLI İŞLEMLER) -->
       <div class="bg-gradient-to-r from-slate-900 to-indigo-950 text-white rounded-2xl p-5 shadow-sm border border-slate-800">
         <div class="flex items-center justify-between flex-wrap gap-2 border-b border-slate-800 pb-3 mb-4">
@@ -3999,7 +4047,7 @@
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js?v=45').catch(err => {
+        navigator.serviceWorker.register('sw.js?v=46').catch(err => {
           console.log('SW registration failed:', err);
         });
       });
@@ -4007,6 +4055,6 @@
   </script>
 
   <!-- ES Modül Girişi -->
-  <script type="module" src="js/app.js?v=6.4"></script>
+  <script type="module" src="js/app.js?v=6.5"></script>
 </body>
 </html>
