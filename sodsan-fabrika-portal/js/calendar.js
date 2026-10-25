@@ -160,7 +160,7 @@ export class CalendarModule {
 
     // Gün Numarası
     const dayNum = document.createElement("div");
-    dayNum.className = "flex justify-between items-center text-xs font-bold text-slate-700 group-hover:text-blue-700";
+    dayNum.className = "flex justify-between items-center text-[10px] sm:text-xs font-bold text-slate-700 group-hover:text-blue-700 leading-none";
     dayNum.innerHTML = `<span>${date.getDate()}</span>`;
 
     // O güne ait tüm olayları topla
@@ -179,7 +179,7 @@ export class CalendarModule {
     );
 
     const badgesContainer = document.createElement("div");
-    badgesContainer.className = "flex flex-col gap-1 overflow-hidden mt-1";
+    badgesContainer.className = "flex flex-row sm:flex-col flex-wrap sm:flex-nowrap gap-0.5 sm:gap-1 overflow-hidden mt-0.5 min-w-0";
 
     // KÜÇÜK SİMGELER HALİNDE TAKVİM HÜCRESİNDE GÖSTER
     // 1. Sevkiyatlar, Bakımlar & Eğitimler
@@ -188,7 +188,7 @@ export class CalendarModule {
       const isShip = ev.type === "SEVKIYAT";
       const isEdu = ev.type === "EGITIM";
       const badge = document.createElement("div");
-      badge.className = `calendar-badge text-[10px] font-bold py-0.5 px-1.5 rounded truncate flex items-center gap-1 ${
+      badge.className = `calendar-badge text-[10px] font-bold py-0.5 px-1 sm:px-1.5 rounded truncate flex items-center gap-1 ${
         isMaint ? 'bg-red-100 text-red-800 border border-red-200' :
         isShip ? 'bg-blue-100 text-blue-800 border border-blue-200' :
         isEdu ? 'bg-indigo-100 text-indigo-800 border border-indigo-200' :
@@ -196,7 +196,7 @@ export class CalendarModule {
       }`;
       const icon = isMaint ? '🛠️' : isShip ? '🚚' : isEdu ? '🎓' : '📌';
       badge.title = `${ev.title} (${ev.status || 'Planlandı'})`;
-      badge.innerHTML = `<span>${icon}</span> <span class="truncate">${ev.title}</span>`;
+      badge.innerHTML = `<span>${icon}</span> <span class="cal-badge-text truncate">${ev.title}</span>`;
       badgesContainer.appendChild(badge);
     });
 
@@ -204,37 +204,37 @@ export class CalendarModule {
     breakdowns.forEach(brk => {
       const isResolved = brk.status === "Giderildi";
       const badge = document.createElement("div");
-      badge.className = `calendar-badge text-[10px] font-bold py-0.5 px-1.5 rounded truncate flex items-center gap-1 ${
-        isResolved ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-red-200 text-red-900 border border-red-300 animate-pulse'
+      badge.className = `calendar-badge text-[10px] font-bold py-0.5 px-1 sm:px-1.5 rounded truncate flex items-center gap-1 ${
+        isResolved ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-red-200 text-red-900 border border-red-300'
       }`;
       badge.title = `Arıza: ${brk.machineName} - ${brk.status}`;
-      badge.innerHTML = `<span>🚨</span> <span class="truncate">${brk.machineName}</span>`;
+      badge.innerHTML = `<span>🚨</span> <span class="cal-badge-text truncate">${brk.machineName}</span>`;
       badgesContainer.appendChild(badge);
     });
 
     // 3. İzinler
     leaves.forEach(l => {
       const badge = document.createElement("div");
-      badge.className = "calendar-badge text-[10px] font-bold py-0.5 px-1.5 rounded truncate flex items-center gap-1 bg-amber-100 text-amber-800 border border-amber-200";
+      badge.className = "calendar-badge text-[10px] font-bold py-0.5 px-1 sm:px-1.5 rounded truncate flex items-center gap-1 bg-amber-100 text-amber-800 border border-amber-200";
       badge.title = `${l.employeeName} (${l.leaveType})`;
-      badge.innerHTML = `<span>🏖️</span> <span class="truncate">${l.employeeName}</span>`;
+      badge.innerHTML = `<span>🏖️</span> <span class="cal-badge-text truncate">${l.employeeName}</span>`;
       badgesContainer.appendChild(badge);
     });
 
     // 4. Fazla Mesailer
     overtimes.forEach(ot => {
       const badge = document.createElement("div");
-      badge.className = "calendar-badge text-[10px] font-bold py-0.5 px-1.5 rounded truncate flex items-center gap-1 bg-rose-100 text-rose-800 border border-rose-200";
+      badge.className = "calendar-badge text-[10px] font-bold py-0.5 px-1 sm:px-1.5 rounded truncate flex items-center gap-1 bg-rose-100 text-rose-800 border border-rose-200";
       badge.title = `Mesai: ${ot.employeeNames} (${ot.hours}s)`;
-      badge.innerHTML = `<span>⏰</span> <span class="truncate">${ot.employeeNames}</span>`;
+      badge.innerHTML = `<span>⏰</span> <span class="cal-badge-text truncate">${ot.employeeNames}</span>`;
       badgesContainer.appendChild(badge);
     });
 
     // 5. Ürün Giriş / Çıkışları
     if (products.length > 0) {
       const badge = document.createElement("div");
-      badge.className = "calendar-badge text-[10px] font-bold py-0.5 px-1.5 rounded truncate flex items-center gap-1 bg-emerald-100 text-emerald-900 border border-emerald-200";
-      badge.innerHTML = `<span>📦</span> <span class="truncate">${products.length} Ürün Hareketi</span>`;
+      badge.className = "calendar-badge text-[10px] font-bold py-0.5 px-1 sm:px-1.5 rounded truncate flex items-center gap-1 bg-emerald-100 text-emerald-900 border border-emerald-200";
+      badge.innerHTML = `<span>📦</span> <span class="cal-badge-text truncate">${products.length} Ürün</span>`;
       badgesContainer.appendChild(badge);
     }
 
