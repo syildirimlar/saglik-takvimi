@@ -2,7 +2,7 @@
 <html lang="tr">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>SODSAN - Fabrika İçi Operasyon ve Haberleşme Portalı</title>
   
   <!-- PWA & Favicon -->
@@ -41,13 +41,13 @@
   <script defer src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   
   <!-- Custom CSS -->
-  <link rel="stylesheet" href="css/style.css?v=6.9">
+  <link rel="stylesheet" href="css/style.css?v=7.0">
 </head>
 <body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 min-h-screen">
 
   <!-- ==================== GİRİŞ EKRANI (AUTH GATEWAY) ==================== -->
-  <div id="screen-auth-login" class="fixed inset-0 z-50 bg-slate-900/95 backdrop-blur-md flex items-center justify-center p-4 transition-all duration-300">
-    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl relative overflow-hidden text-slate-800 dark:text-slate-100">
+  <div id="screen-auth-login" class="fixed inset-0 z-[200] bg-slate-950/90 overflow-y-auto flex flex-col justify-start sm:justify-center items-center p-4 py-8 sm:py-6">
+    <div class="my-auto bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl relative text-slate-800 dark:text-slate-100">
       
       <!-- Dekoratif Arka Plan Efekti -->
       <div class="absolute -top-24 -right-24 w-48 h-48 bg-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
@@ -66,23 +66,23 @@
       <!-- Giriş Formu -->
       <form id="form-auth-login" class="space-y-4">
         
-        <!-- Kullanıcı Adı Girişi (Otomatik liste yok, kullanıcı kendisi yazar) -->
+        <!-- Kullanıcı Adı Girişi (Mobilde otomatik zoom yapmaması için 16px text-base) -->
         <div>
           <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Kullanıcı Adı veya Ad Soyad:</label>
           <div class="relative">
             <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm">👤</span>
-            <input type="text" id="login-username-input" required autofocus placeholder="Kullanıcı adınız (örn: admin)" autocomplete="username" class="w-full text-xs font-bold bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl py-3 pl-10 pr-3 text-slate-800 dark:text-slate-100 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition">
+            <input type="text" id="login-username-input" required autofocus placeholder="Kullanıcı adınız (örn: admin)" autocomplete="username" class="w-full text-base sm:text-xs font-bold bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl py-3 pl-10 pr-3 text-slate-800 dark:text-slate-100 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none">
           </div>
         </div>
 
-        <!-- Şifre / PIN Kodu -->
+        <!-- Şifre / PIN Kodu (Mobilde otomatik zoom yapmaması için 16px text-base) -->
         <div>
           <div class="flex items-center justify-between mb-1.5">
             <label class="text-xs font-bold text-slate-700 dark:text-slate-300">Giriş Şifresi / PIN:</label>
           </div>
           <div class="relative">
             <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm">🔒</span>
-            <input type="password" id="login-pin-input" required maxlength="30" placeholder="••••" autocomplete="current-password" class="w-full text-sm font-black tracking-widest bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl py-3 pl-10 pr-10 text-slate-800 dark:text-slate-100 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition">
+            <input type="password" id="login-pin-input" required maxlength="30" placeholder="••••" autocomplete="current-password" class="w-full text-base sm:text-sm font-black tracking-widest bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl py-3 pl-10 pr-10 text-slate-800 dark:text-slate-100 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none">
             <button type="button" id="btn-toggle-pin-visibility" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xs font-bold px-1 cursor-pointer" title="Şifreyi Göster/Gizle">
               👁️
             </button>
@@ -126,7 +126,7 @@
     <div id="sidebar-backdrop" class="fixed inset-0 z-[95] bg-slate-900/60 lg:hidden hidden transition-opacity"></div>
 
     <!-- ==================== SOL PANEL (SIDEBAR - YUKARIDAN AŞAĞIYA SIRALI ANA BÖLÜMLER) ==================== -->
-    <aside id="portal-sidebar" class="fixed inset-y-0 left-0 z-[100] w-[86vw] max-w-[320px] lg:w-72 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col justify-between transition-transform duration-300 -translate-x-full lg:translate-x-0 shadow-2xl lg:shadow-none">
+    <aside id="portal-sidebar" class="fixed inset-y-0 left-0 z-[100] w-[86vw] max-w-[320px] lg:w-72 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col justify-between -translate-x-full lg:translate-x-0 shadow-2xl lg:shadow-none">
       
       <!-- Üst Kısım: Logo & Menü Başlıkları -->
       <div class="flex-1 flex flex-col min-h-0">
@@ -4044,33 +4044,11 @@
   </div>
 
 
-  <!-- Service Worker Kaydı (PWA & Anında Canlı Otomatik Güncelleme) -->
+  <!-- Service Worker Kaydı (PWA) -->
   <script>
     if ('serviceWorker' in navigator) {
-      let refreshing = false;
-      navigator.serviceWorker.addEventListener('controllerchange', () => {
-        if (!refreshing) {
-          refreshing = true;
-          window.location.reload();
-        }
-      });
-
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js?v=50').then(reg => {
-          reg.onupdatefound = () => {
-            const installingWorker = reg.installing;
-            if (installingWorker) {
-              installingWorker.onstatechange = () => {
-                if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                  if (!refreshing) {
-                    refreshing = true;
-                    window.location.reload();
-                  }
-                }
-              };
-            }
-          };
-        }).catch(err => {
+        navigator.serviceWorker.register('sw.js?v=51').catch(err => {
           console.log('SW registration failed:', err);
         });
       });
@@ -4078,6 +4056,6 @@
   </script>
 
   <!-- ES Modül Girişi -->
-  <script type="module" src="js/app.js?v=6.9"></script>
+  <script type="module" src="js/app.js?v=7.0"></script>
 </body>
 </html>

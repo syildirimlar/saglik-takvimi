@@ -113,6 +113,10 @@ class App {
     // Diğer sekme/pencerelerden LocalStorage değişikliklerini dinle (Sıfır kota, anında yerel tetikleme)
     window.addEventListener("storage", (e) => {
       if (e.key === "sodsan_factory_portal_state_v1") {
+        const loginScreen = document.getElementById("screen-auth-login");
+        if (loginScreen && !loginScreen.classList.contains("hidden") && loginScreen.style.display !== "none") {
+          return; // Giriş ekranında kullanıcının yazdığı bilgileri sıfırlama
+        }
         appState.reloadFromStorage();
         this.refreshAllActiveViews();
       }
@@ -208,6 +212,11 @@ class App {
   showLoginScreen() {
     const screen = document.getElementById("screen-auth-login");
     if (!screen) return;
+
+    // Eğer giriş ekranı zaten açıksa tekrar sıfırlama yapma (kullanıcı yazıyor olabilir)
+    if (!screen.classList.contains("hidden") && screen.style.display !== "none") {
+      return;
+    }
 
     const usernameInput = document.getElementById("login-username-input");
     const pinInput = document.getElementById("login-pin-input");
@@ -462,7 +471,6 @@ class App {
         backdrop.classList.add("show");
       });
     }
-    document.body.classList.add("overflow-hidden");
   }
 
   closeMobileSidebar() {
@@ -481,7 +489,6 @@ class App {
         }
       }, 250);
     }
-    document.body.classList.remove("overflow-hidden");
   }
 
   initLiveClock() {
