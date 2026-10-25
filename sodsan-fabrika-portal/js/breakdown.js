@@ -523,6 +523,7 @@ export class BreakdownModule {
   }
 
   openReportModal(preSelectedMachine = null) {
+    if (window.portalApp?.closeMobileSidebar) window.portalApp.closeMobileSidebar();
     this.populateDepartmentSelect();
     this.populateMachineSelect();
 
