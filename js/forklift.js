@@ -39,6 +39,7 @@ export class ForkliftModule {
 
     // 2. Çağrı Modalı Açma
     const openCallModal = () => {
+      if (window.portalApp?.closeMobileSidebar) window.portalApp.closeMobileSidebar();
       const modal = document.getElementById("modal-call-forklift");
       if (modal) {
         const depSelect = document.getElementById("forklift-call-department");

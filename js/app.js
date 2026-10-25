@@ -417,7 +417,7 @@ class App {
     const sidebarBackdrop = document.getElementById("sidebar-backdrop");
 
     if (toggleSidebarBtn) {
-      toggleSidebarBtn.addEventListener("click", () => this.openMobileSidebar());
+      toggleSidebarBtn.addEventListener("click", () => this.toggleMobileSidebar());
     }
 
     if (closeSidebarBtn) {
@@ -428,17 +428,39 @@ class App {
       sidebarBackdrop.addEventListener("click", () => this.closeMobileSidebar());
     }
 
+    // Klavyede ESC tuşuna basıldığında açık mobil menüyü kapat
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        this.closeMobileSidebar();
+      }
+    });
+
     // 3. Canlı Saat Göstergesi
     this.initLiveClock();
+  }
+
+  toggleMobileSidebar() {
+    const sidebar = document.getElementById("portal-sidebar");
+    if (sidebar && sidebar.classList.contains("open")) {
+      this.closeMobileSidebar();
+    } else {
+      this.openMobileSidebar();
+    }
   }
 
   openMobileSidebar() {
     const sidebar = document.getElementById("portal-sidebar");
     const backdrop = document.getElementById("sidebar-backdrop");
-    if (sidebar) sidebar.classList.add("open");
+    if (sidebar) {
+      sidebar.classList.add("open");
+      sidebar.classList.remove("-translate-x-full");
+      sidebar.classList.add("translate-x-0");
+    }
     if (backdrop) {
       backdrop.classList.remove("hidden");
-      backdrop.classList.add("show");
+      requestAnimationFrame(() => {
+        backdrop.classList.add("show");
+      });
     }
     document.body.classList.add("overflow-hidden");
   }
@@ -446,10 +468,18 @@ class App {
   closeMobileSidebar() {
     const sidebar = document.getElementById("portal-sidebar");
     const backdrop = document.getElementById("sidebar-backdrop");
-    if (sidebar) sidebar.classList.remove("open");
+    if (sidebar) {
+      sidebar.classList.remove("open");
+      sidebar.classList.remove("translate-x-0");
+      sidebar.classList.add("-translate-x-full");
+    }
     if (backdrop) {
-      backdrop.classList.add("hidden");
       backdrop.classList.remove("show");
+      setTimeout(() => {
+        if (!sidebar || !sidebar.classList.contains("open")) {
+          backdrop.classList.add("hidden");
+        }
+      }, 250);
     }
     document.body.classList.remove("overflow-hidden");
   }
@@ -871,6 +901,7 @@ class App {
 
     if (btnSwitchUser && modalSwitch && userListContainer) {
       btnSwitchUser.addEventListener("click", () => {
+        this.closeMobileSidebar();
         userListContainer.innerHTML = appState.state.users.map(u => {
           const dep = appState.state.departments.find(d => d.id === u.departmentId) || { name: "" };
           const roleInfo = getRoleInfo(u.role);
