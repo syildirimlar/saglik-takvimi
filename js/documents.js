@@ -223,6 +223,8 @@ export class DocumentsModule {
   // ==========================================
   checkPendingSignaturesAndPrompt(currentUser) {
     if (!currentUser) return;
+    // Yöneticiye (Admin) kesinlikle imza formlarını çıkarma
+    if (currentUser.role === "ADMIN" || currentUser.id === "u_admin") return;
 
     const pendingDocs = appState.getPendingDocumentsForUser(currentUser);
     if (pendingDocs.length === 0) {
@@ -669,7 +671,7 @@ export class DocumentsModule {
     if (!alertBox) return;
 
     const curUser = appState.state.currentUser;
-    if (!curUser) {
+    if (!curUser || curUser.role === "ADMIN" || curUser.id === "u_admin") {
       alertBox.classList.add("hidden");
       return;
     }
