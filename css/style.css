@@ -146,9 +146,6 @@ body {
 
 /* Sidebar Mobile Drawer */
 #portal-sidebar {
-  will-change: transform;
-  -webkit-backface-visibility: hidden;
-  backface-visibility: hidden;
   touch-action: pan-y;
   overscroll-behavior: contain;
 }
@@ -363,21 +360,26 @@ html.dark .nav-tab-btn.active {
     padding-bottom: calc(0.4rem + env(safe-area-inset-bottom, 0px));
   }
   .calendar-day-cell {
-    min-height: 40px;
-    max-height: 58px;
-    padding: 2px 2px;
+    min-height: 48px;
+    height: auto;
+    padding: 2px 2px 4px 2px;
     border-radius: 6px;
+    overflow: visible;
   }
   .calendar-day-header {
     font-size: 0.65rem;
     padding: 0.2rem 0;
   }
   .calendar-badge {
-    font-size: 0.6rem;
-    padding: 0 1px;
+    font-size: 0.72rem;
+    padding: 1px 2px;
     margin-top: 0;
     justify-content: center;
-    border-radius: 3px;
+    border-radius: 4px;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 0;
   }
   /* Mobilde takvim hücresinde uzun metinler yerine sadece simge göstererek taşmayı önle */
   .calendar-badge .cal-badge-text {
@@ -632,15 +634,13 @@ html, body {
   text-rendering: optimizeSpeed;
 }
 
-/* Yalnızca görünür alandaki içeriği hesapla (GPU / CPU rahatlatma) */
+/* Sekme ve kaydırma optimizasyonu */
 .tab-pane {
-  contain: content;
   -webkit-overflow-scrolling: touch;
 }
 
-/* Modallarda ve animasyonlarda donanım hızlandırma */
+/* Modallarda donanım hızlandırma */
 .modal-backdrop {
-  contain: strict;
   will-change: opacity;
 }
 

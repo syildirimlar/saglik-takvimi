@@ -320,6 +320,22 @@ export class CloudSyncService {
     }, 2800);
   }
 
+  async forceUpdateApp() {
+    try {
+      if ('serviceWorker' in navigator) {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        for (let r of regs) await r.unregister();
+      }
+      if ('caches' in window) {
+        const keys = await caches.keys();
+        for (let k of keys) await caches.delete(k);
+      }
+    } catch (e) {
+      console.warn("Önbellek sıfırlama hatası:", e);
+    }
+    window.location.reload(true);
+  }
+
   async showSyncModal() {
     const lastSyncTimeStr = this.lastSyncedTimestamp ? new Date(this.lastSyncedTimestamp).toLocaleTimeString("tr-TR") : "Az önce";
     const msg = `🌐 SODSAN Çoklu Cihaz Canlı Bulut Eşitlemesi\n\n` +
@@ -327,8 +343,8 @@ export class CloudSyncService {
       `Cihaz ID: ${this.deviceId}\n` +
       `Son Senkronizasyon: ${lastSyncTimeStr}\n` +
       `Kanal: ${this.syncRoom}\n\n` +
-      `PC, tablet ve telefonlarınız bu kanal üzerinden anlık olarak eşzamanlanır.\n\n` +
-      `Şimdi buluttan en güncel verileri çekmek istiyor musunuz?`;
+      `• [Tamam]: Buluttaki en güncel fabrika verilerini anında çeker.\n` +
+      `• [İptal]: Kapatır.`;
 
     if (confirm(msg)) {
       this.updateStatus("SYNCING", "Buluttan çekiliyor...");
@@ -343,3 +359,7 @@ export class CloudSyncService {
 }
 
 export const cloudSync = new CloudSyncService();
+if (typeof window !== "undefined") {
+  window.cloudSync = cloudSync;
+  window.forceUpdateApp = () => cloudSync.forceUpdateApp();
+}
