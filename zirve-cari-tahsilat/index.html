@@ -13,7 +13,7 @@
     <meta name="apple-mobile-web-app-title" content="SODSAN Finans">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="format-detection" content="telephone=no">
-    <link rel="stylesheet" href="css/style.css?v=20261027_4">
+    <link rel="stylesheet" href="css/style.css?v=20261027_5">
 </head>
 <body>
 
@@ -73,7 +73,7 @@
             Çek / Senet & Kasa <span class="nav-count" id="cntCekSenet">0</span>
         </button>
         <button class="nav-tab" data-tab="zirve" onclick="App.switchTab('zirve')">
-            Ayarlar
+            ⚙️ Ayarlar & Bulut
         </button>
     </nav>
 
@@ -675,114 +675,16 @@
             </div>
         </section>
 
-        <!-- 7. ZİRVE SQL & E-FATURA BAĞLANTI MERKEZİ -->
+        <!-- 7. AYARLAR & BULUT EŞİTLEME PANELİ -->
         <section id="tab-zirve" class="tab-panel">
             <div class="grid-2">
+                <!-- ŞİRKET BİLGİLERİ VE TİCARİ KURALLAR -->
                 <div class="card">
                     <div class="card-header">
-                        <div class="card-title">🔌 1. Zirve SQL Canlı Veritabanı Bağlantısı (Cari + Hareketler)</div>
-                        <button class="btn btn-outline btn-sm" onclick="App.discoverZirveSql()">🔍 SQL Servisini Yenile</button>
-                    </div>
-
-                    <div style="background:var(--bg-body); border:1px solid var(--border); border-radius:8px; padding:10px 14px; margin-bottom:14px; display:flex; gap:16px; align-items:center; flex-wrap:wrap;">
-                        <span style="font-size:12px; font-weight:700;">Zirve Konumu:</span>
-                        <label style="font-size:12px; display:flex; align-items:center; gap:6px; cursor:pointer;">
-                            <input type="radio" name="zirveLocation" value="local" checked onchange="App.setZirveLocation('local')">
-                            Bu Bilgisayarda Kurulu (<code>.\ZIRVESQL</code>)
-                        </label>
-                        <label style="font-size:12px; display:flex; align-items:center; gap:6px; cursor:pointer;">
-                            <input type="radio" name="zirveLocation" value="network" onchange="App.setZirveLocation('network')">
-                            Ağdaki Başka Bilgisayarda / Sunucuda
-                        </label>
-                        <button class="btn btn-outline btn-sm" id="btnScanNetwork" style="display:none; margin-left:auto;" onclick="App.scanNetworkForSql()">🌐 Ağda SQL Sunucusu Ara</button>
-                    </div>
-                    <div id="networkScanResultBox" style="display:none; margin-bottom:12px;"></div>
-
-                    <button class="btn btn-success" style="width:100%; font-size:14px; padding:12px 16px; margin-bottom:14px; justify-content:center; box-shadow:0 4px 14px rgba(16,185,129,0.35); font-weight:700;" onclick="App.autoScanAndConnect()">
-                        ⚡ TÜM VERİTABANLARINI OTOMATİK TARA VE CANLI DÖKÜMÜ GETİR (ÖNERİLEN)
-                    </button>
-
-                    <div id="autoScanResultBox" style="display:none; margin-bottom:14px;"></div>
-
-                    <p style="font-size:12px; color:var(--text-muted); margin-bottom:14px;">
-                        Yukarıdaki yeşil butona bastığınızda, sistem SQL Server'daki tüm veritabanlarını otomatik tarar, içinde firmanıza ait Cari ve Hareket dökümü olan veritabanını bulup anlık canlı dökümü getirir.
-                    </p>
-
-                    <div id="sqlDiscoveryResult" style="margin-bottom:14px;"></div>
-
-                    <div class="form-grid">
-                        <div class="form-group" style="grid-column: 1 / -1;">
-                            <label style="display:flex; justify-content:space-between;">
-                                <span>SQL Sunucu Adı (Instance)</span>
-                                <span style="font-size:11px; color:var(--text-muted); font-weight:normal;">Zirve SQL Örneğini Seçin</span>
-                            </label>
-                            <input type="text" id="sqlServerInput" value=".\ZIRVESQL" placeholder=".\ZIRVESQL veya localhost\ZIRVESQL">
-                            <div style="display:flex; gap:6px; margin-top:6px; flex-wrap:wrap; font-size:11px; align-items:center;">
-                                <span style="color:var(--text-muted);">Zirve Örnekleri:</span>
-                                <button type="button" class="btn btn-outline btn-sm" style="padding:2px 8px; font-size:11px;" onclick="App.setSqlServerName('.\\ZIRVESQL')">🎯 .\ZIRVESQL</button>
-                                <button type="button" class="btn btn-outline btn-sm" style="padding:2px 8px; font-size:11px;" onclick="App.setSqlServerName('.\\ZIRVENET')">.\ZIRVENET</button>
-                                <button type="button" class="btn btn-outline btn-sm" style="padding:2px 8px; font-size:11px;" onclick="App.setSqlServerName('.\\ZIRVE')">.\ZIRVE</button>
-                                <button type="button" class="btn btn-outline btn-sm" style="padding:2px 8px; font-size:11px;" onclick="App.setSqlServerName('(local)\\ZIRVESQL')">(local)\ZIRVESQL</button>
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label>Yetkilendirme Türü</label>
-                            <select id="sqlAuthType" onchange="App.toggleSqlAuthInputs()">
-                                <option value="windows">Windows Yetkilendirmesi (Şifresiz)</option>
-                                <option value="sql">SQL Server (sa / Kullanıcı Adı & Şifre)</option>
-                            </select>
-                        </div>
-                        <div class="form-group sql-auth-field" style="display:none;">
-                            <label>SQL Kullanıcı Adı</label>
-                            <input type="text" id="sqlUserInput" value="sa">
-                        </div>
-                        <div class="form-group sql-auth-field" style="display:none;">
-                            <label>SQL Şifre</label>
-                            <input type="password" id="sqlPassInput" value="" placeholder="Zirve varsayılanı boş, 1 veya 1234">
-                        </div>
-                    </div>
-
-                    <div style="display:flex; gap:10px; margin-top:12px; align-items:flex-end; flex-wrap:wrap;">
-                        <button class="btn btn-outline" onclick="App.loadSqlDatabases()">1. Firma / Dönem Veritabanlarını Listele</button>
-                        <div class="form-group" style="flex:1; min-width:220px;">
-                            <label>Zirve Firma / Dönem Veritabanı Seçin</label>
-                            <select id="sqlDatabaseSelect" onchange="App.onDatabaseSelected()">
-                                <option value="">-- Önce Veritabanlarını Listeleyin --</option>
-                            </select>
-                        </div>
-                        <button class="btn btn-outline btn-sm" onclick="App.inspectCurrentDatabaseTables()" title="Seçili veritabanındaki tüm tabloları ve kayıt sayılarını gösterir">🔍 Tabloları İncele</button>
-                        <button class="btn btn-success" onclick="App.syncFromZirveSql()">2. ⚡ Zirve'den Carileri ve Hareketleri Çek</button>
-                    </div>
-
-                    <!-- Manuel Tablo Seçimi / Eşleştirme Alanı -->
-                    <div id="tableMappingSection" style="display:none; margin-top:14px; background:rgba(15,23,42,0.6); padding:12px; border-radius:8px; border:1px solid var(--border);">
-                        <div style="font-weight:700; margin-bottom:8px; font-size:13px; color:#60a5fa;">📋 Veritabanı Tablo Eşleştirme Sihirbazı</div>
-                        <div class="form-grid">
-                            <div class="form-group">
-                                <label>Cari Kart Tablosu (Örn: CARI, CARIKART)</label>
-                                <select id="sqlCustomCariTable">
-                                    <option value="">-- Otomatik Bul --</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label>Cari Hareket Tablosu (Örn: CARIHAR, CHAREKET)</label>
-                                <select id="sqlCustomCariHarTable">
-                                    <option value="">-- Otomatik Bul --</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div id="tableListBadgeArea" style="margin-top:10px; font-size:12px; max-height:160px; overflow-y:auto; line-height:1.8;"></div>
-                    </div>
-
-                    <div id="sqlSyncLogBox" style="margin-top:14px; font-size:12.5px;"></div>
-                </div>
-
-                <div class="card">
-                    <div class="card-header">
-                        <div class="card-title">📂 2. Zirve e-Fatura Klasörü Tarama & Veri Yedekleme</div>
+                        <div class="card-title">⚙️ 1. Şirket Bilgileri & Vade Kuralları</div>
                     </div>
                     <p style="font-size:12.5px; color:var(--text-muted); margin-bottom:12px;">
-                        Zirve e-Fatura entegratörünün bilgisayara indirdiği <code>C:\zirve</code> altındaki UBL-TR XML faturalarını otomatik tarayabilir ve Firma VKN bilginize göre Alış / Satış olarak ayırabilirsiniz.
+                        Zirve'den yüklenen ekstrelerde şirketinizin kendi VKN ve ünvan bilgileri burada tanımlanır.
                     </p>
 
                     <div class="form-grid" style="margin-bottom:12px;">
@@ -791,15 +693,8 @@
                             <input type="text" id="ownFirmName" value="SODSAN" onchange="App.saveSettings()">
                         </div>
                         <div class="form-group">
-                            <label>Kendi Şirket VKN / TCKN (Alış/Satış Yönü İçin)</label>
+                            <label>Kendi Şirket VKN / TCKN</label>
                             <input type="text" id="ownFirmVkn" value="" placeholder="10 haneli VKN" onchange="App.saveSettings()">
-                        </div>
-                        <div class="form-group" style="grid-column: 1 / -1;">
-                            <label>Zirve e-Fatura XML Klasör Yolu</label>
-                            <div style="display:flex; gap:8px;">
-                                <input type="text" id="zirveXmlPath" value="C:\zirve" style="flex:1;">
-                                <button class="btn btn-purple" onclick="App.scanZirveXmlFolder()">📂 Klasördeki XML Faturaları Tara</button>
-                            </div>
                         </div>
                     </div>
 
@@ -816,7 +711,7 @@
 
                     <hr style="border:none; border-top:1px solid var(--border); margin:16px 0;">
 
-                    <div class="card-title" style="margin-bottom:10px;">Yedekleme ve Veri Yönetimi</div>
+                    <div class="card-title" style="margin-bottom:10px;">💾 Veri Yedekleme ve Sıfırlama</div>
                     <div style="display:flex; gap:8px; flex-wrap:wrap;">
                         <button class="btn btn-outline btn-sm" onclick="App.exportFullBackupJson()">⬇️ Tam Yedek İndir (.JSON)</button>
                         <button class="btn btn-outline btn-sm" onclick="document.getElementById('backupInput').click()">⬆️ Yedek Geri Yükle (.JSON)</button>
@@ -824,41 +719,41 @@
                         <button class="btn btn-danger btn-sm" onclick="App.clearAllData()">🗑️ Tüm Verileri Sıfırla (Temiz Sayfa Aç)</button>
                     </div>
                 </div>
-            </div>
 
-            <!-- 3. UZAKTAN ERİŞİM & ŞİFRELİ BULUT KÖPRÜSÜ -->
-            <div class="card">
-                <div class="card-header">
-                    <div class="card-title">☁️ 3. Uzaktan Erişim & Uçtan Uca Şifreli Bulut Köprüsü (Ofis Bilgisayarı Kapalıyken Bile Erişim)</div>
-                    <span class="badge badge-alacak">🔒 AES-256-GCM Uçtan Uca Şifreli</span>
-                </div>
-                <p style="font-size:12.5px; color:var(--text-muted); margin-bottom:14px;">
-                    Ofis bilgisayarınız açıkken Zirve SQL'den çekilen tüm cari bakiyeler ve hareketler <strong>sizin belirlediğiniz parola ile AES-256 standardında şifrelenerek</strong> bulut köprüsüne yedeklenir. Ofis bilgisayarınız <strong>kapandığı anda bile</strong> evdeki bilgisayarınızdan veya cep telefonunuzdan aynı <strong>Eşitleme Kodu + Şifreleme Parolası</strong> ile en son güncel verileri görebilir ve işlem yapabilirsiniz.
-                </p>
-
-                <div id="cloudStatusInfoBox" class="filter-bar" style="margin-bottom:14px;"></div>
-
-                <div class="form-grid" style="margin-bottom:14px;">
-                    <div class="form-group">
-                        <label>🔑 Gizli Şifreleme Parolası (AES-256 Anahtarı)</label>
-                        <input type="password" id="cloudSecretKeyInput" value="SODSAN2026" placeholder="Sadece sizin bildiğiniz şifre">
+                <!-- UZAKTAN ERİŞİM & ŞİFRELİ BULUT KÖPRÜSÜ -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">☁️ 2. Bilgisayar & Telefon Bulut Eşitlemesi (AES-256)</div>
+                        <span class="badge badge-alacak">🔒 Uçtan Uca Şifreli</span>
                     </div>
-                    <div class="form-group">
-                        <label>☁️ Bulut Eşitleme Kodu (Diğer Cihazdan Bağlanmak İçin)</label>
-                        <input type="text" id="cloudCodeInput" placeholder="İlk yüklemede otomatik oluşur veya diğer cihazın kodunu girin">
-                    </div>
-                    <div class="form-group">
-                        <label>🔒 Uygulama Giriş PIN Şifresi (Opsiyonel Ekran Kilidi)</label>
-                        <div style="display:flex; gap:6px;">
-                            <input type="password" id="appPinInput" placeholder="Boş bırakılırsa sormaz" style="flex:1;">
-                            <button class="btn btn-outline btn-sm" onclick="CloudBridge.setAppPin()">PIN Kaydet</button>
+                    <p style="font-size:12.5px; color:var(--text-muted); margin-bottom:14px;">
+                        Bilgisayarda yüklediğiniz Zirve ekstreleri sizin belirlediğiniz parola ile <strong>AES-256-GCM</strong> standardında şifrelenerek buluta aktarılır. Cep telefonunuzdan veya evdeki bilgisayarınızdan aynı oda kodu ve parola ile en güncel cari bakiyelerinizi anında görebilirsiniz.
+                    </p>
+
+                    <div id="cloudStatusInfoBox" class="filter-bar" style="margin-bottom:14px;"></div>
+
+                    <div class="form-grid" style="margin-bottom:14px;">
+                        <div class="form-group">
+                            <label>🔑 Gizli Şifreleme Parolası (AES-256 Anahtarı)</label>
+                            <input type="password" id="cloudSecretKeyInput" value="SODSAN2026" placeholder="Sadece sizin bildiğiniz şifre">
+                        </div>
+                        <div class="form-group">
+                            <label>☁️ Bulut Eşitleme Kodu (Diğer Cihazdan Bağlanmak İçin)</label>
+                            <input type="text" id="cloudCodeInput" placeholder="İlk yüklemede otomatik oluşur veya diğer cihazın kodunu girin">
+                        </div>
+                        <div class="form-group">
+                            <label>🔒 Uygulama Giriş PIN Şifresi (Opsiyonel Ekran Kilidi)</label>
+                            <div style="display:flex; gap:6px;">
+                                <input type="password" id="appPinInput" placeholder="Boş bırakılırsa sormaz" style="flex:1;">
+                                <button class="btn btn-outline btn-sm" onclick="CloudBridge.setAppPin()">PIN Kaydet</button>
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <div style="display:flex; gap:10px; flex-wrap:wrap;">
-                    <button class="btn btn-primary" onclick="CloudBridge.pushToCloud(true)">☁️ Şimdi Şifrele ve Buluta Yükle (Ofis PC)</button>
-                    <button class="btn btn-success" onclick="CloudBridge.pullFromCloud(true)">📥 Buluttaki En Son Verileri Çek (Uzaktan / Ev / Telefon)</button>
+                    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                        <button class="btn btn-primary" onclick="CloudBridge.pushToCloud(true)">☁️ Şimdi Şifrele ve Buluta Yükle (Bilgisayar)</button>
+                        <button class="btn btn-success" onclick="CloudBridge.pullFromCloud(true)">📥 Buluttaki En Son Verileri Çek (Telefon / Ev)</button>
+                    </div>
                 </div>
             </div>
         </section>
@@ -1294,10 +1189,10 @@
     <script src="js/xlsx.full.min.js"></script>
     <script src="js/pdf.min.js"></script>
     <script src="js/pdf.worker.min.js"></script>
-    <script src="js/ubl_parser.js?v=20261027_4"></script>
-    <script src="js/excel_importer.js?v=20261027_4"></script>
-    <script src="js/cloud_bridge.js?v=20261027_4"></script>
-    <script src="js/app.js?v=20261027_4"></script>
+    <script src="js/ubl_parser.js?v=20261027_5"></script>
+    <script src="js/excel_importer.js?v=20261027_5"></script>
+    <script src="js/cloud_bridge.js?v=20261027_5"></script>
+    <script src="js/app.js?v=20261027_5"></script>
     <script>
         if ('serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.hostname === 'localhost')) {
             window.addEventListener('load', () => {

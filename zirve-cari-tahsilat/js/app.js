@@ -62,7 +62,6 @@ const App = window.App = {
         if (window.CloudBridge) {
             await window.CloudBridge.init();
         }
-        this.startAutoSyncLoop();
     },
 
     normalizeKod(kod) {
@@ -222,56 +221,6 @@ const App = window.App = {
         if (ekstrePm) ekstrePm.innerHTML = this.vadeOptions.map(opt => `<option value="${opt.value}">${opt.label}</option>`).join("");
     },
 
-    async startAutoSyncLoop() {
-        // Eğer daha önce Zirve veritabanı seçildiyse açılışta ve her 5 dakikada bir arka planda otomatik güncelle
-        const runSilentSync = async () => {
-            const s = this.state.settings || {};
-            if (!s.sqlDatabase) return;
-            try {
-                const res = await fetch("/api/sql/sync", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        server: s.sqlServer || ".\\ZIRVESQL",
-                        authType: s.sqlAuthType || "windows",
-                        user: s.sqlUser || "sa",
-                        password: s.sqlPassword || "",
-                        database: s.sqlDatabase
-                    })
-                });
-                const data = await res.json();
-                if (data && data.ok) {
-                    const promiseMap = {};
-                    for (const oldC of this.state.cariler) {
-                        if (oldC.odemeSozuTarihi || oldC.ozelNot) {
-                            promiseMap[oldC.kod] = {
-                                odemeSozuTarihi: oldC.odemeSozuTarihi,
-                                odemeSozuTutar: oldC.odemeSozuTutar,
-                                ozelNot: oldC.ozelNot
-                            };
-                        }
-                    }
-                    for (const zc of (data.cariler || [])) {
-                        const existing = this.state.cariler.find(c => c.kod === zc.kod || c.id === zc.id);
-                        const savedNotes = promiseMap[zc.kod] || {};
-                        if (existing) Object.assign(existing, zc, savedNotes);
-                        else this.state.cariler.push({ ...zc, ...savedNotes });
-                    }
-                    this.state.hareketler = this.state.hareketler.filter(h => !String(h.id).startsWith("ZRV-H-"));
-                    for (const zh of (data.hareketler || [])) {
-                        this.state.hareketler.push(zh);
-                    }
-                    this.state.settings.lastSyncTime = new Date().toLocaleTimeString("tr-TR");
-                    this.saveState();
-                    this.recalculateAndRenderAll();
-                    this.setServerBadge(true, `Canlı: ${s.sqlDatabase} (${this.state.settings.lastSyncTime})`);
-                }
-            } catch (e) {}
-        };
-        await runSilentSync();
-        setInterval(runSilentSync, 5 * 60 * 1000);
-    },
-
     async loadState() {
         // 1. Önce yerel sunucudan (/api/data) okumayı dene
         try {
@@ -417,13 +366,8 @@ const App = window.App = {
         }
         const fn = document.getElementById("ownFirmName"); if (fn) fn.value = s.ownFirmName || "SODSAN";
         const vkn = document.getElementById("ownFirmVkn"); if (vkn) vkn.value = s.ownFirmVkn || "";
-        const xp = document.getElementById("zirveXmlPath"); if (xp) xp.value = s.zirveXmlPath || "C:\\zirve";
-        const srv = document.getElementById("sqlServerInput"); if (srv) srv.value = s.sqlServer || ".\\ZIRVESQL";
-        const auth = document.getElementById("sqlAuthType"); if (auth) auth.value = s.sqlAuthType || "windows";
-        const usr = document.getElementById("sqlUserInput"); if (usr) usr.value = s.sqlUser || "sa";
         const smCheck = document.getElementById("shiftMonthEndInvoicesCheck");
         if (smCheck) smCheck.checked = s.shiftMonthEndInvoices !== false;
-        this.toggleSqlAuthInputs();
     },
 
     toggleShiftMonthEndInvoices(checked) {
@@ -432,8 +376,8 @@ const App = window.App = {
         this.saveState();
         this.recalculateAndRenderAll();
         this.showToast(checked
-            ? "✅ Ay sonu teamül kuralı aktif: Ayın son 2 günü kesilen faturalar bir sonraki ay başı kabul edilir."
-            : "ℹ️ Ay sonu teamül kuralı kapatıldı: Faturalar doğrudan kesildiği gün baz alınarak hesaplanır.");
+            ? "? Ay sonu teamül kuralı aktif: Ayın son 2 günü kesilen faturalar bir sonraki ay başı kabul edilir."
+            : "?? Ay sonu teamül kuralı kapatıldı: Faturalar doğrudan kesildiği gün baz alınarak hesaplanır.");
     },
 
     saveSettings() {
@@ -453,7 +397,7 @@ const App = window.App = {
 
     async fetchLiveRates() {
         const btn = document.getElementById("btnLiveRate");
-        if (btn) btn.textContent = "⏳ Alınıyor...";
+        if (btn) btn.textContent = "? Alınıyor...";
         try {
             const resp = await fetch("https://open.er-api.com/v6/latest/USD");
             if (!resp.ok) throw new Error("Kur servisi yanıt vermedi (" + resp.status + ")");
@@ -473,15 +417,15 @@ const App = window.App = {
                 await this.saveState();
                 this.recalculateAndRenderAll();
                 
-                alert(`✅ Canlı Döviz Kurları Başarıyla Alındı!\n\n• USD / TRY: ${usdStr} ₺\n• EUR / TRY: ${eurStr} ₺\n\nTüm dövizli cariler, faturalar ve bakiyeler güncel kurla (4 basamak hassasiyetle) anında hesaplandı.`);
+                alert(`? Canlı Döviz Kurları Başarıyla Alındı!\n\n• USD / TRY: ${usdStr} ?\n• EUR / TRY: ${eurStr} ?\n\nTüm dövizli cariler, faturalar ve bakiyeler güncel kurla (4 basamak hassasiyetle) anında hesaplandı.`);
             } else {
                 throw new Error("Kur verisi çözümlenemedi.");
             }
         } catch (e) {
             console.warn("Canlı kur alma hatası:", e);
-            alert("⚠️ Canlı kur servisine ulaşılamadı (" + e.message + "). Kurları kutulardan elle yazıp 'Enter'a basabilirsiniz.");
+            alert("?? Canlı kur servisine ulaşılamadı (" + e.message + "). Kurları kutulardan elle yazıp 'Enter'a basabilirsiniz.");
         } finally {
-            if (btn) btn.textContent = "🔄 Canlı Kur";
+            if (btn) btn.textContent = "?? Canlı Kur";
         }
     },
 
@@ -500,7 +444,7 @@ const App = window.App = {
     formatMoney(amount, currency = "TRY") {
         const val = parseFloat(amount) || 0;
         const cur = (currency || "TRY").toUpperCase();
-        const sym = cur === "USD" ? "$" : cur === "EUR" ? "€" : "₺";
+        const sym = cur === "USD" ? "$" : cur === "EUR" ? "€" : "?";
         return val.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " " + sym;
     },
 
@@ -555,7 +499,7 @@ const App = window.App = {
                 vadeTarihi,
                 text: `${diffDays} gün gecikti`,
                 badgeClass: "badge-warn",
-                html: `<span class="badge badge-warn" style="font-weight:600; white-space:nowrap;">⚠️ ${diffDays} gün gecikti</span>`
+                html: `<span class="badge badge-warn" style="font-weight:600; white-space:nowrap;">?? ${diffDays} gün gecikti</span>`
             };
         } else if (diffDays < 0) {
             const rem = Math.abs(diffDays);
@@ -567,7 +511,7 @@ const App = window.App = {
                 vadeTarihi,
                 text: `${rem} gün kaldı`,
                 badgeClass: "badge-neutral",
-                html: `<span class="badge badge-neutral" style="color:#38bdf8; font-weight:600; white-space:nowrap;">⏳ ${rem} gün kaldı</span>`
+                html: `<span class="badge badge-neutral" style="color:#38bdf8; font-weight:600; white-space:nowrap;">? ${rem} gün kaldı</span>`
             };
         } else {
             return {
@@ -578,7 +522,7 @@ const App = window.App = {
                 vadeTarihi,
                 text: "Bugün vadeli",
                 badgeClass: "badge-warn",
-                html: `<span class="badge badge-warn" style="background:#f59e0b; color:#fff; font-weight:600; white-space:nowrap;">🔔 Bugün vadeli</span>`
+                html: `<span class="badge badge-warn" style="background:#f59e0b; color:#fff; font-weight:600; white-space:nowrap;">?? Bugün vadeli</span>`
             };
         }
     },
@@ -914,7 +858,7 @@ const App = window.App = {
             banner.style.display = "flex";
             const nameEl = document.getElementById("activeReportName");
             const detEl = document.getElementById("activeReportDetails");
-            if (nameEl) nameEl.textContent = `📄 ${rep.fileName || "Zirve Raporu"}`;
+            if (nameEl) nameEl.textContent = `?? ${rep.fileName || "Zirve Raporu"}`;
             if (detEl) {
                 detEl.textContent = `• Yüklenme: ${rep.uploadTime || "-"} • ${this.state.cariler.length} Cari Hesap • ${this.state.hareketler.length} Hareket • ${this.state.faturalar.length} Fatura`;
             }
@@ -922,7 +866,7 @@ const App = window.App = {
             banner.style.display = "flex";
             const nameEl = document.getElementById("activeReportName");
             const detEl = document.getElementById("activeReportDetails");
-            if (nameEl) nameEl.textContent = "📄 Kayıtlı Zirve Raporu";
+            if (nameEl) nameEl.textContent = "?? Kayıtlı Zirve Raporu";
             if (detEl) {
                 detEl.textContent = `• ${this.state.cariler.length} Cari Hesap • ${this.state.hareketler.length} Hareket • ${this.state.faturalar.length} Fatura`;
             }
@@ -1136,7 +1080,7 @@ const App = window.App = {
             allGroups.forEach(g => {
                 const opt = document.createElement("option");
                 opt.value = g;
-                opt.textContent = `📁 ${g}`;
+                opt.textContent = `?? ${g}`;
                 grupSelect.appendChild(opt);
             });
         }
@@ -1187,7 +1131,7 @@ const App = window.App = {
                 if (c.enEskiAcikVade) {
                     const info = this.getVadeDurumu(c.enEskiAcikVade);
                     gecikmeHtml = `
-                        <div style="font-weight:600; font-size:12px; white-space:nowrap;">📅 ${this.formatDisplayDate(c.enEskiAcikVade)}</div>
+                        <div style="font-weight:600; font-size:12px; white-space:nowrap;">?? ${this.formatDisplayDate(c.enEskiAcikVade)}</div>
                         <div style="margin-top:2px;">${info.html}</div>
                     `;
                 } else {
@@ -1196,10 +1140,10 @@ const App = window.App = {
             }
 
             const sozHtml = c.odemeSozuTarihi
-                ? `<div style="font-size:11.5px; color:#38bdf8;"><strong>📅 Söz:</strong> ${c.odemeSozuTarihi} ${c.odemeSozuTutar ? `(${this.formatMoney(c.odemeSozuTutar)})` : ''}</div>`
+                ? `<div style="font-size:11.5px; color:#38bdf8;"><strong>?? Söz:</strong> ${c.odemeSozuTarihi} ${c.odemeSozuTutar ? `(${this.formatMoney(c.odemeSozuTutar)})` : ''}</div>`
                 : '';
             const notHtml = c.ozelNot
-                ? `<div style="font-size:11px; color:var(--text-muted); max-width:200px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${c.ozelNot}">📝 ${c.ozelNot}</div>`
+                ? `<div style="font-size:11px; color:var(--text-muted); max-width:200px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${c.ozelNot}">?? ${c.ozelNot}</div>`
                 : '';
 
             return `
@@ -1228,7 +1172,7 @@ const App = window.App = {
                     <td>${gecikmeHtml}</td>
                     <td>${sozHtml}${notHtml || (!sozHtml ? '<span style="color:var(--text-muted); font-size:11px;">-</span>' : '')}</td>
                     <td style="white-space:nowrap;">
-                        <button class="btn btn-outline btn-sm" onclick="App.openCariVadeModal('${c.id}')" title="Vade, Grup ve Not Düzenle">⚙️ Vade / Not</button>
+                        <button class="btn btn-outline btn-sm" onclick="App.openCariVadeModal('${c.id}')" title="Vade, Grup ve Not Düzenle">?? Vade / Not</button>
                         <button class="btn btn-outline btn-sm" onclick="App.openCariEkstre('${c.id}')">Ekstre</button>
                         <button class="btn btn-success btn-sm" onclick="App.openQuickTransactionModal('TAHSILAT', '${c.id}')">+ Tahsilat</button>
                     </td>
@@ -1257,7 +1201,7 @@ const App = window.App = {
             allGroups.forEach(g => {
                 const opt = document.createElement("option");
                 opt.value = g;
-                opt.textContent = `📁 ${g}`;
+                opt.textContent = `?? ${g}`;
                 grupSelect.appendChild(opt);
             });
         }
@@ -1309,7 +1253,7 @@ const App = window.App = {
                 if (c.enEskiAcikVade) {
                     const info = this.getVadeDurumu(c.enEskiAcikVade);
                     gecikmeHtml = `
-                        <div style="font-weight:600; font-size:12px; white-space:nowrap;">📅 ${this.formatDisplayDate(c.enEskiAcikVade)}</div>
+                        <div style="font-weight:600; font-size:12px; white-space:nowrap;">?? ${this.formatDisplayDate(c.enEskiAcikVade)}</div>
                         <div style="margin-top:2px;">${info.html}</div>
                     `;
                 } else {
@@ -1318,10 +1262,10 @@ const App = window.App = {
             }
 
             const sozHtml = c.odemeSozuTarihi
-                ? `<div style="font-size:11.5px; color:#f87171;"><strong>📅 Söz:</strong> ${c.odemeSozuTarihi} ${c.odemeSozuTutar ? `(${this.formatMoney(c.odemeSozuTutar)})` : ''}</div>`
+                ? `<div style="font-size:11.5px; color:#f87171;"><strong>?? Söz:</strong> ${c.odemeSozuTarihi} ${c.odemeSozuTutar ? `(${this.formatMoney(c.odemeSozuTutar)})` : ''}</div>`
                 : '';
             const notHtml = c.ozelNot
-                ? `<div style="font-size:11px; color:var(--text-muted); max-width:200px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${c.ozelNot}">📝 ${c.ozelNot}</div>`
+                ? `<div style="font-size:11px; color:var(--text-muted); max-width:200px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${c.ozelNot}">?? ${c.ozelNot}</div>`
                 : '';
 
             return `
@@ -1350,7 +1294,7 @@ const App = window.App = {
                     <td>${gecikmeHtml}</td>
                     <td>${sozHtml}${notHtml || (!sozHtml ? '<span style="color:var(--text-muted); font-size:11px;">-</span>' : '')}</td>
                     <td style="white-space:nowrap;">
-                        <button class="btn btn-outline btn-sm" onclick="App.openCariVadeModal('${c.id}')" title="Vade, Grup ve Not Düzenle">⚙️ Vade / Not</button>
+                        <button class="btn btn-outline btn-sm" onclick="App.openCariVadeModal('${c.id}')" title="Vade, Grup ve Not Düzenle">?? Vade / Not</button>
                         <button class="btn btn-outline btn-sm" onclick="App.openCariEkstre('${c.id}')">Ekstre</button>
                         <button class="btn btn-danger btn-sm" onclick="App.openQuickTransactionModal('ODEME', '${c.id}')">- Ödeme</button>
                     </td>
@@ -1416,7 +1360,7 @@ const App = window.App = {
 
         await this.saveState();
         this.recalculateAndRenderAll();
-        this.showToast(`✅ "${c.unvan}" vade seçeneği kalıcı olarak kaydedildi: ${opt ? opt.label : optValue}`);
+        this.showToast(`? "${c.unvan}" vade seçeneği kalıcı olarak kaydedildi: ${opt ? opt.label : optValue}`);
     },
 
     async onBulkVadeDropdownChange(type, selVade) {
@@ -1481,7 +1425,7 @@ const App = window.App = {
 
         await this.saveState();
         this.recalculateAndRenderAll();
-        this.showToast(`✅ ${count} adet cariye '${opt ? opt.label : selVade}' kuralı uygulandı ve kalıcı kaydedildi.`);
+        this.showToast(`? ${count} adet cariye '${opt ? opt.label : selVade}' kuralı uygulandı ve kalıcı kaydedildi.`);
     },
 
     showToast(msg) {
@@ -1569,19 +1513,19 @@ const App = window.App = {
                 yonBadge = `<span class="badge badge-borc">Borçlu (Ödenecek)</span>`;
             }
 
-            let odemeBadge = `<span class="badge badge-nakit">💵 Nakit (30G)</span>`;
+            let odemeBadge = `<span class="badge badge-nakit">?? Nakit (30G)</span>`;
             if (c.odemeSekli) {
                 if (c.odemeSekli.startsWith("CEK")) {
                     const days = c.vadeGunu || c.odemeSekli.split("_")[1] || 60;
-                    odemeBadge = `<span class="badge badge-cek">📑 ${days}G Çek</span>`;
+                    odemeBadge = `<span class="badge badge-cek">?? ${days}G Çek</span>`;
                 } else if (c.odemeSekli === "KREDI_KARTI") {
-                    odemeBadge = `<span class="badge badge-purple">💳 K.Kartı</span>`;
+                    odemeBadge = `<span class="badge badge-purple">?? K.Kartı</span>`;
                 } else if (c.odemeSekli === "PESIN") {
-                    odemeBadge = `<span class="badge badge-alacak">⚡ Peşin</span>`;
+                    odemeBadge = `<span class="badge badge-alacak">? Peşin</span>`;
                 } else if (c.odemeSekli === "OZEL") {
-                    odemeBadge = `<span class="badge badge-neutral">✏️ Özel (${c.vadeGunu || 30}G)</span>`;
+                    odemeBadge = `<span class="badge badge-neutral">?? Özel (${c.vadeGunu || 30}G)</span>`;
                 } else {
-                    odemeBadge = `<span class="badge badge-nakit">💵 Nakit (${c.vadeGunu || 30}G)</span>`;
+                    odemeBadge = `<span class="badge badge-nakit">?? Nakit (${c.vadeGunu || 30}G)</span>`;
                 }
             } else if (c.vadeGunu) {
                 odemeBadge = `<span class="badge badge-neutral">Vade: ${c.vadeGunu}G</span>`;
@@ -1591,7 +1535,7 @@ const App = window.App = {
             if (c.bakiyeYonu !== "KAPALI" && c.enEskiAcikVade) {
                 const info = this.getVadeDurumu(c.enEskiAcikVade);
                 gecikmeHtml = `
-                    <div style="font-weight:600; font-size:12px; white-space:nowrap;">📅 ${this.formatDisplayDate(c.enEskiAcikVade)}</div>
+                    <div style="font-weight:600; font-size:12px; white-space:nowrap;">?? ${this.formatDisplayDate(c.enEskiAcikVade)}</div>
                     <div style="margin-top:2px;">${info.html}</div>
                 `;
             }
@@ -1622,7 +1566,7 @@ const App = window.App = {
                     <td>
                         <div style="display:flex; gap:5px; flex-wrap:wrap;">
                             <button class="btn btn-primary btn-sm" onclick="App.openCariEkstre('${c.id}')">Ekstre</button>
-                            <button class="btn btn-outline btn-sm" onclick="App.openCariVadeModal('${c.id}')" title="Vade ve Ödeme Şekli Ayarla">⚙️ Vade/Şart</button>
+                            <button class="btn btn-outline btn-sm" onclick="App.openCariVadeModal('${c.id}')" title="Vade ve Ödeme Şekli Ayarla">?? Vade/Şart</button>
                             <button class="btn btn-success btn-sm" onclick="App.openQuickTransactionModal('TAHSILAT', '${c.id}')" title="Müşteriden Tahsilat">+Tahsilat</button>
                             <button class="btn btn-danger btn-sm" onclick="App.openQuickTransactionModal('ODEME', '${c.id}')" title="Tedarikçiye Ödeme">-Ödeme</button>
                         </div>
@@ -1685,7 +1629,7 @@ const App = window.App = {
             <div class="kpi-card">
                 <div class="kpi-label">Faturadan Hesaplanan Vade Durumu</div>
                 <div class="kpi-value" style="font-size:13.5px; font-weight:600; margin-top:2px;">
-                    ${vadeDurumu ? `📅 ${this.formatDisplayDate(c.enEskiAcikVade)} • ${vadeDurumu.text}` : '<span style="color:var(--text-muted); font-size:12px;">Açık Bakiye Yok (Kapalı)</span>'}
+                    ${vadeDurumu ? `?? ${this.formatDisplayDate(c.enEskiAcikVade)} • ${vadeDurumu.text}` : '<span style="color:var(--text-muted); font-size:12px;">Açık Bakiye Yok (Kapalı)</span>'}
                 </div>
             </div>
         `;
@@ -1748,7 +1692,7 @@ const App = window.App = {
         this.saveState();
         this.recalculateAndRenderAll();
         this.openCariEkstre(cariId);
-        this.showToast(`✅ "${target.unvan}" vade ve ödeme şartları güncellendi. Tüm fatura vadeleri ve kalan günler yeniden hesaplandı.`);
+        this.showToast(`? "${target.unvan}" vade ve ödeme şartları güncellendi. Tüm fatura vadeleri ve kalan günler yeniden hesaplandı.`);
     },
 
     onEkstrePaymentMethodChange() {
@@ -1886,7 +1830,7 @@ const App = window.App = {
         this.closeModal("cariVadeModal");
         await this.saveState();
         this.recalculateAndRenderAll();
-        this.showToast(`✅ "${target.unvan}" vade ve grup bilgileri kalıcı olarak kaydedildi.`);
+        this.showToast(`? "${target.unvan}" vade ve grup bilgileri kalıcı olarak kaydedildi.`);
     },
 
     copyWhatsAppReminderText(cariId) {
@@ -1912,7 +1856,7 @@ const App = window.App = {
 
         if (navigator.clipboard && navigator.clipboard.writeText) {
             navigator.clipboard.writeText(msg).then(() => {
-                alert("📋 Hatırlatma metni panoya kopyalandı!\n\nWhatsApp, SMS veya e-posta ile yapıştırıp gönderebilirsiniz:\n\n" + msg);
+                alert("?? Hatırlatma metni panoya kopyalandı!\n\nWhatsApp, SMS veya e-posta ile yapıştırıp gönderebilirsiniz:\n\n" + msg);
             }).catch(() => {
                 prompt("Metni kopyalayınız (Ctrl+C):", msg);
             });
@@ -2009,28 +1953,28 @@ const App = window.App = {
         if (kpisEl) {
             kpisEl.innerHTML = `
                 <div class="kpi-card borc" style="border-left: 4px solid #ef4444;">
-                    <div class="kpi-label">🚨 Vadesi Geçen Müşteri Alacakları</div>
+                    <div class="kpi-label">?? Vadesi Geçen Müşteri Alacakları</div>
                     <div class="kpi-value text-borc">${this.formatMoney(totalGecikenAlacak)}</div>
                     <div class="kpi-sub">
                         <span><strong>${countGecikenAlacak} Müşteri</strong> aranmayı bekliyor</span>
                     </div>
                 </div>
                 <div class="kpi-card borc" style="border-left: 4px solid #f59e0b;">
-                    <div class="kpi-label">⚠️ Vadesi Geçen Tedarikçi Borçlarımız</div>
+                    <div class="kpi-label">?? Vadesi Geçen Tedarikçi Borçlarımız</div>
                     <div class="kpi-value text-warn">${this.formatMoney(totalGecikenBorc)}</div>
                     <div class="kpi-sub">
                         <span><strong>${countGecikenBorc} Tedarikçi</strong> için ödeme gecikti</span>
                     </div>
                 </div>
                 <div class="kpi-card alacak" style="border-left: 4px solid #10b981;">
-                    <div class="kpi-label">📅 Bu Hafta Beklenen Müşteri Tahsilatları</div>
+                    <div class="kpi-label">?? Bu Hafta Beklenen Müşteri Tahsilatları</div>
                     <div class="kpi-value text-alacak">${this.formatMoney(totalBuHaftaAlacak)}</div>
                     <div class="kpi-sub">
                         <span>Önümüzdeki 7 gün içinde tahsil edilecek</span>
                     </div>
                 </div>
                 <div class="kpi-card" style="border-left: 4px solid #3b82f6;">
-                    <div class="kpi-label">📅 Bu Hafta Yapılacak Ödemelerimiz</div>
+                    <div class="kpi-label">?? Bu Hafta Yapılacak Ödemelerimiz</div>
                     <div class="kpi-value text-info">${this.formatMoney(totalBuHaftaBorc)}</div>
                     <div class="kpi-sub">
                         <span>Önümüzdeki 7 gün içinde nakit/çek çıkışı</span>
@@ -2048,23 +1992,23 @@ const App = window.App = {
                 ? `<span class="badge badge-alacak">Müşteri (Alacak)</span>`
                 : `<span class="badge badge-borc">Tedarikçi (Borç)</span>`;
 
-            let odemeBadge = `<span class="badge badge-nakit">💵 Nakit / EFT</span>`;
+            let odemeBadge = `<span class="badge badge-nakit">?? Nakit / EFT</span>`;
             if (it.odemeSekli.startsWith("CEK")) {
                 const days = it.vadeGunu || it.odemeSekli.split("_")[1] || 60;
-                odemeBadge = `<span class="badge badge-cek">📑 ${days} Günlük Çek</span>`;
+                odemeBadge = `<span class="badge badge-cek">?? ${days} Günlük Çek</span>`;
             } else if (it.odemeSekli === "KREDI_KARTI") {
-                odemeBadge = `<span class="badge badge-purple">💳 Kredi Kartı / DBS</span>`;
+                odemeBadge = `<span class="badge badge-purple">?? Kredi Kartı / DBS</span>`;
             } else if (it.odemeSekli === "PESIN") {
-                odemeBadge = `<span class="badge badge-alacak">⚡ Peşin</span>`;
+                odemeBadge = `<span class="badge badge-alacak">? Peşin</span>`;
             }
 
             let durumBadge = "";
             if (it.daysDiff > 0) {
-                durumBadge = `<span class="badge badge-today">🚨 ${it.daysDiff} Gün Gecikti</span>`;
+                durumBadge = `<span class="badge badge-today">?? ${it.daysDiff} Gün Gecikti</span>`;
             } else if (it.daysDiff === 0) {
-                durumBadge = `<span class="badge badge-warn">⚠️ BUGÜN VADESİ</span>`;
+                durumBadge = `<span class="badge badge-warn">?? BUGÜN VADESİ</span>`;
             } else if (it.daysDiff >= -7) {
-                durumBadge = `<span class="badge badge-week">📅 ${Math.abs(it.daysDiff)} Gün Kaldı</span>`;
+                durumBadge = `<span class="badge badge-week">?? ${Math.abs(it.daysDiff)} Gün Kaldı</span>`;
             } else {
                 durumBadge = `<span class="badge badge-neutral">${Math.abs(it.daysDiff)} Gün Kaldı</span>`;
             }
@@ -2098,8 +2042,8 @@ const App = window.App = {
                     </td>
                     <td>
                         <div style="display:flex; gap:5px; flex-wrap:wrap;">
-                            <button class="btn btn-outline btn-sm" onclick="App.openCariVadeModal('${c.id}')" title="Vade ve Ödeme Şeklini Düzenle">⚙️ Vade / Şart</button>
-                            <button class="btn btn-outline btn-sm" onclick="App.copyWhatsAppReminderText('${c.id}')" title="WhatsApp veya SMS Hatırlatma Metnini Kopyala">💬 Not Kopyala</button>
+                            <button class="btn btn-outline btn-sm" onclick="App.openCariVadeModal('${c.id}')" title="Vade ve Ödeme Şeklini Düzenle">?? Vade / Şart</button>
+                            <button class="btn btn-outline btn-sm" onclick="App.copyWhatsAppReminderText('${c.id}')" title="WhatsApp veya SMS Hatırlatma Metnini Kopyala">?? Not Kopyala</button>
                             <button class="btn btn-primary btn-sm" onclick="App.openCariEkstre('${c.id}')">Ekstre</button>
                             ${it.isAlacak
                                 ? `<button class="btn btn-success btn-sm" onclick="App.openQuickTransactionModal('TAHSILAT', '${c.id}')">+Tahsilat</button>`
@@ -2191,7 +2135,7 @@ const App = window.App = {
                     <td class="num ${h.alacak > 0 ? 'text-borc' : ''}">${h.alacak > 0 ? this.formatMoney(h.alacak, h.doviz) : '-'}</td>
                     <td class="nowrap"><span style="font-size:11.5px; color:var(--text-muted);">${h.kaynak || 'Manuel'}</span></td>
                     <td class="nowrap">
-                        <button class="btn btn-outline btn-sm" onclick="App.deleteHareket('${h.id}')" title="Hareketi Sil">🗑️</button>
+                        <button class="btn btn-outline btn-sm" onclick="App.deleteHareket('${h.id}')" title="Hareketi Sil">???</button>
                     </td>
                 </tr>
             `;
@@ -2569,9 +2513,9 @@ const App = window.App = {
     onTrTypeChange() {
         const t = document.getElementById("trType").value;
         const titleEl = document.getElementById("transModalTitle");
-        if (t === "TAHSILAT") titleEl.textContent = "🟢 Müşteriden Tahsilat / Gelen Havale Girişi";
-        else if (t === "ODEME") titleEl.textContent = "🔴 Tedarikçiye Ödeme / Gönderilen EFT Girişi";
-        else titleEl.textContent = "📑 Cari Hesap Hareketi Girişi";
+        if (t === "TAHSILAT") titleEl.textContent = "?? Müşteriden Tahsilat / Gelen Havale Girişi";
+        else if (t === "ODEME") titleEl.textContent = "?? Tedarikçiye Ödeme / Gönderilen EFT Girişi";
+        else titleEl.textContent = "?? Cari Hesap Hareketi Girişi";
     },
 
     saveTransaction() {
@@ -2725,13 +2669,13 @@ const App = window.App = {
                 throw new Error("İçe aktarıcı kütüphanesi henüz yüklenemedi. Lütfen sayfayı yenileyiniz (Ctrl + F5).");
             }
             const res = await window.ZirveExcelImporter.processFile(file, this);
-            let msg = `✅ Zirve Dosyası Başarıyla İçe Aktarıldı!\n\n• ${res.cariler} Cari Hesap işlendi.\n• ${res.hareketler} Cari Hareket / İşlem kaydedildi.`;
+            let msg = `? Zirve Dosyası Başarıyla İçe Aktarıldı!\n\n• ${res.cariler} Cari Hesap işlendi.\n• ${res.hareketler} Cari Hareket / İşlem kaydedildi.`;
             if (res.faturalar) msg += `\n• ${res.faturalar} Fatura yaşlandırmaya alındı.`;
             if (res.ceksenet) msg += `\n• ${res.ceksenet} Çek/Senet portföye eklendi.`;
             msg += `\n• Toplam Aktif Cari: ${res.totalCariler || this.state.cariler.length}\n\nTüm bakiyeler, gecikmiş vadeler ve nakit akışı takvimi otomatik hesaplandı.`;
             alert(msg);
         } catch (e) {
-            alert("❌ Dosya okuma hatası: " + e.message);
+            alert("? Dosya okuma hatası: " + e.message);
         }
     },
 
@@ -2868,584 +2812,6 @@ const App = window.App = {
         });
 
         return "ADDED";
-    },
-
-    // ================= 7. ZİRVE SQL & KLASÖR SENKRONİZASYONU =================
-    toggleSqlAuthInputs() {
-        const isSql = document.getElementById("sqlAuthType").value === "sql";
-        document.querySelectorAll(".sql-auth-field").forEach(el => {
-            el.style.display = isSql ? "flex" : "none";
-        });
-    },
-
-    getSqlConfigFromUi() {
-        return {
-            server: document.getElementById("sqlServerInput").value.trim() || ".\\ZIRVESQL",
-            authType: document.getElementById("sqlAuthType").value,
-            user: document.getElementById("sqlUserInput").value.trim(),
-            password: document.getElementById("sqlPassInput").value,
-            database: document.getElementById("sqlDatabaseSelect").value,
-            customCariTable: document.getElementById("sqlCustomCariTable")?.value || "",
-            customCariHarTable: document.getElementById("sqlCustomCariHarTable")?.value || ""
-        };
-    },
-
-    async onDatabaseSelected() {
-        const db = document.getElementById("sqlDatabaseSelect").value;
-        if (db) {
-            await this.inspectCurrentDatabaseTables(false);
-        }
-    },
-
-    async inspectCurrentDatabaseTables(showAlert = true) {
-        const cfg = this.getSqlConfigFromUi();
-        if (!cfg.database) {
-            if (showAlert) alert("Lütfen önce bir veritabanı seçin.");
-            return;
-        }
-
-        const mapSec = document.getElementById("tableMappingSection");
-        const badgeArea = document.getElementById("tableListBadgeArea");
-        const cariSel = document.getElementById("sqlCustomCariTable");
-        const harSel = document.getElementById("sqlCustomCariHarTable");
-
-        if (badgeArea) badgeArea.innerHTML = `<span class="text-info">Tablolar listeleniyor...</span>`;
-        if (mapSec) mapSec.style.display = "block";
-
-        try {
-            const res = await fetch("/api/sql/tables", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(cfg)
-            });
-            const data = await res.json();
-            if (!data.ok) {
-                if (badgeArea) badgeArea.innerHTML = `<span class="text-borc">Hata: ${data.error}</span>`;
-                return;
-            }
-
-            const tables = data.tables || [];
-            let cariOptions = `<option value="">-- Otomatik Bul --</option>`;
-            let harOptions = `<option value="">-- Otomatik Bul --</option>`;
-            let badgesHtml = "";
-
-            let autoCariGuess = "";
-            let autoHarGuess = "";
-
-            tables.forEach(t => {
-                const name = t.TableName || t.name;
-                const rows = t.RowCnt !== undefined ? t.RowCnt : t.rows;
-                const upper = name.toUpperCase();
-
-                const isCariCand = upper === "CARI" || upper.includes("CARIKART") || upper === "TBLCARI" || (upper.includes("CARI") && !upper.includes("HAR"));
-                const isHarCand = upper === "CARIHAR" || upper.includes("CARI_HAREKET") || upper.includes("CHAREKET") || upper.includes("HAREKET");
-
-                if (isCariCand && !autoCariGuess) autoCariGuess = name;
-                if (isHarCand && !autoHarGuess) autoHarGuess = name;
-
-                cariOptions += `<option value="${name}">${name} (${rows} kayıt)${isCariCand ? ' ⭐' : ''}</option>`;
-                harOptions += `<option value="${name}">${name} (${rows} kayıt)${isHarCand ? ' ⭐' : ''}</option>`;
-
-                badgesHtml += `
-                    <span class="badge ${isCariCand ? 'badge-alacak' : isHarCand ? 'badge-borc' : 'badge-neutral'}" style="margin:2px; cursor:pointer;" onclick="App.quickSelectTable('${name}', '${isCariCand ? 'cari' : isHarCand ? 'har' : ''}')">
-                        ${name} (${rows})
-                    </span>
-                `;
-            });
-
-            if (cariSel) {
-                cariSel.innerHTML = cariOptions;
-                if (autoCariGuess) cariSel.value = autoCariGuess;
-            }
-            if (harSel) {
-                harSel.innerHTML = harOptions;
-                if (autoHarGuess) harSel.value = autoHarGuess;
-            }
-            if (badgeArea) {
-                badgeArea.innerHTML = `
-                    <div style="margin-bottom:6px; color:var(--text-muted);">
-                        Bulunan <strong>${tables.length}</strong> tablo (Kayıt sayılarıyla): Bir tabloya tıklayarak da atayabilirsiniz:
-                    </div>
-                    ${badgesHtml || 'Hiç tablo bulunamadı.'}
-                `;
-            }
-        } catch (e) {
-            if (badgeArea) badgeArea.innerHTML = `<span class="text-borc">Tablolar alınamadı: ${e.message}</span>`;
-        }
-    },
-
-    quickSelectTable(tableName, hintType) {
-        if (hintType === "cari" || (!hintType && tableName.toUpperCase().includes("CARI") && !tableName.toUpperCase().includes("HAR"))) {
-            const sel = document.getElementById("sqlCustomCariTable");
-            if (sel) sel.value = tableName;
-        } else {
-            const sel = document.getElementById("sqlCustomCariHarTable");
-            if (sel) sel.value = tableName;
-        }
-    },
-
-    setSqlServerName(name) {
-        const inp = document.getElementById("sqlServerInput");
-        if (inp) {
-            inp.value = name;
-        }
-        this.loadSqlDatabases();
-    },
-
-    async discoverZirveSql() {
-        const box = document.getElementById("sqlDiscoveryResult");
-        box.innerHTML = `<div class="badge badge-neutral">🔍 Bilgisayardaki SQL Server servisleri taranıyor...</div>`;
-        try {
-            const res = await fetch("/api/sql/discover", { method: "POST" });
-            const data = await res.json();
-            if (!data.ok) {
-                box.innerHTML = `<div class="badge badge-borc">Hata: ${data.error}</div>`;
-                return;
-            }
-
-            const instances = data.instances || [];
-            const services = data.services || [];
-
-            let badgeHtml = "";
-            let autoSelected = false;
-
-            // 1. Zirve için bulunan SQL Instance'ları
-            instances.forEach(inst => {
-                const isZirve = inst.server.toUpperCase().includes("ZIRVE");
-                const isDinamo = inst.server.toUpperCase().includes("DINAMO");
-
-                if (!isDinamo) {
-                    badgeHtml += `
-                        <button type="button" class="btn btn-sm ${isZirve ? 'btn-success' : 'btn-outline'}" style="margin:2px;" onclick="App.setSqlServerName('${inst.server}')">
-                            ${isZirve ? '🎯 ZİRVE:' : '🔌'} ${inst.server} (${inst.databases?.length || 0} DB)
-                        </button>
-                    `;
-                    if (!autoSelected) {
-                        document.getElementById("sqlServerInput").value = inst.server;
-                        document.getElementById("sqlAuthType").value = inst.authType;
-                        if (inst.user) document.getElementById("sqlUserInput").value = inst.user;
-                        if (inst.password) document.getElementById("sqlPassInput").value = inst.password;
-                        this.toggleSqlAuthInputs();
-
-                        const dbSel = document.getElementById("sqlDatabaseSelect");
-                        if (dbSel && inst.databases) {
-                            dbSel.innerHTML = `<option value="">-- Veritabanı Seçin --</option>` + inst.databases.map(db => `<option value="${db}">${db}</option>`).join("");
-                        }
-                        autoSelected = true;
-                    }
-                }
-            });
-
-            let statusTxt = "";
-            if (autoSelected) {
-                statusTxt = `
-                    <div style="background:var(--bg-card); border:1px solid #10b981; border-radius:8px; padding:10px 14px; margin-bottom:8px;">
-                        <span style="color:#10b981; font-weight:700;">✅ Tespit Edilen SQL Sunucuları:</span>
-                        <div style="margin-top:6px; display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
-                            ${badgeHtml}
-                        </div>
-                    </div>
-                `;
-            } else {
-                statusTxt = `
-                    <div class="badge badge-warn" style="padding:10px 14px; display:block; line-height:1.5;">
-                        ⚠️ <strong>Zirve SQL otomatik algılanamadı.</strong><br>
-                        Zirve genellikle <code>.\\ZIRVESQL</code> veya ağdaki bir sunucuda çalışır.<br>
-                        Lütfen Zirve'nin kurulu olduğu bilgisayarı veya instance adını yukarıdan seçiniz.
-                    </div>
-                `;
-            }
-
-            box.innerHTML = statusTxt;
-        } catch (e) {
-            box.innerHTML = `<div class="badge badge-warn">Yerel sunucuya bağlanılamadı. baslat.bat açık olmalıdır.</div>`;
-        }
-    },
-
-    setZirveLocation(mode) {
-        const srvInput = document.getElementById("sqlServerInput");
-        const btnScan = document.getElementById("btnScanNetwork");
-        const authSel = document.getElementById("sqlAuthType");
-        if (mode === "network") {
-            if (btnScan) btnScan.style.display = "inline-flex";
-            if (srvInput && (srvInput.value === ".\\ZIRVESQL" || srvInput.value === "localhost\\ZIRVESQL" || !srvInput.value)) {
-                srvInput.value = "";
-                srvInput.placeholder = "Örn: 192.168.1.100\\ZIRVESQL veya ANA-BILGISAYAR\\ZIRVESQL";
-            }
-            if (authSel) {
-                authSel.value = "sql";
-                this.toggleSqlAuthInputs();
-            }
-        } else {
-            if (btnScan) btnScan.style.display = "none";
-            if (srvInput && !srvInput.value) {
-                srvInput.value = ".\\ZIRVESQL";
-            }
-            const netBox = document.getElementById("networkScanResultBox");
-            if (netBox) netBox.style.display = "none";
-        }
-    },
-
-    async scanNetworkForSql() {
-        const box = document.getElementById("networkScanResultBox");
-        if (box) {
-            box.style.display = "block";
-            box.innerHTML = `<span class="text-info">🌐 Yerel ağdaki bilgisayarlar taranıyor...</span>`;
-        }
-        try {
-            const res = await fetch("/api/sql/scan-network", { method: "POST" });
-            const data = await res.json();
-            if (data && data.servers && data.servers.length > 0) {
-                let html = `<div style="background:var(--bg-card); border:1px solid #10b981; border-radius:8px; padding:12px; margin-top:8px;">`;
-                html += `<div style="font-weight:700; color:#10b981; margin-bottom:8px;">🎯 Ağda SQL Servisi Açık ${data.servers.length} Bilgisayar Bulundu:</div>`;
-                data.servers.forEach(s => {
-                    html += `
-                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; background:var(--bg-body); padding:8px 12px; border-radius:6px;">
-                            <span>🖥️ Sunucu IP: <strong>${s.ip}</strong> (Öneri: <code>${s.suggestedServer}</code>)</span>
-                            <button class="btn btn-success btn-sm" onclick="App.selectNetworkServer('${s.suggestedServer}')">Bu Sunucuya Bağlan</button>
-                        </div>
-                    `;
-                });
-                html += `</div>`;
-                if (box) box.innerHTML = html;
-            } else {
-                if (box) box.innerHTML = `
-                    <div class="badge badge-warn" style="margin-top:8px; padding:10px 14px; display:block; line-height:1.5;">
-                        ℹ️ Ağ üzerinde otomatik SQL portu açık cihaz bulunamadı.<br>
-                        Lütfen Zirve'nin kurulu olduğu ana bilgisayarın IP adresini veya adını doğrudan kutucuğa yazınız (Örn: <code>192.168.1.104\\ZIRVESQL</code>).
-                    </div>
-                `;
-            }
-        } catch (e) {
-            if (box) box.innerHTML = `<div class="badge badge-borc">Ağ tarama hatası: ${e.message}</div>`;
-        }
-    },
-
-    selectNetworkServer(serverName) {
-        document.getElementById("sqlServerInput").value = serverName;
-        this.autoScanAndConnect();
-    },
-
-    async autoScanAndConnect() {
-        const box = document.getElementById("autoScanResultBox");
-        if (box) {
-            box.style.display = "block";
-            box.innerHTML = `
-                <div style="background:rgba(59,130,246,0.1); border:1px solid rgba(59,130,246,0.3); border-radius:8px; padding:16px; text-align:center;">
-                    <div style="font-size:15px; font-weight:700; color:#3b82f6; margin-bottom:6px;">
-                        ⏳ Zirve SQL Sunucusu ve Tüm Veritabanları Taranıyor...
-                    </div>
-                    <div style="font-size:12px; color:var(--text-muted);">
-                        Sistem Zirve SQL üzerindeki tüm firma ve yıl veritabanlarını sırayla inceliyor, Cari Kart ve Cari Hareket tablolarını tespit ediyor...
-                    </div>
-                </div>
-            `;
-        }
-
-        const cfg = this.getSqlConfigFromUi();
-        try {
-            const res = await fetch("/api/sql/autodetect", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(cfg)
-            });
-            const data = await res.json();
-
-            // Eğer sistem çalışan bir şifre / sunucu bulduysa arayüze otomatik uygula
-            if (data && data.workingConfig) {
-                const wc = data.workingConfig;
-                if (wc.server) document.getElementById("sqlServerInput").value = wc.server;
-                if (wc.authType) document.getElementById("sqlAuthType").value = wc.authType;
-                if (wc.user) document.getElementById("sqlUserInput").value = wc.user;
-                if (wc.password) document.getElementById("sqlPassInput").value = wc.password;
-                this.toggleSqlAuthInputs();
-            }
-
-            if (!data.ok) {
-                if (box) {
-                    box.innerHTML = `
-                        <div style="background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.3); border-radius:8px; padding:14px; line-height:1.6;">
-                            <div style="font-weight:700; color:#ef4444; margin-bottom:6px;">❌ Zirve SQL Sunucusuna Bağlanılamadı</div>
-                            <div style="font-size:12px; color:var(--text-main); margin-bottom:8px;">
-                                ${data.error || 'SQL sunucusuna ulaşılamadı.'}
-                            </div>
-                            <div style="font-size:12px; color:var(--text-muted); background:var(--bg-card); padding:10px; border-radius:6px;">
-                                <strong>💡 Hızlı Çözüm:</strong><br>
-                                1. <strong>Zirve bu bilgisayarda mı kurulu?</strong> Zirve programının açık olduğunu ve SQL servisinin çalıştığını kontrol ediniz.<br>
-                                2. <strong>Zirve ağdaki başka bilgisayarda mı kurulu?</strong> Yukarıdan <em>"Ağdaki Başka Bilgisayarda / Sunucuda"</em> seçeneğini işaretleyip ana bilgisayarın IP adresini yazınız (Örn: <code>192.168.1.100\\ZIRVESQL</code>) ya da <strong>"🌐 Ağda SQL Sunucusu Ara"</strong> butonuna basınız.<br>
-                                3. <strong>En Kolay Yol:</strong> Bu <code>zirve-cari-tahsilat</code> klasörünü Zirve'nin kurulu olduğu ana bilgisayara kopyalayıp orada <code>baslat.bat</code> ile çalıştırırsanız tek tıkla doğrudan bağlanır.
-                            </div>
-                        </div>
-                    `;
-                }
-                return;
-            }
-
-            const candidates = data.candidates || [];
-            if (candidates.length === 0) {
-                if (box) {
-                    box.innerHTML = `
-                        <div style="background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.3); border-radius:8px; padding:16px;">
-                            <div style="font-weight:700; color:#ef4444; margin-bottom:6px;">⚠️ Aktif Cari / Hareket Bulunamadı</div>
-                            <div style="font-size:12px; color:var(--text-muted); line-height:1.6;">
-                                SQL sunucusundaki (${cfg.server}) veritabanları tarandı ancak standart Zirve Cari tablosu tespit edilemedi.<br>
-                                Zirve programının çalıştığından ve doğru SQL sunucu adının girildiğinden emin olunuz. Dilerseniz aşağıdaki manuel tablodan seçim yapabilirsiniz.
-                            </div>
-                        </div>
-                    `;
-                }
-                return;
-            }
-
-            let cardsHtml = `
-                <div style="background:var(--bg-card); border:2px solid #10b981; border-radius:10px; padding:16px; margin-bottom:12px;">
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-                        <div style="font-weight:700; color:#10b981; font-size:15px;">
-                            🎯 Bulunan Zirve Firma / Dönem Veritabanları (${candidates.length} Adet)
-                        </div>
-                        <span style="font-size:11px; color:var(--text-muted);">En güncel hareket içerenler en üsttedir</span>
-                    </div>
-                    <div style="display:flex; flex-direction:column; gap:10px;">
-            `;
-
-            candidates.forEach((cand, idx) => {
-                const isTop = idx === 0;
-                const sonTarihStr = cand.sonTarih ? new Date(cand.sonTarih).toLocaleDateString("tr-TR") : "-";
-                cardsHtml += `
-                    <div style="background:var(--bg-body); border:1px solid ${isTop ? '#10b981' : 'var(--border)'}; border-radius:8px; padding:12px 14px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
-                        <div style="max-width:70%;">
-                            <div style="font-weight:700; font-size:14px; display:flex; align-items:center; gap:8px;">
-                                <span>📁 ${cand.database}</span>
-                                ${isTop ? '<span class="badge badge-alacak" style="font-size:10px; padding:2px 8px;">EN GÜNCEL (ÖNERİLEN)</span>' : ''}
-                            </div>
-                            <div style="font-size:12px; color:var(--text-muted); margin-top:4px; line-height:1.5;">
-                                👥 <strong>${cand.cariCount}</strong> Cari Kart (<code>${cand.cariTable || '-'}</code>) &nbsp;|&nbsp;
-                                📑 <strong>${cand.harCount}</strong> Hareket (<code>${cand.harTable || '-'}</code>) &nbsp;|&nbsp;
-                                📅 Son İşlem: <strong>${sonTarihStr}</strong>
-                                ${cand.sampleCari ? `<br><span style="color:var(--text-main);">Örnek Cari: <em>${cand.sampleCari}</em></span>` : ''}
-                            </div>
-                        </div>
-                        <div>
-                            <button class="btn btn-success btn-sm" style="font-weight:700; padding:8px 16px;" onclick="App.connectToCandidate('${cand.database}', '${cand.cariTable || ''}', '${cand.harTable || ''}')">
-                                ⚡ Canlı Bağlan & Dökümü Getir
-                            </button>
-                        </div>
-                    </div>
-                `;
-            });
-
-            cardsHtml += `
-                    </div>
-                </div>
-            `;
-
-            if (box) box.innerHTML = cardsHtml;
-
-            // Eğer sadece 1 adet veritabanı adayı varsa doğrudan otomatik bağlan
-            if (candidates.length === 1 && candidates[0].cariCount > 0) {
-                const c = candidates[0];
-                await this.connectToCandidate(c.database, c.cariTable, c.harTable);
-            }
-        } catch (e) {
-            if (box) {
-                box.innerHTML = `
-                    <div class="badge badge-warn" style="padding:12px; display:block; line-height:1.6;">
-                        ⚠️ <strong>Otomatik tarama yanıt vermedi (${e.message}).</strong><br>
-                        Doğrudan aşağıdaki <strong>"1. Firma / Dönem Veritabanlarını Listele"</strong> butonuna basıp firmanızın veritabanını seçerek hemen bağlanabilirsiniz.
-                    </div>
-                `;
-            }
-        }
-    },
-
-    async connectToCandidate(dbName, cariTable, harTable) {
-        const sel = document.getElementById("sqlDatabaseSelect");
-        if (sel) {
-            let exists = false;
-            for (let i = 0; i < sel.options.length; i++) {
-                if (sel.options[i].value === dbName) { exists = true; break; }
-            }
-            if (!exists) {
-                const opt = document.createElement("option");
-                opt.value = dbName;
-                opt.textContent = dbName;
-                sel.appendChild(opt);
-            }
-            sel.value = dbName;
-        }
-
-        const cariSel = document.getElementById("sqlCustomCariTable");
-        if (cariSel && cariTable) {
-            let exists = false;
-            for (let i = 0; i < cariSel.options.length; i++) {
-                if (cariSel.options[i].value === cariTable) { exists = true; break; }
-            }
-            if (!exists) {
-                const opt = document.createElement("option");
-                opt.value = cariTable;
-                opt.textContent = cariTable;
-                cariSel.appendChild(opt);
-            }
-            cariSel.value = cariTable;
-        }
-
-        const harSel = document.getElementById("sqlCustomCariHarTable");
-        if (harSel && harTable) {
-            let exists = false;
-            for (let i = 0; i < harSel.options.length; i++) {
-                if (harSel.options[i].value === harTable) { exists = true; break; }
-            }
-            if (!exists) {
-                const opt = document.createElement("option");
-                opt.value = harTable;
-                opt.textContent = harTable;
-                harSel.appendChild(opt);
-            }
-            harSel.value = harTable;
-        }
-
-        // Zirve SQL senkronizasyonunu başlat
-        await this.syncFromZirveSql();
-
-        // Cari kartlar tabına otomatik geçiş yap ve kullanıcıyı karşıla
-        if (this.state.cariler.length > 0) {
-            this.switchTab("cariler");
-            alert(`✅ ${dbName} veritabanına başarıyla bağlanıldı!\n\nToplam ${this.state.cariler.length} cari hesap ve ${this.state.hareketler.length} cari hareket canlı olarak çekildi.\n\nSistem artık arka planda her 5 dakikada bir güncel verileri otomatik çekmeye devam edecektir.`);
-        }
-    },
-
-    async loadSqlDatabases() {
-        const cfg = this.getSqlConfigFromUi();
-        const logBox = document.getElementById("sqlSyncLogBox");
-        logBox.innerHTML = `<span class="text-info">SQL sunucusuna bağlanılıyor (${cfg.server})...</span>`;
-        try {
-            const res = await fetch("/api/sql/databases", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(cfg)
-            });
-            const data = await res.json();
-            if (!data.ok) {
-                logBox.innerHTML = `<span class="text-borc">❌ SQL Bağlantı Hatası: ${data.error}</span>`;
-                return;
-            }
-            const sel = document.getElementById("sqlDatabaseSelect");
-            sel.innerHTML = `<option value="">-- Veritabanı Seçin --</option>` + (data.databases || []).map(d => `<option value="${d.name}">${d.name}</option>`).join("");
-            logBox.innerHTML = `<span class="text-alacak">✅ ${(data.databases || []).length} adet Firma/Dönem veritabanı bulundu. Şimdi firmanızı seçip 2. butona tıklayın.</span>`;
-        } catch (e) {
-            logBox.innerHTML = `<span class="text-borc">❌ Sunucu hatası: baslat.bat açık olduğundan emin olun.</span>`;
-        }
-    },
-
-    async syncFromZirveSql() {
-        const cfg = this.getSqlConfigFromUi();
-        if (!cfg.database) return alert("Lütfen önce Zirve Firma / Dönem veritabanını seçin.");
-
-        const logBox = document.getElementById("sqlSyncLogBox");
-        logBox.innerHTML = `<span class="text-info">⏳ Zirve SQL [${cfg.database}] veritabanından Cari Kartlar ve Cari Hareketler çekiliyor...</span>`;
-
-        try {
-            const res = await fetch("/api/sql/sync", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(cfg)
-            });
-            const data = await res.json();
-            if (!data.ok) {
-                logBox.innerHTML = `<span class="text-borc">❌ Senkronizasyon Hatası: ${data.error}</span>`;
-                return;
-            }
-
-            const cariCount = (data.cariler || []).length;
-            const harCount = (data.hareketler || []).length;
-
-            if (cariCount === 0 && harCount === 0) {
-                // Tabloları hemen listele ve kullanıcıya göster
-                await this.inspectCurrentDatabaseTables(false);
-                logBox.innerHTML = `
-                    <div class="badge badge-warn" style="padding:12px 14px; display:block; line-height:1.6;">
-                        ⚠️ <strong>[${cfg.database}] veritabanında otomatik Cari tablosu tespit edilemedi (0 kayıt).</strong><br>
-                        • <strong>Çözüm:</strong> Yukarıda açılan <em>"Veritabanı Tablo Eşleştirme Sihirbazı"</em>ndan firmanızın Cari Kart tablosunu ve Cari Hareket tablosunu listeden seçip tekrar <strong>"2. ⚡ Zirve'den Carileri ve Hareketleri Çek"</strong> butonuna basınız.<br>
-                        • <em>İpucu:</em> Bazı Zirve kurulumlarında Cari Kartlar <code>ZIRVE_GENEL</code> veya ana firma veritabanında, hareketler ise yıl veritabanında (Örn: <code>FIRMA_2026</code>) tutulur.
-                    </div>
-                `;
-                return;
-            }
-
-            // Mevcut özel notları ve ödeme sözlerini koruyarak Carileri ve Hareketleri birleştir
-            const promiseMap = {};
-            for (const oldC of this.state.cariler) {
-                if (oldC.odemeSozuTarihi || oldC.ozelNot) {
-                    promiseMap[oldC.kod] = {
-                        odemeSozuTarihi: oldC.odemeSozuTarihi,
-                        odemeSozuTutar: oldC.odemeSozuTutar,
-                        ozelNot: oldC.ozelNot
-                    };
-                }
-            }
-
-            let newCariCount = 0;
-            for (const zc of (data.cariler || [])) {
-                const existing = this.state.cariler.find(c => c.kod === zc.kod || c.id === zc.id);
-                const savedNotes = promiseMap[zc.kod] || {};
-                if (existing) {
-                    Object.assign(existing, zc, savedNotes);
-                } else {
-                    this.state.cariler.push({ ...zc, ...savedNotes });
-                    newCariCount++;
-                }
-            }
-
-            // Zirve SQL'den gelen hareketleri güncelle (Manuel eklenenleri koru, ZRV-H olanları yenile)
-            this.state.hareketler = this.state.hareketler.filter(h => !String(h.id).startsWith("ZRV-H-"));
-            for (const zh of (data.hareketler || [])) {
-                this.state.hareketler.push(zh);
-            }
-
-            this.state.settings.sqlServer = cfg.server;
-            this.state.settings.sqlDatabase = cfg.database;
-            this.state.settings.lastSyncTime = new Date().toLocaleString("tr-TR");
-
-            this.saveState();
-            this.recalculateAndRenderAll();
-            this.setServerBadge(true, `Zirve SQL: ${cfg.database}`);
-
-            logBox.innerHTML = `
-                <div class="badge badge-alacak" style="padding:10px 14px; display:block;">
-                    ✅ <strong>Zirve SQL Senkronizasyonu Başarılı!</strong><br>
-                    • Okunan Cari Kart Tablosu: <code>${data.detectedTables?.cariTable || '-'}</code> (<strong>${cariCount}</strong> Cari Aktarıldı)<br>
-                    • Okunan Cari Hareket Tablosu: <code>${data.detectedTables?.cariHarTable || '-'}</code> (<strong>${harCount}</strong> Cari Hareket Aktarıldı)
-                </div>
-            `;
-        } catch (e) {
-            logBox.innerHTML = `<span class="text-borc">❌ Bağlantı hatası: ${e.message}</span>`;
-        }
-    },
-
-    async scanZirveXmlFolder() {
-        const path = document.getElementById("zirveXmlPath").value.trim() || "C:\\zirve";
-        this.saveSettings();
-        try {
-            const res = await fetch("/api/xml/scan", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ path })
-            });
-            const data = await res.json();
-            if (!data.ok) {
-                alert("Klasör tarama uyarısı: " + data.error);
-                return;
-            }
-            let added = 0;
-            for (const f of (data.files || [])) {
-                if (this.ingestSingleUblXml(f.xml) === "ADDED") added++;
-            }
-            this.saveState();
-            this.recalculateAndRenderAll();
-            alert(`${path} klasöründe ${data.totalXmlFound} adet e-Fatura XML bulundu, ${added} yeni fatura cari hesaplara işlendi.`);
-        } catch (e) {
-            alert("Klasör taraması için baslat.bat üzerinden çalıştırılmalıdır.");
-        }
     },
 
     // ================= DIŞA / İÇE AKTARIM VE DEMO VERİLER =================
