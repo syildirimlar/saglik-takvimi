@@ -168,7 +168,7 @@ body {
     font-weight: 500;
     padding: 3px 6px;
     border-radius: 4px;
-    max-width: 240px;
+    max-width: 145px;
     cursor: pointer;
     transition: all 0.2s ease;
 }
@@ -939,6 +939,15 @@ td.cell-code {
         min-height: 40px !important;
         border-radius: 6px !important;
         box-sizing: border-box !important;
+    }
+
+    /* Tablo İçi Kompakt Vade Seçimi */
+    .table-wrap .cari-vade-select {
+        font-size: 11.5px !important;
+        min-height: 28px !important;
+        height: 28px !important;
+        max-width: 115px !important;
+        padding: 2px 4px !important;
     }
 
     /* Tablolar ve Kaydırma */

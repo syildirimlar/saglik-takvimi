@@ -13,7 +13,7 @@
     <meta name="apple-mobile-web-app-title" content="SODSAN Finans">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="format-detection" content="telephone=no">
-    <link rel="stylesheet" href="css/style.css?v=20261027_3">
+    <link rel="stylesheet" href="css/style.css?v=20261027_4">
 </head>
 <body>
 
@@ -1053,33 +1053,34 @@
                     <div class="form-group" style="grid-column: 1 / -1;">
                         <label>Anlaşmalı Ödeme Şekli & Vade Kuralı</label>
                         <select id="cvmOdemeSekli" onchange="App.onCvmOdemeSekliChange()">
-                            <optgroup label="📅 Çekle Ödeme (Çalışılan Ayı Takip Eden Ayın 10'una Kadar)">
-                                <option value="CEK_10" selected>📑 Çek: Takip Eden Ayın 10'u (Önerilen - Çek Teslim/Alım)</option>
-                                <option value="CEK_10_30">📑 Çek: Takip Eden Ayın 10'u + 30 Gün</option>
-                                <option value="CEK_10_45">📑 Çek: Takip Eden Ayın 10'u + 45 Gün</option>
-                                <option value="CEK_10_60">📑 Çek: Takip Eden Ayın 10'u + 60 Gün</option>
-                                <option value="CEK_10_90">📑 Çek: Takip Eden Ayın 10'u + 90 Gün</option>
-                                <option value="CEK_10_120">📑 Çek: Takip Eden Ayın 10'u + 120 Gün</option>
+                            <optgroup label="📅 Çekle Ödeme (Takip Eden Ayın 10'u)">
+                                <option value="CEK_10" selected>Ayın 10'u Çek</option>
+                                <option value="CEK_10_30">Ayın 10'u + 30G</option>
+                                <option value="CEK_10_45">Ayın 10'u + 45G</option>
+                                <option value="CEK_10_60">Ayın 10'u + 60G</option>
+                                <option value="CEK_10_90">Ayın 10'u + 90G</option>
+                                <option value="CEK_10_120">Ayın 10'u + 120G</option>
                             </optgroup>
-                            <optgroup label="📑 Standart Çekler (Fatura Tarihinden İtibaren Gün)">
-                                <option value="CEK_30">📑 30 Günlük Çek</option>
-                                <option value="CEK_45">📑 45 Günlük Çek</option>
-                                <option value="CEK_60">📑 60 Günlük Çek</option>
-                                <option value="CEK_90">📑 90 Günlük Çek</option>
-                                <option value="CEK_120">📑 120 Günlük Çek</option>
+                            <optgroup label="📑 Standart Çekler (Fatura Tarihinden)">
+                                <option value="CEK_30">Çek: Fat.+30G</option>
+                                <option value="CEK_45">Çek: Fat.+45G</option>
+                                <option value="CEK_60">Çek: Fat.+60G</option>
+                                <option value="CEK_90">Çek: Fat.+90G</option>
+                                <option value="CEK_120">Çek: Fat.+120G</option>
                             </optgroup>
                             <optgroup label="💵 Nakit / Havale / EFT">
-                                <option value="NAKIT_PESIN">⚡ Peşin Havale / EFT</option>
-                                <option value="NAKIT_5">💵 Nakit (Faturadan Sonra 5 Gün Vadeli)</option>
-                                <option value="NAKIT_15">💵 Nakit (15 Gün Vadeli)</option>
-                                <option value="NAKIT_30">💵 Nakit (30 Gün Vadeli)</option>
-                                <option value="NAKIT_45">💵 Nakit (45 Gün Vadeli)</option>
-                                <option value="NAKIT_60">💵 Nakit (60 Gün Vadeli)</option>
+                                <option value="NAKIT_PESIN">Peşin / Havale</option>
+                                <option value="NAKIT_5">Fatura+5 Gün</option>
+                                <option value="NAKIT_15">Fatura+15 Gün</option>
+                                <option value="NAKIT_30">Fatura+30 Gün</option>
+                                <option value="NAKIT_45">Fatura+45 Gün</option>
+                                <option value="NAKIT_60">Fatura+60 Gün</option>
+                                <option value="NAKIT_90">Fatura+90 Gün</option>
                             </optgroup>
                             <optgroup label="💳 Diğer">
-                                <option value="KREDI_KARTI">💳 Kredi Kartı / DBS</option>
-                                <option value="ACIK_HESAP">⏳ Serbest Açık Hesap</option>
-                                <option value="OZEL">✏️ Özel Anlaşma</option>
+                                <option value="KREDI_KARTI">Kredi Kartı/DBS</option>
+                                <option value="ACIK_HESAP">Açık Hesap (30G)</option>
+                                <option value="OZEL">Özel Anlaşma</option>
                             </optgroup>
                         </select>
                     </div>
@@ -1293,10 +1294,10 @@
     <script src="js/xlsx.full.min.js"></script>
     <script src="js/pdf.min.js"></script>
     <script src="js/pdf.worker.min.js"></script>
-    <script src="js/ubl_parser.js?v=20261027_3"></script>
-    <script src="js/excel_importer.js?v=20261027_3"></script>
-    <script src="js/cloud_bridge.js?v=20261027_3"></script>
-    <script src="js/app.js?v=20261027_3"></script>
+    <script src="js/ubl_parser.js?v=20261027_4"></script>
+    <script src="js/excel_importer.js?v=20261027_4"></script>
+    <script src="js/cloud_bridge.js?v=20261027_4"></script>
+    <script src="js/app.js?v=20261027_4"></script>
     <script>
         if ('serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.hostname === 'localhost')) {
             window.addEventListener('load', () => {
