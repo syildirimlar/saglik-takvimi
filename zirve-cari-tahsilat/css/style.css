@@ -95,22 +95,98 @@ body {
     border: 1px solid var(--border);
     padding: 5px 10px;
     border-radius: 6px;
-    font-size: 11.5px;
+    font-size: 12px;
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 7px;
 }
 
 .rate-pill input {
-    width: 54px;
-    background: transparent;
-    border: none;
-    border-bottom: 1px solid var(--border);
+    width: 86px;
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid var(--border);
+    border-radius: 4px;
     color: #38bdf8;
-    font-weight: 600;
+    font-weight: 700;
     text-align: right;
+    font-size: 12.5px;
+    padding: 2px 5px;
+    font-family: 'Consolas', 'Monaco', monospace;
+}
+
+.rate-pill input::-webkit-outer-spin-button,
+.rate-pill input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.rate-pill input[type=number] {
+    -moz-appearance: textfield;
+}
+
+.active-report-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: linear-gradient(90deg, rgba(30, 58, 138, 0.35) 0%, rgba(15, 23, 42, 0.4) 100%);
+    border: 1px solid rgba(59, 130, 246, 0.35);
+    padding: 8px 16px;
+    border-radius: 8px;
+    margin: 8px 0 14px 0;
+    font-size: 12px;
+}
+
+.active-report-banner .badge-live {
+    background: rgba(16, 185, 129, 0.2);
+    color: #34d399;
+    border: 1px solid rgba(16, 185, 129, 0.35);
+    padding: 2px 7px;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 11px;
+}
+
+.bulk-assign-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: linear-gradient(90deg, rgba(30, 58, 138, 0.5) 0%, rgba(15, 23, 42, 0.6) 100%);
+    border: 1px solid #3b82f6;
+    padding: 8px 14px;
+    border-radius: 6px;
+    margin-bottom: 10px;
+    font-size: 12px;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.cari-vade-select {
+    background: rgba(15, 23, 42, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    color: #38bdf8;
     font-size: 11.5px;
-    padding: 1px 2px;
+    font-weight: 500;
+    padding: 3px 6px;
+    border-radius: 4px;
+    max-width: 240px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.cari-vade-select:focus {
+    outline: none;
+    border-color: #38bdf8;
+    box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2);
+}
+
+.badge-group {
+    background: rgba(147, 51, 234, 0.15);
+    color: #c084fc;
+    border: 1px solid rgba(147, 51, 234, 0.3);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 11px;
+    display: inline-block;
 }
 
 .status-badge {
@@ -178,9 +254,9 @@ body {
 
 /* Main Content */
 .main-container {
-    padding: 18px 24px;
-    max-width: 1680px;
-    width: 100%;
+    padding: 10px 16px;
+    max-width: 99vw;
+    width: 99%;
     margin: 0 auto;
     flex: 1;
 }
@@ -407,7 +483,9 @@ input:focus, select:focus, textarea:focus {
 
 /* Tables */
 .table-wrap {
-    overflow-x: auto;
+    overflow: auto;
+    max-height: 74vh;
+    position: relative;
     border-radius: 8px;
     border: 1px solid var(--border);
     background: var(--bg-card);
@@ -420,18 +498,22 @@ table {
 }
 
 th {
+    position: sticky;
+    top: 0;
+    z-index: 5;
     background: #0c1220;
     color: var(--text-muted);
     font-weight: 600;
     text-align: left;
-    padding: 9px 12px;
+    padding: 8px 10px;
     border-bottom: 1px solid var(--border);
     white-space: nowrap;
     font-size: 11.5px;
+    box-shadow: 0 1px 0 var(--border);
 }
 
 td {
-    padding: 9px 12px;
+    padding: 7px 10px;
     border-bottom: 1px solid #162033;
     vertical-align: middle;
 }
@@ -444,6 +526,49 @@ tr:hover td {
     text-align: right;
     font-variant-numeric: tabular-nums;
     font-weight: 600;
+    white-space: nowrap !important;
+}
+
+/* Tarih ve Kod Hücreleri Kesinlikle Alt Satıra Geçmesin (No-Wrap) */
+.cell-date,
+td.cell-date,
+th.cell-date,
+.cell-code,
+td.cell-code,
+.nowrap,
+td.nowrap {
+    white-space: nowrap !important;
+    font-variant-numeric: tabular-nums;
+    word-break: keep-all !important;
+    overflow-wrap: normal !important;
+}
+
+.cell-date,
+td.cell-date,
+th.cell-date {
+    min-width: 95px !important;
+    text-align: center;
+}
+
+.cell-code,
+td.cell-code {
+    white-space: nowrap !important;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+/* Cari Hareketler, Ekstre ve Faturalar Tablolarında Tarih ve Vade Sütunları Kesinlikle Tek Satır */
+#hareketlerTableBody td:nth-child(1),
+#hareketlerTableBody td:nth-child(2),
+#hareketlerTableBody td:nth-child(3),
+#ekstreTableBody td:nth-child(1),
+#ekstreTableBody td:nth-child(2),
+#ekstreTableBody td:nth-child(3),
+#faturalarTableBody td:nth-child(1),
+#faturalarTableBody td:nth-child(2),
+#faturalarTableBody td:nth-child(3) {
+    white-space: nowrap !important;
+    word-break: keep-all !important;
+    overflow-wrap: normal !important;
 }
 
 .text-alacak { color: #34d399; }
@@ -467,6 +592,10 @@ tr:hover td {
 .badge-warn { background: var(--warning-bg); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.25); }
 .badge-purple { background: var(--purple-bg); color: #c084fc; border: 1px solid rgba(139, 92, 246, 0.25); }
 .badge-neutral { background: rgba(148, 163, 184, 0.1); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.15); }
+.badge-cek { background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); font-weight: 600; }
+.badge-nakit { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); font-weight: 600; }
+.badge-today { background: rgba(239, 68, 68, 0.2); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.4); font-weight: 700; }
+.badge-week { background: rgba(245, 158, 11, 0.15); color: #fcd34d; border: 1px solid rgba(245, 158, 11, 0.3); }
 
 /* Modal */
 .modal-backdrop {
@@ -489,16 +618,20 @@ tr:hover td {
     background: var(--bg-card);
     border: 1px solid var(--border-light);
     border-radius: 12px;
-    width: 100%;
-    max-width: 1040px;
-    max-height: 90vh;
+    width: 96vw;
+    max-width: 1560px;
+    max-height: 94vh;
     display: flex;
     flex-direction: column;
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
 }
 
 .modal-box.sm {
-    max-width: 580px;
+    max-width: 640px;
+}
+
+.modal-box.md {
+    max-width: 920px;
 }
 
 .modal-header {

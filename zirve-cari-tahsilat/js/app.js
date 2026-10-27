@@ -19,21 +19,206 @@ const App = window.App = {
         cariler: [],
         hareketler: [],
         faturalar: [],
-        ceksenetler: []
+        ceksenetler: [],
+        cariConfigs: {}
     },
 
     activeEkstreCariId: null,
     computedCarilerMap: {},
+    selectedAliciIds: new Set(),
+    selectedSaticiIds: new Set(),
+
+    vadeOptions: [
+        { value: "CEK_10", label: "📑 Çek: Takip Eden Ayın 10'u (Önerilen)", days: 0, rule: "TAKIP_EDEN_10" },
+        { value: "CEK_10_0", label: "📑 Çek: Takip Eden Ayın 10'u", days: 0, rule: "TAKIP_EDEN_10" },
+        { value: "CEK_10_30", label: "📑 Çek: Takip Eden Ayın 10'u + 30G", days: 30, rule: "TAKIP_EDEN_10" },
+        { value: "CEK_10_45", label: "📑 Çek: Takip Eden Ayın 10'u + 45G", days: 45, rule: "TAKIP_EDEN_10" },
+        { value: "CEK_10_60", label: "📑 Çek: Takip Eden Ayın 10'u + 60G", days: 60, rule: "TAKIP_EDEN_10" },
+        { value: "CEK_10_90", label: "📑 Çek: Takip Eden Ayın 10'u + 90G", days: 90, rule: "TAKIP_EDEN_10" },
+        { value: "CEK_10_120", label: "📑 Çek: Takip Eden Ayın 10'u + 120G", days: 120, rule: "TAKIP_EDEN_10" },
+        { value: "CEK_30", label: "📑 30 Günlük Çek (Fatura Tarihinden)", days: 30, rule: "STANDART" },
+        { value: "CEK_60", label: "📑 60 Günlük Çek (Fatura Tarihinden)", days: 60, rule: "STANDART" },
+        { value: "CEK_90", label: "📑 90 Günlük Çek (Fatura Tarihinden)", days: 90, rule: "STANDART" },
+        { value: "CEK_120", label: "📑 120 Günlük Çek (Fatura Tarihinden)", days: 120, rule: "STANDART" },
+        { value: "NAKIT_PESIN", label: "⚡ Peşin / Havale / EFT (Aynı Gün)", days: 0, rule: "STANDART" },
+        { value: "NAKIT_5", label: "💵 Nakit: Faturadan Sonra 5 Gün", days: 5, rule: "STANDART" },
+        { value: "NAKIT_15", label: "💵 Nakit: Faturadan İtibaren 15 Gün", days: 15, rule: "STANDART" },
+        { value: "NAKIT_30", label: "💵 Nakit: Faturadan İtibaren 30 Gün", days: 30, rule: "STANDART" },
+        { value: "NAKIT_45", label: "💵 Nakit: Faturadan İtibaren 45 Gün", days: 45, rule: "STANDART" },
+        { value: "NAKIT_60", label: "💵 Nakit: Faturadan İtibaren 60 Gün", days: 60, rule: "STANDART" },
+        { value: "NAKIT_90", label: "💵 Nakit: Faturadan İtibaren 90 Gün", days: 90, rule: "STANDART" },
+        { value: "KREDI_KARTI", label: "💳 Kredi Kartı / DBS", days: 0, rule: "STANDART" },
+        { value: "ACIK_HESAP", label: "⏳ Serbest Açık Hesap (30 Gün)", days: 30, rule: "STANDART" }
+    ],
 
     async init() {
         this.setupDragAndDrop();
         await this.loadState();
+        this.syncCariConfigs();
         this.applySettingsToUi();
+        this.populateBulkVadeSelects();
         this.recalculateAndRenderAll();
         if (window.CloudBridge) {
             await window.CloudBridge.init();
         }
         this.startAutoSyncLoop();
+    },
+
+    normalizeKod(kod) {
+        if (!kod) return "";
+        return String(kod).replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+    },
+
+    normalizeUnvan(unvan) {
+        if (!unvan) return "";
+        let s = String(unvan).trim();
+        const trMap = {
+            'ç':'c', 'Ç':'c',
+            'ğ':'g', 'Ğ':'g',
+            'ı':'i', 'I':'i', 'İ':'i', 'i':'i',
+            'ö':'o', 'Ö':'o',
+            'ş':'s', 'Ş':'s',
+            'ü':'u', 'Ü':'u'
+        };
+        s = s.replace(/[çÇğĞıIİiöÖşŞüÜ]/g, m => trMap[m] || m);
+        return s.replace(/[^a-zA-Z0-9]/g, " ").replace(/\s+/g, " ").trim().toUpperCase();
+    },
+
+    getCariConfig(kod, unvan) {
+        if (!this.state.cariConfigs) this.state.cariConfigs = {};
+        const configs = this.state.cariConfigs;
+
+        // 1. Doğrudan exact kod ile ara
+        if (kod && configs[kod]) return configs[kod];
+
+        const normKod = this.normalizeKod(kod);
+        if (normKod) {
+            // 2. Normalleştirilmiş kod key'i ile ara
+            if (configs[normKod]) return configs[normKod];
+            // 3. Mevcut configlerin kodlarını normalleştirerek eşleştir
+            for (const [k, cfg] of Object.entries(configs)) {
+                if (k.startsWith("_")) continue;
+                if (this.normalizeKod(k) === normKod || (cfg.kod && this.normalizeKod(cfg.kod) === normKod)) {
+                    return cfg;
+                }
+            }
+        }
+
+        // 4. Ünvan ile ara (hem özel map hem de config nesneleri içinden)
+        const normUnvan = this.normalizeUnvan(unvan);
+        if (normUnvan) {
+            if (this.state.cariConfigsByUnvan && this.state.cariConfigsByUnvan[normUnvan]) {
+                return this.state.cariConfigsByUnvan[normUnvan];
+            }
+            for (const [k, cfg] of Object.entries(configs)) {
+                if (k.startsWith("_")) continue;
+                if (cfg.unvan && this.normalizeUnvan(cfg.unvan) === normUnvan) {
+                    return cfg;
+                }
+            }
+        }
+
+        return null;
+    },
+
+    setCariConfig(c, configData = {}) {
+        if (!this.state.cariConfigs) this.state.cariConfigs = {};
+        if (!this.state.cariConfigsByUnvan) this.state.cariConfigsByUnvan = {};
+
+        const kod = (c && c.kod) || configData.kod || "";
+        const unvan = (c && c.unvan) || configData.unvan || "";
+        const normKod = this.normalizeKod(kod);
+        const normUnvan = this.normalizeUnvan(unvan);
+
+        const currentSaved = this.getCariConfig(kod, unvan) || {};
+
+        const merged = {
+            kod: kod || currentSaved.kod || "",
+            normKod: normKod || currentSaved.normKod || "",
+            unvan: unvan || currentSaved.unvan || "",
+            cariGrup: configData.cariGrup !== undefined ? configData.cariGrup : ((c && c.cariGrup) !== undefined ? c.cariGrup : (currentSaved.cariGrup || "")),
+            cariTipi: configData.cariTipi !== undefined ? configData.cariTipi : ((c && c.cariTipi) || currentSaved.cariTipi || (kod.startsWith("320") ? "TEDARIKCI" : "MUSTERI")),
+            odemeSekli: configData.odemeSekli !== undefined ? configData.odemeSekli : ((c && c.odemeSekli) !== undefined ? c.odemeSekli : (currentSaved.odemeSekli || "")),
+            vadeGunu: configData.vadeGunu !== undefined ? configData.vadeGunu : ((c && c.vadeGunu) !== undefined ? c.vadeGunu : (currentSaved.vadeGunu !== undefined ? currentSaved.vadeGunu : 30)),
+            vadeKurali: configData.vadeKurali !== undefined ? configData.vadeKurali : ((c && c.vadeKurali) !== undefined ? c.vadeKurali : (currentSaved.vadeKurali || "STANDART")),
+            odemeSozuTarihi: configData.odemeSozuTarihi !== undefined ? configData.odemeSozuTarihi : ((c && c.odemeSozuTarihi) !== undefined ? c.odemeSozuTarihi : (currentSaved.odemeSozuTarihi || null)),
+            odemeSozuTutar: configData.odemeSozuTutar !== undefined ? configData.odemeSozuTutar : ((c && c.odemeSozuTutar) !== undefined ? c.odemeSozuTutar : (currentSaved.odemeSozuTutar || null)),
+            ozelNot: configData.ozelNot !== undefined ? configData.ozelNot : ((c && c.ozelNot) !== undefined ? c.ozelNot : (currentSaved.ozelNot || "")),
+            telefon: configData.telefon !== undefined ? configData.telefon : ((c && c.telefon) !== undefined ? c.telefon : (currentSaved.telefon || "")),
+            email: configData.email !== undefined ? configData.email : ((c && c.email) !== undefined ? c.email : (currentSaved.email || "")),
+            yetkili: configData.yetkili !== undefined ? configData.yetkili : ((c && (c.yetkili || c.yetkiliKisi)) !== undefined ? (c.yetkili || c.yetkiliKisi) : (currentSaved.yetkili || "")),
+            userConfigured: true,
+            updatedAt: new Date().toISOString()
+        };
+
+        if (kod) this.state.cariConfigs[kod] = merged;
+        if (normKod) this.state.cariConfigs[normKod] = merged;
+        if (normUnvan) this.state.cariConfigsByUnvan[normUnvan] = merged;
+
+        // Canlı cari nesnesine de anında yansıt
+        if (c) {
+            c.cariGrup = merged.cariGrup;
+            c.cariTipi = merged.cariTipi;
+            c.odemeSekli = merged.odemeSekli;
+            c.vadeGunu = merged.vadeGunu;
+            c.vadeKurali = merged.vadeKurali;
+            c.odemeSozuTarihi = merged.odemeSozuTarihi;
+            c.odemeSozuTutar = merged.odemeSozuTutar;
+            c.ozelNot = merged.ozelNot;
+            c.telefon = merged.telefon;
+            c.email = merged.email;
+            c.yetkili = merged.yetkili;
+            c.userConfigured = true;
+        }
+
+        return merged;
+    },
+
+    applyCariConfig(c) {
+        if (!c) return false;
+        const saved = this.getCariConfig(c.kod, c.unvan);
+        if (!saved) return false;
+
+        if (saved.odemeSekli) c.odemeSekli = saved.odemeSekli;
+        if (saved.vadeGunu !== undefined) c.vadeGunu = saved.vadeGunu;
+        if (saved.vadeKurali) c.vadeKurali = saved.vadeKurali;
+        if (saved.cariGrup) c.cariGrup = saved.cariGrup;
+        if (saved.cariTipi) c.cariTipi = saved.cariTipi;
+        if (saved.odemeSozuTarihi) c.odemeSozuTarihi = saved.odemeSozuTarihi;
+        if (saved.odemeSozuTutar) c.odemeSozuTutar = saved.odemeSozuTutar;
+        if (saved.ozelNot) c.ozelNot = saved.ozelNot;
+        if (saved.telefon) c.telefon = saved.telefon;
+        if (saved.email) c.email = saved.email;
+        if (saved.yetkili) {
+            c.yetkili = saved.yetkili;
+            c.yetkiliKisi = saved.yetkili;
+        }
+        c.userConfigured = true;
+        return true;
+    },
+
+    syncCariConfigs() {
+        if (!this.state.cariConfigs) this.state.cariConfigs = {};
+        if (!this.state.cariConfigsByUnvan) this.state.cariConfigsByUnvan = {};
+
+        for (const c of (this.state.cariler || [])) {
+            const hasApplied = this.applyCariConfig(c);
+            if (!hasApplied && (c.userConfigured || (c.odemeSekli && c.odemeSekli !== "") || c.cariGrup || c.odemeSozuTarihi || c.ozelNot)) {
+                this.setCariConfig(c);
+            }
+        }
+    },
+
+    populateBulkVadeSelects() {
+        const optsHtml = `<option value="">-- Vade / Şart Seçiniz --</option>` +
+            this.vadeOptions.map(opt => `<option value="${opt.value}">${opt.label}</option>`).join("");
+        const aSel = document.getElementById("aliciBulkVade");
+        const sSel = document.getElementById("saticiBulkVade");
+        if (aSel) aSel.innerHTML = optsHtml;
+        if (sSel) sSel.innerHTML = optsHtml;
+
+        const ekstrePm = document.getElementById("ekstrePaymentMethod");
+        if (ekstrePm) ekstrePm.innerHTML = this.vadeOptions.map(opt => `<option value="${opt.value}">${opt.label}</option>`).join("");
     },
 
     async startAutoSyncLoop() {
@@ -101,7 +286,19 @@ const App = window.App = {
                         data.faturalar = [];
                         data.ceksenetler = [];
                     }
+                    // Zirve ekstre hareketlerinin para birimini TL olarak doğrula (çift kur çarpımını engelle)
+                    if (Array.isArray(data.hareketler)) {
+                        for (const h of data.hareketler) {
+                            if (h.doviz && h.doviz !== "TRY" && (!h.kur || h.kur === 1)) {
+                                h.orijinalDoviz = h.doviz;
+                                h.doviz = "TRY";
+                                h.kur = 1;
+                            }
+                        }
+                    }
                     this.state = data;
+                    if (!this.state.cariConfigs) this.state.cariConfigs = {};
+                    if (!this.state.cariConfigsByUnvan) this.state.cariConfigsByUnvan = {};
                     this.setServerBadge(true, "Hazır");
                     return;
                 }
@@ -125,7 +322,18 @@ const App = window.App = {
                         parsed.ceksenetler = [];
                         localStorage.setItem("zirve_cari_tahsilat_db_v1", JSON.stringify(parsed));
                     }
+                    if (Array.isArray(parsed.hareketler)) {
+                        for (const h of parsed.hareketler) {
+                            if (h.doviz && h.doviz !== "TRY" && (!h.kur || h.kur === 1)) {
+                                h.orijinalDoviz = h.doviz;
+                                h.doviz = "TRY";
+                                h.kur = 1;
+                            }
+                        }
+                    }
                     this.state = parsed;
+                    if (!this.state.cariConfigs) this.state.cariConfigs = {};
+                    if (!this.state.cariConfigsByUnvan) this.state.cariConfigsByUnvan = {};
                     return;
                 }
             } catch (e) {}
@@ -136,6 +344,8 @@ const App = window.App = {
         this.state.hareketler = [];
         this.state.faturalar = [];
         this.state.ceksenetler = [];
+        if (!this.state.cariConfigs) this.state.cariConfigs = {};
+        if (!this.state.cariConfigsByUnvan) this.state.cariConfigsByUnvan = {};
         this.state.initialized = true;
     },
 
@@ -184,8 +394,8 @@ const App = window.App = {
         if (s.rates) {
             const usdEl = document.getElementById("rateUSD");
             const eurEl = document.getElementById("rateEUR");
-            if (usdEl) usdEl.value = s.rates.USD || 36.50;
-            if (eurEl) eurEl.value = s.rates.EUR || 39.80;
+            if (usdEl) usdEl.value = (parseFloat(s.rates.USD) || 38.4520).toFixed(4);
+            if (eurEl) eurEl.value = (parseFloat(s.rates.EUR) || 41.6815).toFixed(4);
         }
         const fn = document.getElementById("ownFirmName"); if (fn) fn.value = s.ownFirmName || "SODSAN";
         const vkn = document.getElementById("ownFirmVkn"); if (vkn) vkn.value = s.ownFirmVkn || "";
@@ -193,7 +403,19 @@ const App = window.App = {
         const srv = document.getElementById("sqlServerInput"); if (srv) srv.value = s.sqlServer || ".\\ZIRVESQL";
         const auth = document.getElementById("sqlAuthType"); if (auth) auth.value = s.sqlAuthType || "windows";
         const usr = document.getElementById("sqlUserInput"); if (usr) usr.value = s.sqlUser || "sa";
+        const smCheck = document.getElementById("shiftMonthEndInvoicesCheck");
+        if (smCheck) smCheck.checked = s.shiftMonthEndInvoices !== false;
         this.toggleSqlAuthInputs();
+    },
+
+    toggleShiftMonthEndInvoices(checked) {
+        if (!this.state.settings) this.state.settings = {};
+        this.state.settings.shiftMonthEndInvoices = checked;
+        this.saveState();
+        this.recalculateAndRenderAll();
+        this.showToast(checked
+            ? "✅ Ay sonu teamül kuralı aktif: Ayın son 2 günü kesilen faturalar bir sonraki ay başı kabul edilir."
+            : "ℹ️ Ay sonu teamül kuralı kapatıldı: Faturalar doğrudan kesildiği gün baz alınarak hesaplanır.");
     },
 
     saveSettings() {
@@ -204,21 +426,56 @@ const App = window.App = {
     },
 
     updateRates() {
-        const usd = parseFloat(document.getElementById("rateUSD").value) || 36.50;
-        const eur = parseFloat(document.getElementById("rateEUR").value) || 39.80;
-        this.state.settings.rates = { USD: usd, EUR: eur };
+        const usdVal = parseFloat(document.getElementById("rateUSD").value) || 38.4520;
+        const eurVal = parseFloat(document.getElementById("rateEUR").value) || 41.6815;
+        this.state.settings.rates = { USD: usdVal, EUR: eurVal };
         this.saveState();
         this.recalculateAndRenderAll();
+    },
+
+    async fetchLiveRates() {
+        const btn = document.getElementById("btnLiveRate");
+        if (btn) btn.textContent = "⏳ Alınıyor...";
+        try {
+            const resp = await fetch("https://open.er-api.com/v6/latest/USD");
+            if (!resp.ok) throw new Error("Kur servisi yanıt vermedi (" + resp.status + ")");
+            const data = await resp.json();
+            if (data && data.rates && data.rates.TRY) {
+                const usdNum = parseFloat(data.rates.TRY);
+                const eurNum = parseFloat(data.rates.TRY / data.rates.EUR);
+                const usdStr = usdNum.toFixed(4);
+                const eurStr = eurNum.toFixed(4);
+                
+                const usdInput = document.getElementById("rateUSD");
+                const eurInput = document.getElementById("rateEUR");
+                if (usdInput) usdInput.value = usdStr;
+                if (eurInput) eurInput.value = eurStr;
+
+                this.state.settings.rates = { USD: parseFloat(usdStr), EUR: parseFloat(eurStr) };
+                await this.saveState();
+                this.recalculateAndRenderAll();
+                
+                alert(`✅ Canlı Döviz Kurları Başarıyla Alındı!\n\n• USD / TRY: ${usdStr} ₺\n• EUR / TRY: ${eurStr} ₺\n\nTüm dövizli cariler, faturalar ve bakiyeler güncel kurla (4 basamak hassasiyetle) anında hesaplandı.`);
+            } else {
+                throw new Error("Kur verisi çözümlenemedi.");
+            }
+        } catch (e) {
+            console.warn("Canlı kur alma hatası:", e);
+            alert("⚠️ Canlı kur servisine ulaşılamadı (" + e.message + "). Kurları kutulardan elle yazıp 'Enter'a basabilirsiniz.");
+        } finally {
+            if (btn) btn.textContent = "🔄 Canlı Kur";
+        }
     },
 
     getTlEquivalent(amount, currency, customRate) {
         const val = parseFloat(amount) || 0;
         const cur = (currency || "TRY").toUpperCase();
-        if (cur === "TRY" || cur === "TRL" || cur === "TL") return val;
+        // Zirve Cari Ekstresi raporundaki Borç ve Alacak tutarları resmi yasal defter TL tutarıdır.
+        // Bu nedenle TL cinsinden ekstre kayıtlarında kurlarla tekrar çarpma yapılmaz.
+        if (cur === "TRY" || cur === "TRL" || cur === "TL" || !cur) return val;
+        // Eğer kullanıcı manuel döviz işlemi girmiş ve özel kur belirtmişse
         if (customRate && customRate > 1) return val * customRate;
-        const rates = (this.state.settings && this.state.settings.rates) || { USD: 36.50, EUR: 39.80 };
-        if (cur === "USD") return val * (rates.USD || 36.50);
-        if (cur === "EUR") return val * (rates.EUR || 39.80);
+        // Ekstre kayıtlarında kur tanımsız veya 1 ise, tutar zaten TL defter tutarıdır
         return val;
     },
 
@@ -229,22 +486,183 @@ const App = window.App = {
         return val.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " " + sym;
     },
 
+    formatDisplayDate(val) {
+        if (!val) return "-";
+        if (typeof val === "string" && val.includes("-")) {
+            const parts = val.split("-");
+            if (parts.length === 3 && parts[0].length === 4) {
+                return `${parts[2]}.${parts[1]}.${parts[0]}`;
+            }
+        }
+        return val;
+    },
+
     daysDiffFromToday(dateStr) {
         if (!dateStr) return 0;
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-        const target = new Date(dateStr);
+
+        let s = String(dateStr).trim();
+        const m = s.match(/^(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{4})/);
+        if (m) s = `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`;
+        else if (s.length > 10) s = s.slice(0, 10);
+
+        const target = new Date(s + "T00:00:00");
         if (isNaN(target.getTime())) return 0;
         target.setHours(0, 0, 0, 0);
         // Pozitifse vade geçmiş (gecikme gün sayısı), negatifse vadeye kalan gün
         return Math.round((today - target) / (1000 * 60 * 60 * 24));
     },
 
+    getVadeDurumu(vadeTarihi) {
+        if (!vadeTarihi) {
+            return {
+                diff: 0,
+                days: 0,
+                isOverdue: false,
+                isToday: false,
+                text: "-",
+                badgeClass: "badge-neutral",
+                html: `<span style="color:var(--text-muted); font-size:11.5px;">-</span>`
+            };
+        }
+        const diffDays = this.daysDiffFromToday(vadeTarihi);
+
+        if (diffDays > 0) {
+            return {
+                diff: diffDays,
+                days: diffDays,
+                isOverdue: true,
+                isToday: false,
+                vadeTarihi,
+                text: `${diffDays} gün gecikti`,
+                badgeClass: "badge-warn",
+                html: `<span class="badge badge-warn" style="font-weight:600; white-space:nowrap;">⚠️ ${diffDays} gün gecikti</span>`
+            };
+        } else if (diffDays < 0) {
+            const rem = Math.abs(diffDays);
+            return {
+                diff: diffDays,
+                days: rem,
+                isOverdue: false,
+                isToday: false,
+                vadeTarihi,
+                text: `${rem} gün kaldı`,
+                badgeClass: "badge-neutral",
+                html: `<span class="badge badge-neutral" style="color:#38bdf8; font-weight:600; white-space:nowrap;">⏳ ${rem} gün kaldı</span>`
+            };
+        } else {
+            return {
+                diff: 0,
+                days: 0,
+                isOverdue: false,
+                isToday: true,
+                vadeTarihi,
+                text: "Bugün vadeli",
+                badgeClass: "badge-warn",
+                html: `<span class="badge badge-warn" style="background:#f59e0b; color:#fff; font-weight:600; white-space:nowrap;">🔔 Bugün vadeli</span>`
+            };
+        }
+    },
+
     /**
      * CARİ HAREKET TEMELLİ HESAPLAMA VE FIFO YAŞLANDIRMA MOTORU
-     * Borcu ve alacağı sadece tekil faturalara göre değil, Carinin TÜM HAREKETLERİNE
-     * (Devir + Fatura + Tahsilat + Ödeme + Havale/EFT + Çek/Senet) göre hesaplar.
+     * Seçilen ödeme opsiyonunu ve vade gününü doğrudan FATURA TARİHİ üzerinden hesaplar:
+     * - Ayın 10'u çek kuralı ise: Faturayı takip eden ayın 10'una ek gün ekler
+     * - Standart vade ise: Fatura tarihine doğrudan vade günü (30, 45, 60G vb.) ekler
      */
+    getEffectiveVadeTarihi(islemTarihi, cari) {
+        if (!islemTarihi) return islemTarihi;
+        let isoDate = islemTarihi;
+        if (typeof isoDate !== "string") isoDate = String(isoDate);
+        isoDate = isoDate.trim();
+
+        // Eğer GG.AA.YYYY veya GG/AA/YYYY ise YYYY-MM-DD'ye çevir
+        const mDMY = isoDate.match(/^(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{4})/);
+        if (mDMY) {
+            isoDate = `${mDMY[3]}-${mDMY[2].padStart(2, '0')}-${mDMY[1].padStart(2, '0')}`;
+        } else if (isoDate.length > 10) {
+            isoDate = isoDate.slice(0, 10);
+        }
+
+        // --- AYIN SON 2 GÜNÜ TEAMÜL KURALI ---
+        // Ayın son 2 gününde kesilen faturalar ticari teamül gereği
+        // bir sonraki ayın 1'inde kesilmiş / mal teslim alınmış kabul edilir.
+        const shiftMonthEnd = this.state.settings?.shiftMonthEndInvoices !== false; // varsayılan aktif
+        if (shiftMonthEnd) {
+            const p = isoDate.split("-").map(Number);
+            if (p.length === 3 && p[0] > 1900) {
+                let y = p[0];
+                let m = p[1]; // 1-12
+                let d = p[2]; // 1-31
+                // O ayın kaç gün çektiğini bul (28, 29, 30, 31)
+                const daysInMonth = new Date(Date.UTC(y, m, 0)).getUTCDate();
+                if (d >= daysInMonth - 1) {
+                    // Ayın son 2 günü (Örn: 29-30 Eylül veya 30-31 Ekim)
+                    m += 1;
+                    if (m > 12) {
+                        m = 1;
+                        y += 1;
+                    }
+                    d = 1;
+                    isoDate = `${y}-${String(m).padStart(2, '0')}-01`;
+                }
+            }
+        }
+
+        const optVal = (cari && cari.odemeSekli) || "CEK_10";
+        const opt = this.vadeOptions.find(o => o.value === optVal);
+
+        const rule = (opt && opt.rule) || (cari && cari.vadeKurali) || (optVal.includes("10") ? "TAKIP_EDEN_10" : "STANDART");
+        const termDays = opt ? opt.days : ((cari && parseInt(cari.vadeGunu, 10)) !== undefined && !isNaN(parseInt(cari.vadeGunu, 10)) ? parseInt(cari.vadeGunu, 10) : 0);
+
+        // 1. KURAL: Çalışılan ayı takip eden ayın 10'u + Ek Günler (Örn: Çek: Takip Eden Ayın 10'u)
+        if (rule === "TAKIP_EDEN_10" || optVal.startsWith("CEK_10") || optVal.includes("TAKIP_EDEN")) {
+            const parts = isoDate.split("-").map(Number);
+            if (parts.length === 3 && parts[0] > 1900) {
+                let y = parts[0];
+                let m = parts[1]; // 1-12
+                // Faturanın kesildiği ayı takip eden ay
+                m += 1;
+                if (m > 12) {
+                    m = 1;
+                    y += 1;
+                }
+                // Takip eden ayın 10'u
+                const base10 = new Date(Date.UTC(y, m - 1, 10));
+
+                let extraDays = 0;
+                if (opt) {
+                    extraDays = opt.days;
+                } else if (optVal === "CEK_10" || optVal === "CEK_10_0") {
+                    extraDays = 0;
+                } else if (optVal.includes("120") || termDays === 120) extraDays = 120;
+                else if (optVal.includes("90") || termDays === 90) extraDays = 90;
+                else if (optVal.includes("60") || termDays === 60) extraDays = 60;
+                else if (optVal.includes("45") || termDays === 45) extraDays = 45;
+                else if (optVal.includes("30") || termDays === 30) extraDays = 30;
+                else if (termDays > 0) extraDays = termDays;
+
+                if (extraDays > 0) {
+                    base10.setUTCDate(base10.getUTCDate() + extraDays);
+                }
+                return base10.toISOString().slice(0, 10);
+            }
+        }
+
+        // 2. KURAL: Fatura tarihinden itibaren direkt gün ekleme (Örn: 30, 45, 60, 90 günlük nakit / çek)
+        if (termDays > 0) {
+            const d = new Date(isoDate + "T00:00:00Z");
+            if (!isNaN(d.getTime())) {
+                d.setUTCDate(d.getUTCDate() + termDays);
+                return d.toISOString().slice(0, 10);
+            }
+        }
+
+        // 0 gün veya peşin ise doğrudan fatura tarihi vadedir
+        return isoDate;
+    },
+
     computeAll() {
         const map = {};
         for (const c of this.state.cariler) {
@@ -365,7 +783,10 @@ const App = window.App = {
                         }
 
                         if (acikKalan > 0.05) {
-                            const vade = h.vadeTarihi || h.tarih;
+                            const rawVade = h.vadeTarihi || h.tarih;
+                            const vade = (c.odemeSekli || c.vadeGunu || c.vadeKurali)
+                                ? this.getEffectiveVadeTarihi(h.tarih, c)
+                                : rawVade;
                             const gecikme = this.daysDiffFromToday(vade);
                             c.acikKalemler.push({ ...h, acikKalan, vade, gecikme });
                             if (!c.enEskiAcikVade || vade < c.enEskiAcikVade) c.enEskiAcikVade = vade;
@@ -393,7 +814,10 @@ const App = window.App = {
                         }
 
                         if (acikKalan > 0.05) {
-                            const vade = h.vadeTarihi || h.tarih;
+                            const rawVade = h.vadeTarihi || h.tarih;
+                            const vade = (c.odemeSekli || c.vadeGunu || c.vadeKurali)
+                                ? this.getEffectiveVadeTarihi(h.tarih, c)
+                                : rawVade;
                             const gecikme = this.daysDiffFromToday(vade);
                             c.acikKalemler.push({ ...h, acikKalan, vade, gecikme });
                             if (!c.enEskiAcikVade || vade < c.enEskiAcikVade) c.enEskiAcikVade = vade;
@@ -410,6 +834,19 @@ const App = window.App = {
                         faturaDurumMap[h.evrakNo] = { kapanan: tutar, kalan: 0, durum: "KAPALI" };
                     }
                 }
+            }
+
+            // Cari hesap türü: ALICI (Müşteri) veya SATICI (Tedarikçi)
+            if (c.kod.startsWith("120")) {
+                c.hesapTuru = "ALICI";
+            } else if (c.kod.startsWith("320")) {
+                c.hesapTuru = "SATICI";
+            } else if (c.bakiyeYonu === "ALACAKLIYIZ") {
+                c.hesapTuru = "ALICI";
+            } else if (c.bakiyeYonu === "BORCLUYUZ") {
+                c.hesapTuru = "SATICI";
+            } else {
+                c.hesapTuru = c.netBakiye >= 0 ? "ALICI" : "SATICI";
             }
         }
 
@@ -428,17 +865,52 @@ const App = window.App = {
     recalculateAndRenderAll() {
         this.computeAll();
 
+        const carilerList = Object.values(this.computedCarilerMap);
+        const alicilarCount = carilerList.filter(c => c.hesapTuru === "ALICI").length;
+        const saticilarCount = carilerList.filter(c => c.hesapTuru === "SATICI").length;
+
+        const elA = document.getElementById("cntAlicilar"); if (elA) elA.textContent = alicilarCount;
+        const elS = document.getElementById("cntSaticilar"); if (elS) elS.textContent = saticilarCount;
         const elC = document.getElementById("cntCariler"); if (elC) elC.textContent = this.state.cariler.length;
         const elH = document.getElementById("cntHareketler"); if (elH) elH.textContent = this.state.hareketler.length;
         const elF = document.getElementById("cntFaturalar"); if (elF) elF.textContent = this.state.faturalar.length;
         const elCS = document.getElementById("cntCekSenet"); if (elCS) elCS.textContent = this.state.ceksenetler.length;
 
+        this.renderActiveReportBar();
         this.renderDashboard();
+        this.renderAlicilar();
+        this.renderSaticilar();
         this.renderCariler();
+        this.renderHatirlatici();
         this.renderHareketler();
         this.renderFaturalar();
         this.renderYaslandirmaAndCalendar();
         this.renderCekSenet();
+    },
+
+    renderActiveReportBar() {
+        const banner = document.getElementById("activeReportBanner");
+        if (!banner) return;
+        const rep = (this.state.settings && this.state.settings.activeReport) || null;
+        if (rep && (rep.fileName || rep.carilerCount > 0)) {
+            banner.style.display = "flex";
+            const nameEl = document.getElementById("activeReportName");
+            const detEl = document.getElementById("activeReportDetails");
+            if (nameEl) nameEl.textContent = `📄 ${rep.fileName || "Zirve Raporu"}`;
+            if (detEl) {
+                detEl.textContent = `• Yüklenme: ${rep.uploadTime || "-"} • ${this.state.cariler.length} Cari Hesap • ${this.state.hareketler.length} Hareket • ${this.state.faturalar.length} Fatura`;
+            }
+        } else if (this.state.cariler.length > 0) {
+            banner.style.display = "flex";
+            const nameEl = document.getElementById("activeReportName");
+            const detEl = document.getElementById("activeReportDetails");
+            if (nameEl) nameEl.textContent = "📄 Kayıtlı Zirve Raporu";
+            if (detEl) {
+                detEl.textContent = `• ${this.state.cariler.length} Cari Hesap • ${this.state.hareketler.length} Hareket • ${this.state.faturalar.length} Fatura`;
+            }
+        } else {
+            banner.style.display = "none";
+        }
     },
 
     switchTab(tabName) {
@@ -487,7 +959,9 @@ const App = window.App = {
             .filter(x => x.yon === "VERILEN" && x.durum === "ODENECEK")
             .reduce((s, x) => s + (parseFloat(x.tutar) || 0), 0);
 
-        document.getElementById("dashboardKpis").innerHTML = `
+        const dashKpiEl = document.getElementById("dashboardKpis");
+        if (dashKpiEl) {
+            dashKpiEl.innerHTML = `
             <div class="kpi-card alacak">
                 <div class="kpi-label">Toplam Cari Alacak</div>
                 <div class="kpi-value text-alacak">${this.formatMoney(topAlacak)}</div>
@@ -531,6 +1005,7 @@ const App = window.App = {
                 </div>
             </div>
         `;
+        }
 
         // En yüksek alacaklı olduğumuz 6 cari
         const alacaklilar = cariler
@@ -538,15 +1013,17 @@ const App = window.App = {
             .sort((a, b) => b.netBakiye - a.netBakiye)
             .slice(0, 6);
 
-        document.getElementById("dashTopAlacakBody").innerHTML = alacaklilar.map(c => `
+        const dashTopAlacakEl = document.getElementById("dashTopAlacakBody");
+        if (dashTopAlacakEl) {
+            dashTopAlacakEl.innerHTML = alacaklilar.map(c => `
             <tr>
                 <td>
                     <strong><a href="javascript:void(0)" onclick="App.openCariEkstre('${c.id}')" style="color:#60a5fa; text-decoration:none;">${c.unvan}</a></strong>
                     <div style="font-size:11px; color:var(--text-muted);">${c.kod}</div>
                 </td>
                 <td>
-                    ${c.maxGecikmeGunu > 0
-                        ? `<span class="badge badge-warn">${c.maxGecikmeGunu} gün gecikti</span>`
+                    ${c.enEskiAcikVade
+                        ? this.getVadeDurumu(c.enEskiAcikVade).html
                         : `<span class="badge badge-neutral">Vadesinde</span>`}
                 </td>
                 <td class="num text-alacak">${this.formatMoney(c.netBakiye)}</td>
@@ -556,6 +1033,7 @@ const App = window.App = {
                 </td>
             </tr>
         `).join("") || `<tr><td colspan="4" style="text-align:center; padding:20px; color:var(--text-muted);">Açık alacak bakiyesi yok</td></tr>`;
+        }
 
         // En yüksek borçlu olduğumuz 6 cari
         const borclular = cariler
@@ -563,15 +1041,17 @@ const App = window.App = {
             .sort((a, b) => a.netBakiye - b.netBakiye)
             .slice(0, 6);
 
-        document.getElementById("dashTopBorcBody").innerHTML = borclular.map(c => `
+        const dashTopBorcEl = document.getElementById("dashTopBorcBody");
+        if (dashTopBorcEl) {
+            dashTopBorcEl.innerHTML = borclular.map(c => `
             <tr>
                 <td>
                     <strong><a href="javascript:void(0)" onclick="App.openCariEkstre('${c.id}')" style="color:#60a5fa; text-decoration:none;">${c.unvan}</a></strong>
                     <div style="font-size:11px; color:var(--text-muted);">${c.kod}</div>
                 </td>
                 <td>
-                    ${c.maxGecikmeGunu > 0
-                        ? `<span class="badge badge-borc">${c.maxGecikmeGunu} gün gecikti</span>`
+                    ${c.enEskiAcikVade
+                        ? this.getVadeDurumu(c.enEskiAcikVade).html
                         : `<span class="badge badge-neutral">Vadesinde</span>`}
                 </td>
                 <td class="num text-borc">${this.formatMoney(Math.abs(c.netBakiye))}</td>
@@ -581,10 +1061,13 @@ const App = window.App = {
                 </td>
             </tr>
         `).join("") || `<tr><td colspan="4" style="text-align:center; padding:20px; color:var(--text-muted);">Açık borç bakiyesi yok</td></tr>`;
+        }
 
         // Ajanda
         const agendaItems = this.buildCashflowItems().slice(0, 7);
-        document.getElementById("dashAgendaBody").innerHTML = agendaItems.map(item => `
+        const dashAgendaEl = document.getElementById("dashAgendaBody");
+        if (dashAgendaEl) {
+            dashAgendaEl.innerHTML = agendaItems.map(item => `
             <tr>
                 <td><strong>${item.tarih}</strong></td>
                 <td><span class="badge ${item.yon === 'GIRIS' ? 'badge-alacak' : 'badge-borc'}">${item.turLabel}</span></td>
@@ -593,15 +1076,18 @@ const App = window.App = {
                 <td>${item.gunDiff > 0 ? `<span class="badge badge-warn">${item.gunDiff}g gecikti</span>` : `<span class="badge badge-neutral">${Math.abs(item.gunDiff)}g kaldı</span>`}</td>
             </tr>
         `).join("") || `<tr><td colspan="5" style="text-align:center; padding:20px; color:var(--text-muted);">Planlanan vade kaydı yok</td></tr>`;
+        }
 
         // Son hareketler
         const recentHar = [...this.state.hareketler]
             .sort((a, b) => (b.tarih || "").localeCompare(a.tarih || ""))
             .slice(0, 7);
 
-        document.getElementById("dashRecentHarBody").innerHTML = recentHar.map(h => {
-            const c = this.computedCarilerMap[h.cariId] || { unvan: h.cariUnvan || h.cariKod };
-            return `
+        const dashRecentHarEl = document.getElementById("dashRecentHarBody");
+        if (dashRecentHarEl) {
+            dashRecentHarEl.innerHTML = recentHar.map(h => {
+                const c = this.computedCarilerMap[h.cariId] || { unvan: h.cariUnvan || h.cariKod };
+                return `
                 <tr>
                     <td>${h.tarih}</td>
                     <td><strong>${c.unvan}</strong></td>
@@ -610,13 +1096,420 @@ const App = window.App = {
                     <td class="num ${h.alacak > 0 ? 'text-borc' : ''}">${h.alacak > 0 ? this.formatMoney(h.alacak, h.doviz) : '-'}</td>
                 </tr>
             `;
-        }).join("") || `<tr><td colspan="5" style="text-align:center; padding:20px; color:var(--text-muted);">Henüz cari hareket kaydı yok</td></tr>`;
+            }).join("") || `<tr><td colspan="5" style="text-align:center; padding:20px; color:var(--text-muted);">Henüz cari hareket kaydı yok</td></tr>`;
+        }
+    },
+
+    // ================= ALICILAR (MÜŞTERİLER - 120 GRUBU) RENDER =================
+    renderAlicilar() {
+        const q = (document.getElementById("aliciSearch")?.value || "").toLowerCase().trim();
+        const grupFilter = document.getElementById("aliciFilterGrup")?.value || "ALL";
+        const odemeFilter = document.getElementById("aliciFilterOdeme")?.value || "ALL";
+        const statusFilter = document.getElementById("aliciFilterStatus")?.value || "ALL";
+        const dovizFilter = document.getElementById("aliciFilterDoviz")?.value || "ALL";
+
+        let list = Object.values(this.computedCarilerMap).filter(c => c.hesapTuru === "ALICI");
+
+        // Grup filtresini dinamik doldur
+        const allGroups = new Set();
+        Object.values(this.computedCarilerMap).forEach(c => { if (c.cariGrup) allGroups.add(c.cariGrup); });
+        const grupSelect = document.getElementById("aliciFilterGrup");
+        if (grupSelect && grupSelect.options.length <= 1) {
+            allGroups.forEach(g => {
+                const opt = document.createElement("option");
+                opt.value = g;
+                opt.textContent = `📁 ${g}`;
+                grupSelect.appendChild(opt);
+            });
+        }
+
+        if (q) {
+            list = list.filter(c =>
+                (c.unvan || "").toLowerCase().includes(q) ||
+                (c.kod || "").toLowerCase().includes(q) ||
+                (c.vkn || "").toLowerCase().includes(q) ||
+                (c.cariGrup || "").toLowerCase().includes(q) ||
+                (c.ozelNot || "").toLowerCase().includes(q)
+            );
+        }
+
+        if (grupFilter !== "ALL") {
+            list = list.filter(c => (c.cariGrup || "") === grupFilter);
+        }
+
+        if (odemeFilter === "CEK_10") {
+            list = list.filter(c => (c.odemeSekli || "").startsWith("CEK_10"));
+        } else if (odemeFilter === "CEK") {
+            list = list.filter(c => (c.odemeSekli || "").startsWith("CEK"));
+        } else if (odemeFilter === "NAKIT") {
+            list = list.filter(c => !c.odemeSekli || c.odemeSekli.startsWith("NAKIT") || c.odemeSekli === "PESIN");
+        } else if (odemeFilter === "SOZLU") {
+            list = list.filter(c => c.odemeSozuTarihi || c.ozelNot);
+        }
+
+        if (statusFilter === "ALACAKLIYIZ") list = list.filter(c => c.netBakiye > 0.05);
+        else if (statusFilter === "GECIKEN") list = list.filter(c => c.netBakiye > 0.05 && c.maxGecikmeGunu > 0);
+        else if (statusFilter === "KAPALI") list = list.filter(c => Math.abs(c.netBakiye) <= 0.05);
+
+        if (dovizFilter !== "ALL") {
+            list = list.filter(c => (c.doviz || "TRY") === dovizFilter);
+        }
+
+        list.sort((a, b) => b.netBakiye - a.netBakiye);
+
+        const tbody = document.getElementById("alicilarTableBody");
+        if (!tbody) return;
+
+        tbody.innerHTML = list.map(c => {
+            const isChecked = this.selectedAliciIds.has(c.id);
+            const selVal = c.odemeSekli || "CEK_10";
+
+            let gecikmeHtml = `<span class="badge badge-neutral">Kapalı</span>`;
+            if (c.netBakiye > 0.05) {
+                if (c.enEskiAcikVade) {
+                    const info = this.getVadeDurumu(c.enEskiAcikVade);
+                    gecikmeHtml = `
+                        <div style="font-weight:600; font-size:12px; white-space:nowrap;">📅 ${this.formatDisplayDate(c.enEskiAcikVade)}</div>
+                        <div style="margin-top:2px;">${info.html}</div>
+                    `;
+                } else {
+                    gecikmeHtml = `<span style="color:var(--text-muted); font-size:11.5px;">Vadesinde</span>`;
+                }
+            }
+
+            const sozHtml = c.odemeSozuTarihi
+                ? `<div style="font-size:11.5px; color:#38bdf8;"><strong>📅 Söz:</strong> ${c.odemeSozuTarihi} ${c.odemeSozuTutar ? `(${this.formatMoney(c.odemeSozuTutar)})` : ''}</div>`
+                : '';
+            const notHtml = c.ozelNot
+                ? `<div style="font-size:11px; color:var(--text-muted); max-width:200px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${c.ozelNot}">📝 ${c.ozelNot}</div>`
+                : '';
+
+            return `
+                <tr class="${isChecked ? 'row-selected' : ''}">
+                    <td style="text-align:center;">
+                        <input type="checkbox" class="alici-row-check" value="${c.id}" ${isChecked ? 'checked' : ''} onchange="App.toggleRowSelectAlici('${c.id}', this.checked)">
+                    </td>
+                    <td><code style="font-weight:600; color:#93c5fd;">${c.kod}</code></td>
+                    <td>
+                        <strong><a href="javascript:void(0)" onclick="App.openCariEkstre('${c.id}')" style="color:#60a5fa; text-decoration:none;">${c.unvan}</a></strong>
+                        ${c.vkn ? `<div style="font-size:11px; color:var(--text-muted);">VKN: ${c.vkn}</div>` : ''}
+                    </td>
+                    <td>
+                        ${c.cariGrup ? `<span class="badge-group">${c.cariGrup}</span>` : `<span style="color:var(--text-muted); font-size:11px;">-</span>`}
+                    </td>
+                    <td>
+                        <select class="cari-vade-select" onchange="App.onInlineCariVadeChange('${c.id}', this.value)" title="Ödeme şekli ve vadesini anında değiştirmek için tıklayın">
+                            ${this.vadeOptions.map(opt => `<option value="${opt.value}" ${selVal === opt.value ? 'selected' : ''}>${opt.label}</option>`).join("")}
+                        </select>
+                    </td>
+                    <td class="num">${this.formatMoney(c.toplamBorc)}</td>
+                    <td class="num text-borc">${this.formatMoney(c.toplamAlacak)}</td>
+                    <td class="num ${c.netBakiye > 0.05 ? 'text-alacak' : ''}" style="font-weight:700; font-size:13.5px;">
+                        ${this.formatMoney(c.netBakiye)}
+                    </td>
+                    <td>${gecikmeHtml}</td>
+                    <td>${sozHtml}${notHtml || (!sozHtml ? '<span style="color:var(--text-muted); font-size:11px;">-</span>' : '')}</td>
+                    <td style="white-space:nowrap;">
+                        <button class="btn btn-outline btn-sm" onclick="App.openCariVadeModal('${c.id}')" title="Vade, Grup ve Not Düzenle">⚙️ Vade / Not</button>
+                        <button class="btn btn-outline btn-sm" onclick="App.openCariEkstre('${c.id}')">Ekstre</button>
+                        <button class="btn btn-success btn-sm" onclick="App.openQuickTransactionModal('TAHSILAT', '${c.id}')">+ Tahsilat</button>
+                    </td>
+                </tr>
+            `;
+        }).join("") || `<tr><td colspan="11" style="text-align:center; padding:24px; color:var(--text-muted);">Aramaya uygun müşteri carisi bulunamadı</td></tr>`;
+
+        this.updateBulkBar("alici");
+    },
+
+    // ================= SATICILAR (TEDARİKÇİLER - 320 GRUBU) RENDER =================
+    renderSaticilar() {
+        const q = (document.getElementById("saticiSearch")?.value || "").toLowerCase().trim();
+        const grupFilter = document.getElementById("saticiFilterGrup")?.value || "ALL";
+        const odemeFilter = document.getElementById("saticiFilterOdeme")?.value || "ALL";
+        const statusFilter = document.getElementById("saticiFilterStatus")?.value || "ALL";
+        const dovizFilter = document.getElementById("saticiFilterDoviz")?.value || "ALL";
+
+        let list = Object.values(this.computedCarilerMap).filter(c => c.hesapTuru === "SATICI");
+
+        // Grup filtresini dinamik doldur
+        const allGroups = new Set();
+        Object.values(this.computedCarilerMap).forEach(c => { if (c.cariGrup) allGroups.add(c.cariGrup); });
+        const grupSelect = document.getElementById("saticiFilterGrup");
+        if (grupSelect && grupSelect.options.length <= 1) {
+            allGroups.forEach(g => {
+                const opt = document.createElement("option");
+                opt.value = g;
+                opt.textContent = `📁 ${g}`;
+                grupSelect.appendChild(opt);
+            });
+        }
+
+        if (q) {
+            list = list.filter(c =>
+                (c.unvan || "").toLowerCase().includes(q) ||
+                (c.kod || "").toLowerCase().includes(q) ||
+                (c.vkn || "").toLowerCase().includes(q) ||
+                (c.cariGrup || "").toLowerCase().includes(q) ||
+                (c.ozelNot || "").toLowerCase().includes(q)
+            );
+        }
+
+        if (grupFilter !== "ALL") {
+            list = list.filter(c => (c.cariGrup || "") === grupFilter);
+        }
+
+        if (odemeFilter === "CEK_10") {
+            list = list.filter(c => (c.odemeSekli || "").startsWith("CEK_10"));
+        } else if (odemeFilter === "CEK") {
+            list = list.filter(c => (c.odemeSekli || "").startsWith("CEK"));
+        } else if (odemeFilter === "NAKIT") {
+            list = list.filter(c => !c.odemeSekli || c.odemeSekli.startsWith("NAKIT") || c.odemeSekli === "PESIN");
+        } else if (odemeFilter === "SOZLU") {
+            list = list.filter(c => c.odemeSozuTarihi || c.ozelNot);
+        }
+
+        if (statusFilter === "BORCLUYUZ") list = list.filter(c => c.netBakiye < -0.05);
+        else if (statusFilter === "GECIKEN") list = list.filter(c => c.netBakiye < -0.05 && c.maxGecikmeGunu > 0);
+        else if (statusFilter === "KAPALI") list = list.filter(c => Math.abs(c.netBakiye) <= 0.05);
+
+        if (dovizFilter !== "ALL") {
+            list = list.filter(c => (c.doviz || "TRY") === dovizFilter);
+        }
+
+        list.sort((a, b) => a.netBakiye - b.netBakiye);
+
+        const tbody = document.getElementById("saticilarTableBody");
+        if (!tbody) return;
+
+        tbody.innerHTML = list.map(c => {
+            const isChecked = this.selectedSaticiIds.has(c.id);
+            const selVal = c.odemeSekli || "CEK_10";
+            const absBorc = Math.abs(c.netBakiye);
+
+            let gecikmeHtml = `<span class="badge badge-neutral">Kapalı</span>`;
+            if (c.netBakiye < -0.05) {
+                if (c.enEskiAcikVade) {
+                    const info = this.getVadeDurumu(c.enEskiAcikVade);
+                    gecikmeHtml = `
+                        <div style="font-weight:600; font-size:12px; white-space:nowrap;">📅 ${this.formatDisplayDate(c.enEskiAcikVade)}</div>
+                        <div style="margin-top:2px;">${info.html}</div>
+                    `;
+                } else {
+                    gecikmeHtml = `<span style="color:var(--text-muted); font-size:11.5px;">Vadesinde</span>`;
+                }
+            }
+
+            const sozHtml = c.odemeSozuTarihi
+                ? `<div style="font-size:11.5px; color:#f87171;"><strong>📅 Söz:</strong> ${c.odemeSozuTarihi} ${c.odemeSozuTutar ? `(${this.formatMoney(c.odemeSozuTutar)})` : ''}</div>`
+                : '';
+            const notHtml = c.ozelNot
+                ? `<div style="font-size:11px; color:var(--text-muted); max-width:200px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${c.ozelNot}">📝 ${c.ozelNot}</div>`
+                : '';
+
+            return `
+                <tr class="${isChecked ? 'row-selected' : ''}">
+                    <td style="text-align:center;">
+                        <input type="checkbox" class="satici-row-check" value="${c.id}" ${isChecked ? 'checked' : ''} onchange="App.toggleRowSelectSatici('${c.id}', this.checked)">
+                    </td>
+                    <td><code style="font-weight:600; color:#fca5a5;">${c.kod}</code></td>
+                    <td>
+                        <strong><a href="javascript:void(0)" onclick="App.openCariEkstre('${c.id}')" style="color:#60a5fa; text-decoration:none;">${c.unvan}</a></strong>
+                        ${c.vkn ? `<div style="font-size:11px; color:var(--text-muted);">VKN: ${c.vkn}</div>` : ''}
+                    </td>
+                    <td>
+                        ${c.cariGrup ? `<span class="badge-group">${c.cariGrup}</span>` : `<span style="color:var(--text-muted); font-size:11px;">-</span>`}
+                    </td>
+                    <td>
+                        <select class="cari-vade-select" onchange="App.onInlineCariVadeChange('${c.id}', this.value)" title="Vade ve ödeme kuralını anında değiştirmek için tıklayın">
+                            ${this.vadeOptions.map(opt => `<option value="${opt.value}" ${selVal === opt.value ? 'selected' : ''}>${opt.label}</option>`).join("")}
+                        </select>
+                    </td>
+                    <td class="num text-alacak">${this.formatMoney(c.toplamAlacak)}</td>
+                    <td class="num">${this.formatMoney(c.toplamBorc)}</td>
+                    <td class="num ${c.netBakiye < -0.05 ? 'text-borc' : ''}" style="font-weight:700; font-size:13.5px;">
+                        ${this.formatMoney(absBorc)}
+                    </td>
+                    <td>${gecikmeHtml}</td>
+                    <td>${sozHtml}${notHtml || (!sozHtml ? '<span style="color:var(--text-muted); font-size:11px;">-</span>' : '')}</td>
+                    <td style="white-space:nowrap;">
+                        <button class="btn btn-outline btn-sm" onclick="App.openCariVadeModal('${c.id}')" title="Vade, Grup ve Not Düzenle">⚙️ Vade / Not</button>
+                        <button class="btn btn-outline btn-sm" onclick="App.openCariEkstre('${c.id}')">Ekstre</button>
+                        <button class="btn btn-danger btn-sm" onclick="App.openQuickTransactionModal('ODEME', '${c.id}')">- Ödeme</button>
+                    </td>
+                </tr>
+            `;
+        }).join("") || `<tr><td colspan="11" style="text-align:center; padding:24px; color:var(--text-muted);">Aramaya uygun tedarikçi carisi bulunamadı</td></tr>`;
+
+        this.updateBulkBar("satici");
+    },
+
+    toggleRowSelectAlici(cariId, checked) {
+        if (checked) this.selectedAliciIds.add(cariId);
+        else this.selectedAliciIds.delete(cariId);
+        this.updateBulkBar("alici");
+    },
+
+    toggleRowSelectSatici(cariId, checked) {
+        if (checked) this.selectedSaticiIds.add(cariId);
+        else this.selectedSaticiIds.delete(cariId);
+        this.updateBulkBar("satici");
+    },
+
+    toggleSelectAllAlicilar(checked) {
+        const boxes = document.querySelectorAll(".alici-row-check");
+        boxes.forEach(b => {
+            b.checked = checked;
+            if (checked) this.selectedAliciIds.add(b.value);
+            else this.selectedAliciIds.delete(b.value);
+        });
+        this.updateBulkBar("alici");
+    },
+
+    toggleSelectAllSaticilar(checked) {
+        const boxes = document.querySelectorAll(".satici-row-check");
+        boxes.forEach(b => {
+            b.checked = checked;
+            if (checked) this.selectedSaticiIds.add(b.value);
+            else this.selectedSaticiIds.delete(b.value);
+        });
+        this.updateBulkBar("satici");
+    },
+
+    updateBulkBar(type) {
+        const set = type === "alici" ? this.selectedAliciIds : this.selectedSaticiIds;
+        const cntEl = document.getElementById(type + "SelectedCount");
+        if (cntEl) cntEl.textContent = set.size;
+    },
+
+    async onInlineCariVadeChange(cariId, optValue) {
+        const c = this.state.cariler.find(x => x.id === cariId);
+        if (!c) return;
+        const opt = this.vadeOptions.find(o => o.value === optValue);
+        const days = opt ? opt.days : 30;
+        const rule = opt ? opt.rule : (optValue && optValue.includes("10") ? "TAKIP_EDEN_10" : "STANDART");
+
+        this.setCariConfig(c, {
+            odemeSekli: optValue,
+            vadeGunu: days,
+            vadeKurali: rule,
+            cariGrup: c.cariGrup || "",
+            cariTipi: c.cariTipi || (c.kod.startsWith("320") ? "TEDARIKCI" : "MUSTERI")
+        });
+
+        await this.saveState();
+        this.recalculateAndRenderAll();
+        this.showToast(`✅ "${c.unvan}" vade seçeneği kalıcı olarak kaydedildi: ${opt ? opt.label : optValue}`);
+    },
+
+    async onBulkVadeDropdownChange(type, selVade) {
+        if (!selVade) return;
+        const set = type === "alici" ? this.selectedAliciIds : this.selectedSaticiIds;
+        // Eğer cari kutucukları işaretliyse doğrudan otomatik uygula!
+        if (set.size > 0) {
+            await this.applyBulkAssign(type);
+        }
+    },
+
+    async applyBulkAssign(type) {
+        const set = type === "alici" ? this.selectedAliciIds : this.selectedSaticiIds;
+        const selVade = document.getElementById(type + "BulkVade")?.value;
+        const selGrup = (document.getElementById(type + "BulkGrup")?.value || "").trim();
+
+        if (set.size === 0) {
+            const roleName = type === "alici" ? "müşterilere" : "tedarikçilere";
+            const targetList = Object.values(this.computedCarilerMap).filter(c => c.hesapTuru === (type === "alici" ? "ALICI" : "SATICI"));
+            if (targetList.length === 0) {
+                alert("Uygulanacak cari bulunamadı.");
+                return;
+            }
+            const confirmAll = confirm(`İşaretli kutucuk bulunamadı.\nBu sekmedeki TÜM (${targetList.length}) ${roleName} '${selVade ? selVade : 'seçilen kuralı'}' otomatik uygulamak istiyor musunuz?`);
+            if (!confirmAll) return;
+            targetList.forEach(c => set.add(c.id));
+        }
+
+        if (!selVade && !selGrup) {
+            alert("Lütfen atanacak Vade Kuralını veya Cari Grubunu seçiniz.");
+            return;
+        }
+
+        const opt = this.vadeOptions.find(o => o.value === selVade);
+        let count = 0;
+
+        for (const cariId of Array.from(set)) {
+            const c = this.state.cariler.find(x => x.id === cariId);
+            if (!c) continue;
+
+            const updateData = {};
+            if (selVade) {
+                updateData.odemeSekli = selVade;
+                updateData.vadeGunu = opt ? opt.days : (selVade.startsWith("CEK_10") ? 0 : (c.vadeGunu || 0));
+                updateData.vadeKurali = opt ? opt.rule : (selVade.includes("10") ? "TAKIP_EDEN_10" : "STANDART");
+            }
+            if (selGrup) {
+                updateData.cariGrup = selGrup;
+            }
+
+            this.setCariConfig(c, updateData);
+            count++;
+        }
+
+        set.clear();
+        this.updateBulkBar(type);
+        // Checkboxları da temizle
+        const chkClass = type === "alici" ? ".alici-row-check" : ".satici-row-check";
+        document.querySelectorAll(chkClass).forEach(b => { b.checked = false; });
+        const allChk = document.getElementById(type === "alici" ? "selectAllAlicilar" : "selectAllSaticilar");
+        if (allChk) allChk.checked = false;
+
+        await this.saveState();
+        this.recalculateAndRenderAll();
+        this.showToast(`✅ ${count} adet cariye '${opt ? opt.label : selVade}' kuralı uygulandı ve kalıcı kaydedildi.`);
+    },
+
+    showToast(msg) {
+        const t = document.getElementById("appToast");
+        if (!t) return;
+        t.textContent = msg;
+        t.style.display = "block";
+        t.style.opacity = "1";
+        clearTimeout(this._toastTimer);
+        this._toastTimer = setTimeout(() => {
+            t.style.opacity = "0";
+            setTimeout(() => { t.style.display = "none"; }, 300);
+        }, 3200);
+    },
+
+    exportAlicilarCsv() {
+        const list = Object.values(this.computedCarilerMap).filter(c => c.hesapTuru === "ALICI");
+        let csv = "\uFEFFMusteri Kodu;Musteri Unvani;VKN;Cari Grubu;Odeme Sekli;Vade Gunu;Toplam Satis;Tahsilat;Net Alacak;Gecikme Gunu;Ozel Not\n";
+        for (const c of list) {
+            csv += `"${c.kod}";"${(c.unvan || '').replace(/"/g, '""')}";"${c.vkn || ''}";"${c.cariGrup || ''}";"${c.odemeSekli || ''}";"${c.vadeGunu || 30}";"${(c.toplamBorc || 0).toFixed(2)}";"${(c.toplamAlacak || 0).toFixed(2)}";"${(c.netBakiye || 0).toFixed(2)}";"${c.maxGecikmeGunu || 0}";"${(c.ozelNot || '').replace(/"/g, '""')}"\n`;
+        }
+        const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = `SODSAN_Musteriler_Alicilar_${new Date().toISOString().slice(0, 10)}.csv`;
+        a.click();
+    },
+
+    exportSaticilarCsv() {
+        const list = Object.values(this.computedCarilerMap).filter(c => c.hesapTuru === "SATICI");
+        let csv = "\uFEFFTedarikci Kodu;Tedarikci Unvani;VKN;Cari Grubu;Odeme Sekli;Vade Gunu;Toplam Alis;Yapilan Odeme;Net Borcumuz;Gecikme Gunu;Ozel Not\n";
+        for (const c of list) {
+            csv += `"${c.kod}";"${(c.unvan || '').replace(/"/g, '""')}";"${c.vkn || ''}";"${c.cariGrup || ''}";"${c.odemeSekli || ''}";"${c.vadeGunu || 30}";"${(c.toplamAlacak || 0).toFixed(2)}";"${(c.toplamBorc || 0).toFixed(2)}";"${Math.abs(c.netBakiye || 0).toFixed(2)}";"${c.maxGecikmeGunu || 0}";"${(c.ozelNot || '').replace(/"/g, '""')}"\n`;
+        }
+        const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = `SODSAN_Tedarikciler_Saticilar_${new Date().toISOString().slice(0, 10)}.csv`;
+        a.click();
     },
 
     // ================= 2. CARİ HESAPLAR RENDER =================
     renderCariler() {
         const q = (document.getElementById("cariSearch")?.value || "").toLowerCase().trim();
         const statusFilter = document.getElementById("cariFilterStatus")?.value || "ALL";
+        const odemeFilter = document.getElementById("cariFilterOdemeSekli")?.value || "ALL";
         const dovizFilter = document.getElementById("cariFilterDoviz")?.value || "ALL";
 
         let list = Object.values(this.computedCarilerMap);
@@ -625,7 +1518,8 @@ const App = window.App = {
             list = list.filter(c =>
                 (c.unvan || "").toLowerCase().includes(q) ||
                 (c.kod || "").toLowerCase().includes(q) ||
-                (c.vkn || "").toLowerCase().includes(q)
+                (c.vkn || "").toLowerCase().includes(q) ||
+                (c.ozelNot || "").toLowerCase().includes(q)
             );
         }
 
@@ -633,6 +1527,14 @@ const App = window.App = {
         else if (statusFilter === "BORCLUYUZ") list = list.filter(c => c.bakiyeYonu === "BORCLUYUZ");
         else if (statusFilter === "GECIKEN") list = list.filter(c => c.bakiyeYonu !== "KAPALI" && c.maxGecikmeGunu > 0);
         else if (statusFilter === "KAPALI") list = list.filter(c => c.bakiyeYonu === "KAPALI");
+
+        if (odemeFilter === "CEK") {
+            list = list.filter(c => (c.odemeSekli || "").startsWith("CEK"));
+        } else if (odemeFilter === "NAKIT") {
+            list = list.filter(c => !c.odemeSekli || c.odemeSekli === "NAKIT" || c.odemeSekli === "PESIN");
+        } else if (odemeFilter === "SOZLU") {
+            list = list.filter(c => c.odemeSozuTarihi || c.ozelNot);
+        }
 
         if (dovizFilter !== "ALL") {
             list = list.filter(c => (c.doviz || "TRY") === dovizFilter);
@@ -649,13 +1551,31 @@ const App = window.App = {
                 yonBadge = `<span class="badge badge-borc">Borçlu (Ödenecek)</span>`;
             }
 
-            let gecikmeHtml = `<span style="color:var(--text-muted);">-</span>`;
-            if (c.bakiyeYonu !== "KAPALI") {
-                if (c.maxGecikmeGunu > 0) {
-                    gecikmeHtml = `<span class="badge badge-warn">${c.maxGecikmeGunu} gün gecikti</span>`;
-                } else if (c.enEskiAcikVade) {
-                    gecikmeHtml = `<span class="badge badge-neutral">Vade: ${c.enEskiAcikVade}</span>`;
+            let odemeBadge = `<span class="badge badge-nakit">💵 Nakit (30G)</span>`;
+            if (c.odemeSekli) {
+                if (c.odemeSekli.startsWith("CEK")) {
+                    const days = c.vadeGunu || c.odemeSekli.split("_")[1] || 60;
+                    odemeBadge = `<span class="badge badge-cek">📑 ${days}G Çek</span>`;
+                } else if (c.odemeSekli === "KREDI_KARTI") {
+                    odemeBadge = `<span class="badge badge-purple">💳 K.Kartı</span>`;
+                } else if (c.odemeSekli === "PESIN") {
+                    odemeBadge = `<span class="badge badge-alacak">⚡ Peşin</span>`;
+                } else if (c.odemeSekli === "OZEL") {
+                    odemeBadge = `<span class="badge badge-neutral">✏️ Özel (${c.vadeGunu || 30}G)</span>`;
+                } else {
+                    odemeBadge = `<span class="badge badge-nakit">💵 Nakit (${c.vadeGunu || 30}G)</span>`;
                 }
+            } else if (c.vadeGunu) {
+                odemeBadge = `<span class="badge badge-neutral">Vade: ${c.vadeGunu}G</span>`;
+            }
+
+            let gecikmeHtml = `<span style="color:var(--text-muted);">-</span>`;
+            if (c.bakiyeYonu !== "KAPALI" && c.enEskiAcikVade) {
+                const info = this.getVadeDurumu(c.enEskiAcikVade);
+                gecikmeHtml = `
+                    <div style="font-weight:600; font-size:12px; white-space:nowrap;">📅 ${this.formatDisplayDate(c.enEskiAcikVade)}</div>
+                    <div style="margin-top:2px;">${info.html}</div>
+                `;
             }
 
             const sozHtml = c.odemeSozuTarihi
@@ -672,6 +1592,7 @@ const App = window.App = {
                             ${c.vkn ? `VKN: ${c.vkn}` : ''} ${c.telefon ? `• Tel: ${c.telefon}` : ''} • ${c.hareketListesi.length} hareket
                         </div>
                     </td>
+                    <td>${odemeBadge}</td>
                     <td class="num">${this.formatMoney(c.toplamBorc)}</td>
                     <td class="num">${this.formatMoney(c.toplamAlacak)}</td>
                     <td class="num ${c.bakiyeYonu === 'ALACAKLIYIZ' ? 'text-alacak' : (c.bakiyeYonu === 'BORCLUYUZ' ? 'text-borc' : '')}">
@@ -683,13 +1604,14 @@ const App = window.App = {
                     <td>
                         <div style="display:flex; gap:5px; flex-wrap:wrap;">
                             <button class="btn btn-primary btn-sm" onclick="App.openCariEkstre('${c.id}')">Ekstre</button>
+                            <button class="btn btn-outline btn-sm" onclick="App.openCariVadeModal('${c.id}')" title="Vade ve Ödeme Şekli Ayarla">⚙️ Vade/Şart</button>
                             <button class="btn btn-success btn-sm" onclick="App.openQuickTransactionModal('TAHSILAT', '${c.id}')" title="Müşteriden Tahsilat">+Tahsilat</button>
                             <button class="btn btn-danger btn-sm" onclick="App.openQuickTransactionModal('ODEME', '${c.id}')" title="Tedarikçiye Ödeme">-Ödeme</button>
                         </div>
                     </td>
                 </tr>
             `;
-        }).join("") || `<tr><td colspan="9" style="text-align:center; padding:24px; color:var(--text-muted);">Henüz cari hesap verisi yüklenmedi. Zirve'den aldığınız Excel veya PDF dosyasını yükleyin.</td></tr>`;
+        }).join("") || `<tr><td colspan="10" style="text-align:center; padding:24px; color:var(--text-muted);">Henüz cari hesap verisi yüklenmedi. Zirve'den aldığınız Excel veya PDF dosyasını yükleyin.</td></tr>`;
     },
 
     // ================= CARİ EKSTRE MODAL =================
@@ -700,6 +1622,14 @@ const App = window.App = {
 
         document.getElementById("ekstreCariTitle").textContent = `${c.unvan} (${c.kod})`;
         document.getElementById("ekstreCariSub").textContent = `VKN: ${c.vkn || '-'} | Telefon: ${c.telefon || '-'} | Kaynak: ${c.kaynak || 'Yerel'}`;
+
+        const pmEl = document.getElementById("ekstrePaymentMethod");
+        if (pmEl) {
+            pmEl.value = c.odemeSekli || "CEK_10";
+            if (!pmEl.value && pmEl.options.length > 0) pmEl.selectedIndex = 0;
+        }
+        const tdEl = document.getElementById("ekstreTermDays");
+        if (tdEl) tdEl.value = c.vadeGunu !== undefined ? c.vadeGunu : 60;
 
         document.getElementById("ekstrePromiseDate").value = c.odemeSozuTarihi || "";
         document.getElementById("ekstrePromiseAmount").value = c.odemeSozuTutar || "";
@@ -718,6 +1648,7 @@ const App = window.App = {
         };
 
         const absNet = Math.abs(c.netBakiye);
+        const vadeDurumu = c.enEskiAcikVade ? this.getVadeDurumu(c.enEskiAcikVade) : null;
         document.getElementById("ekstreKpiRow").innerHTML = `
             <div class="kpi-card">
                 <div class="kpi-label">Toplam Borç (Satış / Ödeme / Devir)</div>
@@ -727,10 +1658,16 @@ const App = window.App = {
                 <div class="kpi-label">Toplam Alacak (Alış / Tahsilat)</div>
                 <div class="kpi-value">${this.formatMoney(c.toplamAlacak)}</div>
             </div>
-            <div class="kpi-card ${c.bakiyeYonu === 'ALACAKLIYIZ' ? 'alacak' : 'borc'}">
+            <div class="kpi-card ${c.bakiyeYonu === 'ALACAKLIYIZ' ? 'alacak' : (c.bakiyeYonu === 'BORCLUYUZ' ? 'borc' : '')}">
                 <div class="kpi-label">Net Cari Bakiye (${c.bakiyeYonu === 'ALACAKLIYIZ' ? 'Müşteri Bize Borçlu' : (c.bakiyeYonu === 'BORCLUYUZ' ? 'Biz Tedarikçiye Borçluyuz' : 'Mutabık')})</div>
-                <div class="kpi-value ${c.bakiyeYonu === 'ALACAKLIYIZ' ? 'text-alacak' : 'text-borc'}">
+                <div class="kpi-value ${c.bakiyeYonu === 'ALACAKLIYIZ' ? 'text-alacak' : (c.bakiyeYonu === 'BORCLUYUZ' ? 'text-borc' : '')}">
                     ${this.formatMoney(absNet)} ${c.bakiyeYonu === 'ALACAKLIYIZ' ? '(B)' : (c.bakiyeYonu === 'BORCLUYUZ' ? '(A)' : '')}
+                </div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Faturadan Hesaplanan Vade Durumu</div>
+                <div class="kpi-value" style="font-size:13.5px; font-weight:600; margin-top:2px;">
+                    ${vadeDurumu ? `📅 ${this.formatDisplayDate(c.enEskiAcikVade)} • ${vadeDurumu.text}` : '<span style="color:var(--text-muted); font-size:12px;">Açık Bakiye Yok (Kapalı)</span>'}
                 </div>
             </div>
         `;
@@ -740,17 +1677,22 @@ const App = window.App = {
         const rowsHtml = c.hareketListesi.map(h => {
             running = Math.round((running + h.borcTl - h.alacakTl) * 100) / 100;
             const ba = running > 0.05 ? "B (Alacağımız)" : (running < -0.05 ? "A (Borcumuz)" : "0");
+            const effVade = this.getEffectiveVadeTarihi(h.tarih, c);
+            const vadeInfo = this.getVadeDurumu(effVade);
             return `
                 <tr>
-                    <td>${h.tarih}</td>
-                    <td>${h.vadeTarihi || h.tarih}</td>
-                    <td><code>${h.evrakNo || '-'}</code></td>
-                    <td><span class="badge badge-neutral">${this.getHarTypeLabel(h.islemTuru)}</span></td>
-                    <td>${h.aciklama || '-'}</td>
+                    <td class="cell-date">${this.formatDisplayDate(h.tarih)}</td>
+                    <td class="cell-date">
+                        <div style="font-weight:600;">${this.formatDisplayDate(effVade)}</div>
+                        <div style="margin-top:2px;">${vadeInfo.html}</div>
+                    </td>
+                    <td class="cell-code"><code>${h.evrakNo || '-'}</code></td>
+                    <td class="nowrap"><span class="badge badge-neutral">${this.getHarTypeLabel(h.islemTuru)}</span></td>
+                    <td style="max-width:320px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${h.aciklama || ''}">${h.aciklama || '-'}</td>
                     <td class="num ${h.borcTl > 0 ? 'text-alacak' : ''}">${h.borcTl > 0 ? this.formatMoney(h.borcTl) : '-'}</td>
                     <td class="num ${h.alacakTl > 0 ? 'text-borc' : ''}">${h.alacakTl > 0 ? this.formatMoney(h.alacakTl) : '-'}</td>
                     <td class="num"><strong>${this.formatMoney(Math.abs(running))}</strong></td>
-                    <td><span class="badge ${running > 0.05 ? 'badge-alacak' : (running < -0.05 ? 'badge-borc' : 'badge-neutral')}">${ba}</span></td>
+                    <td class="nowrap"><span class="badge ${running > 0.05 ? 'badge-alacak' : (running < -0.05 ? 'badge-borc' : 'badge-neutral')}">${ba}</span></td>
                 </tr>
             `;
         }).join("");
@@ -765,13 +1707,62 @@ const App = window.App = {
         const target = this.state.cariler.find(c => c.id === cariId);
         if (!target) return;
 
-        target.odemeSozuTarihi = document.getElementById("ekstrePromiseDate").value;
-        target.odemeSozuTutar = parseFloat(document.getElementById("ekstrePromiseAmount").value) || 0;
-        target.ozelNot = document.getElementById("ekstreCariNote").value.trim();
+        const pmEl = document.getElementById("ekstrePaymentMethod");
+        const tdEl = document.getElementById("ekstreTermDays");
+        const optValue = pmEl ? pmEl.value : (target.odemeSekli || "CEK_10");
+        const opt = this.vadeOptions.find(o => o.value === optValue);
+
+        const sozDate = document.getElementById("ekstrePromiseDate")?.value || null;
+        const sozAmount = parseFloat(document.getElementById("ekstrePromiseAmount")?.value) || null;
+        const ozelNot = (document.getElementById("ekstreCariNote")?.value || "").trim();
+        const termDays = tdEl ? (parseInt(tdEl.value, 10) || (opt ? opt.days : 30)) : (opt ? opt.days : 30);
+        const termRule = opt ? opt.rule : (optValue && optValue.includes("10") ? "TAKIP_EDEN_10" : "STANDART");
+
+        this.setCariConfig(target, {
+            odemeSekli: optValue,
+            vadeGunu: termDays,
+            vadeKurali: termRule,
+            odemeSozuTarihi: sozDate,
+            odemeSozuTutar: sozAmount,
+            ozelNot: ozelNot
+        });
 
         this.saveState();
         this.recalculateAndRenderAll();
-        alert("Cari ödeme sözü ve takip notu kaydedildi. Ödeme Takvimi güncellendi.");
+        this.openCariEkstre(cariId);
+        this.showToast(`✅ "${target.unvan}" vade ve ödeme şartları güncellendi. Tüm fatura vadeleri ve kalan günler yeniden hesaplandı.`);
+    },
+
+    onEkstrePaymentMethodChange() {
+        const val = document.getElementById("ekstrePaymentMethod")?.value;
+        const termEl = document.getElementById("ekstreTermDays");
+        if (!termEl) return;
+        const opt = this.vadeOptions.find(o => o.value === val);
+        if (opt) {
+            termEl.value = opt.days;
+        } else if (val === "PESIN") {
+            termEl.value = 0;
+        }
+    },
+
+    toggleEkstreFullscreen() {
+        const box = document.querySelector("#cariEkstreModal .modal-box");
+        if (box) {
+            box.classList.toggle("fullscreen");
+            if (box.classList.contains("fullscreen")) {
+                box.style.width = "100vw";
+                box.style.height = "100vh";
+                box.style.maxWidth = "100vw";
+                box.style.maxHeight = "100vh";
+                box.style.borderRadius = "0";
+            } else {
+                box.style.width = "";
+                box.style.height = "";
+                box.style.maxWidth = "";
+                box.style.maxHeight = "";
+                box.style.borderRadius = "";
+            }
+        }
     },
 
     sendWhatsappMutabakat(cariId) {
@@ -789,6 +1780,334 @@ const App = window.App = {
         const phoneParam = cleanPhone ? (cleanPhone.startsWith("0") ? "9" + cleanPhone : cleanPhone) : "";
         const url = `https://wa.me/${phoneParam}?text=${encodeURIComponent(msg)}`;
         window.open(url, "_blank");
+    },
+
+    // ================= CARİ VADE & ÖDEME ŞEKLİ MODAL =================
+    openCariVadeModal(cariId) {
+        const c = this.state.cariler.find(x => x.id === cariId) || this.computedCarilerMap[cariId];
+        if (!c) return;
+
+        const comp = this.computedCarilerMap[cariId] || c;
+        const absBakiye = Math.abs(comp.netBakiye || 0);
+
+        document.getElementById("cvmCariId").value = c.id;
+        document.getElementById("cvmTitle").textContent = `${c.unvan} (${c.kod})`;
+        document.getElementById("cvmSub").textContent = `Güncel Net Bakiye: ${this.formatMoney(absBakiye)} TL | Durum: ${comp.bakiyeYonu || 'Açık'}`;
+
+        document.getElementById("cvmRol").value = c.cariTipi || (c.kod.startsWith("320") ? "TEDARIKCI" : "MUSTERI");
+        const grupEl = document.getElementById("cvmGrup");
+        if (grupEl) grupEl.value = c.cariGrup || "";
+
+        document.getElementById("cvmOdemeSekli").value = c.odemeSekli || "CEK_10";
+        document.getElementById("cvmVadeGunu").value = c.vadeGunu !== undefined ? c.vadeGunu : 60;
+        document.getElementById("cvmOdemeGunu").value = c.vadeKurali || c.odemeGunuKurali || "TAKIP_EDEN_10";
+        document.getElementById("cvmSozTarihi").value = c.odemeSozuTarihi || "";
+        document.getElementById("cvmSozTutar").value = c.odemeSozuTutar || (absBakiye > 0 ? absBakiye : "");
+        document.getElementById("cvmYetkili").value = c.yetkiliKisi || c.yetkili || "";
+        document.getElementById("cvmTel").value = c.telefon || "";
+        document.getElementById("cvmNot").value = c.ozelNot || "";
+
+        document.getElementById("cariVadeModal").classList.add("active");
+    },
+
+    onCvmOdemeSekliChange() {
+        const sekil = document.getElementById("cvmOdemeSekli")?.value;
+        const vg = document.getElementById("cvmVadeGunu");
+        const og = document.getElementById("cvmOdemeGunu");
+        if (!vg) return;
+
+        const opt = this.vadeOptions.find(o => o.value === sekil);
+        if (opt) {
+            vg.value = opt.days;
+            if (og) og.value = opt.rule;
+        } else if (sekil && sekil.startsWith("CEK_10_")) {
+            const days = parseInt(sekil.replace("CEK_10_", ""), 10) || 0;
+            vg.value = days;
+            if (og) og.value = "TAKIP_EDEN_10";
+        }
+    },
+
+    fillCvmCurrentBalance() {
+        const cariId = document.getElementById("cvmCariId")?.value;
+        const comp = this.computedCarilerMap[cariId];
+        if (comp) {
+            document.getElementById("cvmSozTutar").value = Math.abs(comp.netBakiye || 0).toFixed(2);
+        }
+    },
+
+    async saveCariVadeModal() {
+        const cariId = document.getElementById("cvmCariId")?.value;
+        const target = this.state.cariler.find(c => c.id === cariId);
+        if (!target) return;
+
+        const rol = document.getElementById("cvmRol").value;
+        const grup = (document.getElementById("cvmGrup")?.value || "").trim();
+        const odemeSekli = document.getElementById("cvmOdemeSekli").value;
+        const vadeGunu = parseInt(document.getElementById("cvmVadeGunu").value, 10) || 0;
+        const vadeKurali = document.getElementById("cvmOdemeGunu").value;
+        const sozTarihi = document.getElementById("cvmSozTarihi").value || null;
+        const sozTutar = parseFloat(document.getElementById("cvmSozTutar").value) || null;
+        const yetkili = document.getElementById("cvmYetkili").value.trim();
+        const tel = document.getElementById("cvmTel").value.trim();
+        const not = document.getElementById("cvmNot").value.trim();
+
+        // Kalıcı Cari Ayarlarına Kaydet
+        this.setCariConfig(target, {
+            cariTipi: rol,
+            cariGrup: grup,
+            odemeSekli: odemeSekli,
+            vadeGunu: vadeGunu,
+            vadeKurali: vadeKurali,
+            odemeSozuTarihi: sozTarihi,
+            odemeSozuTutar: sozTutar,
+            yetkili: yetkili,
+            telefon: tel,
+            ozelNot: not
+        });
+
+        this.closeModal("cariVadeModal");
+        await this.saveState();
+        this.recalculateAndRenderAll();
+        this.showToast(`✅ "${target.unvan}" vade ve grup bilgileri kalıcı olarak kaydedildi.`);
+    },
+
+    copyWhatsAppReminderText(cariId) {
+        const c = this.computedCarilerMap[cariId] || this.state.cariler.find(x => x.id === cariId);
+        if (!c) return;
+
+        const isAlacak = c.bakiyeYonu === "ALACAKLIYIZ";
+        const abs = this.formatMoney(Math.abs(c.netBakiye));
+        const vade = c.odemeSozuTarihi || c.enEskiAcikVade || "Vadesi gelen";
+        let sekil = "ödeme";
+        if (c.odemeSekli && c.odemeSekli.startsWith("CEK")) {
+            sekil = `${c.vadeGunu || 60} günlük çek ödemesi`;
+        } else if (c.odemeSekli === "NAKIT") {
+            sekil = "nakit / havale ödemesi";
+        }
+
+        let msg = "";
+        if (isAlacak) {
+            msg = `Sayın ${c.unvan} yetkilisi,\n\n${this.state.settings.ownFirmName || 'SODSAN'} cari hesabınızda ${vade} vadeli ${abs} tutarında ${sekil} bulunmaktadır.\n\nMutabakat ve ödeme planınız ile ilgili bilgi vermenizi rica eder, iyi çalışmalar dileriz.\n\n${this.state.settings.ownFirmName || 'SODSAN STANDART OTO DÖŞEME A.Ş.'}`;
+        } else {
+            msg = `Sayın ${c.unvan} yetkilisi,\n\n${this.state.settings.ownFirmName || 'SODSAN'} olarak cari hesabınızdaki ${abs} tutarındaki ödemeniz ${vade} tarihinde planlanmıştır.\nBilgilerinize sunar, iyi çalışmalar dileriz.`;
+        }
+
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(msg).then(() => {
+                alert("📋 Hatırlatma metni panoya kopyalandı!\n\nWhatsApp, SMS veya e-posta ile yapıştırıp gönderebilirsiniz:\n\n" + msg);
+            }).catch(() => {
+                prompt("Metni kopyalayınız (Ctrl+C):", msg);
+            });
+        } else {
+            prompt("Metni kopyalayınız (Ctrl+C):", msg);
+        }
+    },
+
+    // ================= VADE & ÖDEME HATIRLATICI TAKVİMİ RENDER =================
+    renderHatirlatici() {
+        const tbody = document.getElementById("hatirlaticiTableBody");
+        if (!tbody) return;
+
+        const q = (document.getElementById("hatirlaticiSearch")?.value || "").toLowerCase().trim();
+        const roleFilter = document.getElementById("hatirlaticiFilterRole")?.value || "ALL";
+        const timeFilter = document.getElementById("hatirlaticiFilterTime")?.value || "ALL";
+        const typeFilter = document.getElementById("hatirlaticiFilterType")?.value || "ALL";
+
+        const cariler = Object.values(this.computedCarilerMap);
+        let items = [];
+
+        let totalGecikenAlacak = 0;
+        let countGecikenAlacak = 0;
+        let totalGecikenBorc = 0;
+        let countGecikenBorc = 0;
+        let totalBuHaftaAlacak = 0;
+        let totalBuHaftaBorc = 0;
+        let totalDueCount = 0;
+
+        for (const c of cariler) {
+            if (c.bakiyeYonu === "KAPALI") continue;
+
+            const isAlacak = c.bakiyeYonu === "ALACAKLIYIZ";
+            const role = c.cariTipi || (c.kod.startsWith("320") ? "TEDARIKCI" : "MUSTERI");
+            const absBakiye = Math.abs(c.netBakiye);
+
+            const effectiveDate = c.odemeSozuTarihi || c.enEskiAcikVade || new Date().toISOString().slice(0, 10);
+            const daysDiff = this.daysDiffFromToday(effectiveDate);
+
+            if (isAlacak) {
+                if (daysDiff > 0) {
+                    totalGecikenAlacak += absBakiye;
+                    countGecikenAlacak++;
+                    totalDueCount++;
+                } else if (daysDiff >= -7) {
+                    totalBuHaftaAlacak += absBakiye;
+                    totalDueCount++;
+                }
+            } else {
+                if (daysDiff > 0) {
+                    totalGecikenBorc += absBakiye;
+                    countGecikenBorc++;
+                    totalDueCount++;
+                } else if (daysDiff >= -7) {
+                    totalBuHaftaBorc += absBakiye;
+                    totalDueCount++;
+                }
+            }
+
+            if (q) {
+                const matchQ = (c.unvan || "").toLowerCase().includes(q) ||
+                               (c.kod || "").toLowerCase().includes(q) ||
+                               (c.ozelNot || "").toLowerCase().includes(q) ||
+                               (c.yetkiliKisi || "").toLowerCase().includes(q);
+                if (!matchQ) continue;
+            }
+
+            if (roleFilter === "ALACAK" && !isAlacak) continue;
+            if (roleFilter === "BORC" && isAlacak) continue;
+
+            if (timeFilter === "GECIKEN" && daysDiff <= 0) continue;
+            if (timeFilter === "BUGUN" && daysDiff !== 0) continue;
+            if (timeFilter === "BU_HAFTA" && (daysDiff < -7 || daysDiff > 0)) continue;
+            if (timeFilter === "BU_AY" && (daysDiff < -30 || daysDiff > 0)) continue;
+
+            if (typeFilter === "CEK" && !(c.odemeSekli || "").startsWith("CEK")) continue;
+            if (typeFilter === "NAKIT" && (c.odemeSekli || "").startsWith("CEK")) continue;
+
+            items.push({
+                cari: c,
+                isAlacak,
+                role,
+                absBakiye,
+                effectiveDate,
+                daysDiff,
+                odemeSekli: c.odemeSekli || "NAKIT",
+                vadeGunu: c.vadeGunu || 30
+            });
+        }
+
+        items.sort((a, b) => b.daysDiff - a.daysDiff);
+
+        const kpisEl = document.getElementById("hatirlaticiKpis");
+        if (kpisEl) {
+            kpisEl.innerHTML = `
+                <div class="kpi-card borc" style="border-left: 4px solid #ef4444;">
+                    <div class="kpi-label">🚨 Vadesi Geçen Müşteri Alacakları</div>
+                    <div class="kpi-value text-borc">${this.formatMoney(totalGecikenAlacak)}</div>
+                    <div class="kpi-sub">
+                        <span><strong>${countGecikenAlacak} Müşteri</strong> aranmayı bekliyor</span>
+                    </div>
+                </div>
+                <div class="kpi-card borc" style="border-left: 4px solid #f59e0b;">
+                    <div class="kpi-label">⚠️ Vadesi Geçen Tedarikçi Borçlarımız</div>
+                    <div class="kpi-value text-warn">${this.formatMoney(totalGecikenBorc)}</div>
+                    <div class="kpi-sub">
+                        <span><strong>${countGecikenBorc} Tedarikçi</strong> için ödeme gecikti</span>
+                    </div>
+                </div>
+                <div class="kpi-card alacak" style="border-left: 4px solid #10b981;">
+                    <div class="kpi-label">📅 Bu Hafta Beklenen Müşteri Tahsilatları</div>
+                    <div class="kpi-value text-alacak">${this.formatMoney(totalBuHaftaAlacak)}</div>
+                    <div class="kpi-sub">
+                        <span>Önümüzdeki 7 gün içinde tahsil edilecek</span>
+                    </div>
+                </div>
+                <div class="kpi-card" style="border-left: 4px solid #3b82f6;">
+                    <div class="kpi-label">📅 Bu Hafta Yapılacak Ödemelerimiz</div>
+                    <div class="kpi-value text-info">${this.formatMoney(totalBuHaftaBorc)}</div>
+                    <div class="kpi-sub">
+                        <span>Önümüzdeki 7 gün içinde nakit/çek çıkışı</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        const cntBadge = document.getElementById("cntHatirlatici");
+        if (cntBadge) cntBadge.textContent = totalDueCount;
+
+        tbody.innerHTML = items.map(it => {
+            const c = it.cari;
+            const rolBadge = it.isAlacak
+                ? `<span class="badge badge-alacak">Müşteri (Alacak)</span>`
+                : `<span class="badge badge-borc">Tedarikçi (Borç)</span>`;
+
+            let odemeBadge = `<span class="badge badge-nakit">💵 Nakit / EFT</span>`;
+            if (it.odemeSekli.startsWith("CEK")) {
+                const days = it.vadeGunu || it.odemeSekli.split("_")[1] || 60;
+                odemeBadge = `<span class="badge badge-cek">📑 ${days} Günlük Çek</span>`;
+            } else if (it.odemeSekli === "KREDI_KARTI") {
+                odemeBadge = `<span class="badge badge-purple">💳 Kredi Kartı / DBS</span>`;
+            } else if (it.odemeSekli === "PESIN") {
+                odemeBadge = `<span class="badge badge-alacak">⚡ Peşin</span>`;
+            }
+
+            let durumBadge = "";
+            if (it.daysDiff > 0) {
+                durumBadge = `<span class="badge badge-today">🚨 ${it.daysDiff} Gün Gecikti</span>`;
+            } else if (it.daysDiff === 0) {
+                durumBadge = `<span class="badge badge-warn">⚠️ BUGÜN VADESİ</span>`;
+            } else if (it.daysDiff >= -7) {
+                durumBadge = `<span class="badge badge-week">📅 ${Math.abs(it.daysDiff)} Gün Kaldı</span>`;
+            } else {
+                durumBadge = `<span class="badge badge-neutral">${Math.abs(it.daysDiff)} Gün Kaldı</span>`;
+            }
+
+            const notMetni = c.ozelNot
+                ? `<div style="font-size:12px; font-weight:500;">${c.ozelNot}</div>`
+                : `<div style="font-size:11.5px; color:var(--text-muted); font-style:italic;">Takip notu girilmedi</div>`;
+            const yetkiliMetni = c.yetkiliKisi ? `<div style="font-size:11px; color:#94a3b8;">Yetkili: ${c.yetkiliKisi}</div>` : '';
+
+            return `
+                <tr>
+                    <td>
+                        <strong><a href="javascript:void(0)" onclick="App.openCariEkstre('${c.id}')" style="color:#60a5fa; text-decoration:none;">${c.unvan}</a></strong>
+                        <div style="font-size:11.5px; color:var(--text-muted);">
+                            <code>${c.kod}</code> ${c.telefon ? `• Tel: ${c.telefon}` : ''}
+                        </div>
+                    </td>
+                    <td>${rolBadge}</td>
+                    <td>${odemeBadge}</td>
+                    <td class="num ${it.isAlacak ? 'text-alacak' : 'text-borc'}">
+                        <strong>${this.formatMoney(it.absBakiye)}</strong>
+                    </td>
+                    <td>
+                        <strong style="color:#f1f5f9;">${it.effectiveDate}</strong>
+                        ${c.odemeSozuTarihi ? `<div style="font-size:11px; color:#c084fc;">(Söz Tarihi)</div>` : `<div style="font-size:11px; color:var(--text-muted);">(Fatura Vadesi)</div>`}
+                    </td>
+                    <td>${durumBadge}</td>
+                    <td>
+                        ${notMetni}
+                        ${yetkiliMetni}
+                    </td>
+                    <td>
+                        <div style="display:flex; gap:5px; flex-wrap:wrap;">
+                            <button class="btn btn-outline btn-sm" onclick="App.openCariVadeModal('${c.id}')" title="Vade ve Ödeme Şeklini Düzenle">⚙️ Vade / Şart</button>
+                            <button class="btn btn-outline btn-sm" onclick="App.copyWhatsAppReminderText('${c.id}')" title="WhatsApp veya SMS Hatırlatma Metnini Kopyala">💬 Not Kopyala</button>
+                            <button class="btn btn-primary btn-sm" onclick="App.openCariEkstre('${c.id}')">Ekstre</button>
+                            ${it.isAlacak
+                                ? `<button class="btn btn-success btn-sm" onclick="App.openQuickTransactionModal('TAHSILAT', '${c.id}')">+Tahsilat</button>`
+                                : `<button class="btn btn-danger btn-sm" onclick="App.openQuickTransactionModal('ODEME', '${c.id}')">-Ödeme</button>`
+                            }
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }).join("") || `<tr><td colspan="8" style="text-align:center; padding:24px; color:var(--text-muted);">Seçilen filtrelere uygun vadesi yaklaşan veya geciken cari bulunmuyor.</td></tr>`;
+    },
+
+    exportHatirlaticiCsv() {
+        const cariler = Object.values(this.computedCarilerMap).filter(c => c.bakiyeYonu !== "KAPALI");
+        let csv = "\uFEFFCari Kod;Cari Unvan;Rol;Odeme Sekli;Vade Gunu;Net Bakiye;Vade/Soz Tarihi;Gecikme Gunu;Yetkili;Telefon;Ozel Not\n";
+        for (const c of cariler) {
+            const role = c.cariTipi || (c.kod.startsWith("320") ? "TEDARIKCI" : "MUSTERI");
+            const v = c.odemeSozuTarihi || c.enEskiAcikVade || "";
+            const days = this.daysDiffFromToday(v);
+            csv += `"${c.kod}";"${(c.unvan || '').replace(/"/g, '""')}";"${role}";"${c.odemeSekli || 'NAKIT'}";"${c.vadeGunu || 30}";"${Math.abs(c.netBakiye || 0).toFixed(2)}";"${v}";"${days > 0 ? days : 0}";"${(c.yetkiliKisi || '').replace(/"/g, '""')}";"${c.telefon || ''}";"${(c.ozelNot || '').replace(/"/g, '""')}"\n`;
+        }
+        const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = `SODSAN_Vade_Hatirlatici_${new Date().toISOString().slice(0, 10)}.csv`;
+        a.click();
     },
 
     // ================= 3. CARİ HAREKETLER RENDER =================
@@ -837,18 +2156,23 @@ const App = window.App = {
 
         document.getElementById("hareketlerTableBody").innerHTML = list.map(h => {
             const c = this.computedCarilerMap[h.cariId] || { unvan: h.cariUnvan || h.cariKod };
+            const effVade = this.getEffectiveVadeTarihi(h.tarih, c);
+            const vadeInfo = this.getVadeDurumu(effVade);
             return `
                 <tr>
-                    <td>${h.tarih}</td>
-                    <td>${h.vadeTarihi || h.tarih}</td>
-                    <td><code>${h.evrakNo || '-'}</code></td>
+                    <td class="cell-date">${this.formatDisplayDate(h.tarih)}</td>
+                    <td class="cell-date">
+                        <div style="font-weight:600;">${this.formatDisplayDate(effVade)}</div>
+                        <div style="font-size:10.5px; margin-top:2px;">${vadeInfo.html}</div>
+                    </td>
+                    <td class="cell-code"><code>${h.evrakNo || '-'}</code></td>
                     <td><strong><a href="javascript:void(0)" onclick="App.openCariEkstre('${h.cariId}')" style="color:#60a5fa; text-decoration:none;">${c.unvan}</a></strong></td>
-                    <td><span class="badge badge-neutral">${this.getHarTypeLabel(h.islemTuru)}</span></td>
-                    <td>${h.aciklama || '-'}</td>
+                    <td class="nowrap"><span class="badge badge-neutral">${this.getHarTypeLabel(h.islemTuru)}</span></td>
+                    <td style="max-width:320px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${h.aciklama || ''}">${h.aciklama || '-'}</td>
                     <td class="num ${h.borc > 0 ? 'text-alacak' : ''}">${h.borc > 0 ? this.formatMoney(h.borc, h.doviz) : '-'}</td>
                     <td class="num ${h.alacak > 0 ? 'text-borc' : ''}">${h.alacak > 0 ? this.formatMoney(h.alacak, h.doviz) : '-'}</td>
-                    <td><span style="font-size:11.5px; color:var(--text-muted);">${h.kaynak || 'Manuel'}</span></td>
-                    <td>
+                    <td class="nowrap"><span style="font-size:11.5px; color:var(--text-muted);">${h.kaynak || 'Manuel'}</span></td>
+                    <td class="nowrap">
                         <button class="btn btn-outline btn-sm" onclick="App.deleteHareket('${h.id}')" title="Hareketi Sil">🗑️</button>
                     </td>
                 </tr>
@@ -901,8 +2225,11 @@ const App = window.App = {
                 kalan: f.tlTutar || f.genelToplam,
                 durum: "ACIK"
             };
-            const gecikme = this.daysDiffFromToday(f.vadeTarihi || f.tarih);
-            return { ...f, fifo, gecikme };
+            const c = this.computedCarilerMap[f.cariId] || this.state.cariler.find(x => x.id === f.cariId);
+            const effVade = this.getEffectiveVadeTarihi(f.tarih, c);
+            const gecikme = this.daysDiffFromToday(effVade);
+            const vadeInfo = this.getVadeDurumu(effVade);
+            return { ...f, effVade, fifo, gecikme, vadeInfo };
         });
 
         const filtered = enriched.filter(f => {
@@ -926,10 +2253,13 @@ const App = window.App = {
 
             return `
                 <tr>
-                    <td>${f.tarih}</td>
-                    <td>${f.vadeTarihi || f.tarih}</td>
-                    <td><code>${f.faturaNo}</code></td>
-                    <td>
+                    <td class="cell-date">${this.formatDisplayDate(f.tarih)}</td>
+                    <td class="cell-date">
+                        <div style="font-weight:600;">${this.formatDisplayDate(f.effVade || f.tarih)}</div>
+                        <div style="font-size:10.5px; margin-top:2px;">${f.vadeInfo ? f.vadeInfo.html : ''}</div>
+                    </td>
+                    <td class="cell-code"><code>${f.faturaNo}</code></td>
+                    <td class="nowrap">
                         <span class="badge ${f.yon === 'SATIS' ? 'badge-alacak' : 'badge-borc'}">
                             ${f.yon === 'SATIS' ? 'Satış' : 'Alış'}
                         </span>
@@ -940,8 +2270,8 @@ const App = window.App = {
                     <td class="num ${f.fifo.kalan > 0 ? (f.yon === 'SATIS' ? 'text-alacak' : 'text-borc') : ''}">
                         <strong>${this.formatMoney(f.fifo.kalan)}</strong>
                     </td>
-                    <td>${durumBadge}</td>
-                    <td>
+                    <td class="nowrap">${durumBadge}</td>
+                    <td class="nowrap">
                         <button class="btn btn-outline btn-sm" onclick="App.openCariEkstre('${f.cariId}')">Cari Ekstre</button>
                     </td>
                 </tr>

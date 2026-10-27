@@ -21,22 +21,48 @@ window.ZirveExcelImporter = {
         if (typeof val === "number") return isNaN(val) ? 0 : val;
         if (!val) return 0;
         let s = String(val).trim().replace(/\s/g, "");
-        // Türkçe format: 1.250.500,50 -> 1250500.50
+        if (!s) return 0;
+
+        let isNegative = false;
+        if (/^\(.*\)$/.test(s) || s.endsWith("-")) {
+            isNegative = true;
+            s = s.replace(/[()\-]/g, "");
+        }
+
+        // 1. Hem nokta hem virgül varsa (örn: 1.250.500,50 veya 1,250,500.50)
         if (s.includes(",") && s.includes(".")) {
             if (s.lastIndexOf(".") < s.lastIndexOf(",")) {
+                // Türkçe: 1.250.500,50 -> 1250500.50
                 s = s.replace(/\./g, "").replace(",", ".");
             } else {
+                // İngilizce: 1,250,500.50 -> 1250500.50
                 s = s.replace(/,/g, "");
             }
         } else if (s.includes(",")) {
-            s = s.replace(",", ".");
+            const commaCount = (s.match(/,/g) || []).length;
+            if (commaCount > 1) {
+                s = s.replace(/,/g, "");
+            } else {
+                s = s.replace(",", ".");
+            }
+        } else if (s.includes(".")) {
+            const dotCount = (s.match(/\./g) || []).length;
+            if (dotCount > 1) {
+                // Çoklu nokta: 2.659.000 -> 2659000
+                s = s.replace(/\./g, "");
+            } else {
+                // Tek nokta: Eğer 3 basamaklı ise binliktir (150.000 -> 150000)
+                const parts = s.split(".");
+                if (parts[1] && parts[1].length === 3) {
+                    s = s.replace(".", "");
+                }
+            }
         }
-        // Parantez içi negatif sayı: (150.00) -> -150.00
-        if (/^\(.*\)$/.test(s)) {
-            s = "-" + s.replace(/[()]/g, "");
-        }
+
         const num = parseFloat(s);
-        return isNaN(num) ? 0 : num;
+        if (isNaN(num)) return 0;
+        const res = Math.round(num * 100) / 100;
+        return isNegative ? -res : res;
     },
 
     parseDate(val) {
@@ -69,6 +95,20 @@ window.ZirveExcelImporter = {
             }
         }
         return -1;
+    },
+
+    getSavedConfig(app, kod, unvan) {
+        if (!app) return null;
+        if (typeof app.getCariConfig === "function") {
+            const found = app.getCariConfig(kod, unvan);
+            if (found) return found;
+        }
+        if (app.state && app.state.cariConfigs) {
+            if (kod && app.state.cariConfigs[kod]) return app.state.cariConfigs[kod];
+            const norm = String(kod || "").replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+            if (norm && app.state.cariConfigs[norm]) return app.state.cariConfigs[norm];
+        }
+        return null;
     },
 
     getApp(appInstance) {
@@ -302,7 +342,7 @@ window.ZirveExcelImporter = {
         return structuredRows;
     },
 
-    importData(data, fileName, appInstance) {
+    async importData(data, fileName, appInstance) {
         const app = this.getApp(appInstance);
         if (!app || !app.state) {
             throw new Error("Uygulama belleği (App.state) bulunamadı. Lütfen sayfayı yenileyiniz.");
@@ -318,7 +358,7 @@ window.ZirveExcelImporter = {
 
         // A) Eğer yapılandırılmış PDF satırları ise (CARI_HEADER ve TRANSACTION akışı)
         if (data.length > 0 && data[0].type) {
-            return this.importStructuredStream(data, fileName, app);
+            return await this.importStructuredStream(data, fileName, app);
         }
 
         // B) Eğer 2D Matris ise (Excel veya CSV)
@@ -334,9 +374,9 @@ window.ZirveExcelImporter = {
             }
 
             if (hasMultiCariHeaders) {
-                return this.importMultiCariExcel(data, fileName, app);
+                return await this.importMultiCariExcel(data, fileName, app);
             } else {
-                return this.importFlatTable(data, fileName, app);
+                return await this.importFlatTable(data, fileName, app);
             }
         }
 
@@ -346,11 +386,27 @@ window.ZirveExcelImporter = {
     /**
      * Çoklu Cari Hesap Ekstresi (PDF Akışı)
      */
-    importStructuredStream(structuredRows, fileName, appInstance) {
+    async importStructuredStream(structuredRows, fileName, appInstance) {
         const app = this.getApp(appInstance);
         if (!app || !app.state) {
             throw new Error("Uygulama belleği (App.state) bulunamadı. Lütfen sayfayı yenileyiniz.");
         }
+
+        // 1. Kullanıcının daha önce girdiği tüm vade, ödeme şekli, grup, söz ve notları kalıcı config'e aktar
+        for (const oldC of (app.state.cariler || [])) {
+            if (oldC.userConfigured || (oldC.odemeSekli && oldC.odemeSekli !== "") || oldC.cariGrup || oldC.odemeSozuTarihi || oldC.ozelNot) {
+                if (typeof app.setCariConfig === "function") {
+                    app.setCariConfig(oldC);
+                }
+            }
+        }
+
+        // 2. Yeni rapor yüklendiğinde eski hareket ve carileri temizle (son rapor aktif olsun, mükerrerlik birikmesin)
+        app.state.cariler = [];
+        app.state.hareketler = [];
+        app.state.faturalar = [];
+        app.state.ceksenetler = [];
+
         let currentCari = null;
         let importedCariler = 0;
         let importedHareketler = 0;
@@ -367,13 +423,24 @@ window.ZirveExcelImporter = {
                 );
 
                 if (!currentCari) {
+                    const saved = this.getSavedConfig(app, kod, unvan) || {};
                     currentCari = {
                         id: "C-" + kod.replace(/[^a-zA-Z0-9]/g, "") + "-" + Math.floor(Math.random() * 10000),
                         kod,
                         unvan: unvan || kod,
                         vkn: "",
-                        telefon: "",
-                        vadeGunu: 30,
+                        telefon: saved.telefon || "",
+                        email: saved.email || "",
+                        yetkili: saved.yetkili || "",
+                        cariGrup: saved.cariGrup || "",
+                        cariTipi: saved.cariTipi || (kod.startsWith("320") ? "TEDARIKCI" : "MUSTERI"),
+                        vadeGunu: saved.vadeGunu !== undefined ? saved.vadeGunu : 30,
+                        vadeKurali: saved.vadeKurali || (saved.odemeSekli && saved.odemeSekli.includes("10") ? "TAKIP_EDEN_10" : "STANDART"),
+                        odemeSekli: saved.odemeSekli || "",
+                        odemeSozuTarihi: saved.odemeSozuTarihi || null,
+                        odemeSozuTutar: saved.odemeSozuTutar || null,
+                        ozelNot: saved.ozelNot || "",
+                        userConfigured: !!(saved.odemeSekli || saved.userConfigured),
                         doviz: "TRY",
                         kaynak: `Zirve Ekstre (${fileName})`
                     };
@@ -384,15 +451,30 @@ window.ZirveExcelImporter = {
                 const kod = this.cleanStr(entry.kod);
                 currentCari = app.state.cariler.find(c => c.kod === kod);
                 if (!currentCari) {
+                    const saved = this.getSavedConfig(app, kod, "") || {};
                     currentCari = {
                         id: "C-" + kod.replace(/[^a-zA-Z0-9]/g, "") + "-" + Math.floor(Math.random() * 10000),
                         kod,
                         unvan: kod,
                         vkn: "",
-                        telefon: "",
-                        vadeGunu: 30,
+                        telefon: saved.telefon || "",
+                        email: saved.email || "",
+                        yetkili: saved.yetkili || "",
+                        cariGrup: saved.cariGrup || "",
+                        cariTipi: saved.cariTipi || (kod.startsWith("320") ? "TEDARIKCI" : "MUSTERI"),
+                        vadeGunu: saved.vadeGunu !== undefined ? saved.vadeGunu : 30,
+                        vadeKurali: saved.vadeKurali || (saved.odemeSekli && saved.odemeSekli.includes("10") ? "TAKIP_EDEN_10" : "STANDART"),
+                        odemeSekli: saved.odemeSekli || "",
+                        odemeSozuTarihi: saved.odemeSozuTarihi || null,
+                        odemeSozuTutar: saved.odemeSozuTutar || null,
+                        ozelNot: saved.ozelNot || "",
+                        userConfigured: !!(saved.odemeSekli || saved.userConfigured),
                         doviz: "TRY",
                         kaynak: `Zirve Ekstre (${fileName})`
+                    };
+                    app.state.cariler.push(currentCari);
+                    importedCariler++;
+                }
                     };
                     app.state.cariler.push(currentCari);
                     importedCariler++;
@@ -419,9 +501,9 @@ window.ZirveExcelImporter = {
                 const evrakTuru = this.cleanStr(r[2]) || "Cari İşlem";
                 const aciklama = this.cleanStr(r[3]) || "";
                 const dovizRaw = this.cleanStr(r[4]).toUpperCase();
-                let doviz = "TRY";
-                if (dovizRaw.includes("EUR") || dovizRaw.includes("EURO")) doviz = "EUR";
-                else if (dovizRaw.includes("USD")) doviz = "USD";
+                const evrakDoviz = (dovizRaw.includes("EUR") || dovizRaw.includes("EURO")) ? "EUR" : (dovizRaw.includes("USD") ? "USD" : "TRY");
+                // Zirve Cari Ekstresindeki Borç ve Alacak tutarları resmi TL defter kayıtlarıdır.
+                const doviz = "TRY";
 
                 let borc = this.cleanNum(r[5]);
                 let alacak = this.cleanNum(r[6]);
@@ -463,7 +545,8 @@ window.ZirveExcelImporter = {
                         aciklama: aciklama || evrakTuru,
                         borc,
                         alacak,
-                        doviz,
+                        doviz: "TRY",
+                        orijinalDoviz: evrakDoviz,
                         kur: 1,
                         kaynak: `Zirve Ekstre (${fileName})`
                     });
@@ -524,7 +607,19 @@ window.ZirveExcelImporter = {
             }
         }
 
-        if (typeof app.saveState === "function") app.saveState();
+        if (!app.state.settings) app.state.settings = {};
+        app.state.settings.activeReport = {
+            fileName: fileName,
+            fileType: "PDF Ekstresi",
+            uploadTime: new Date().toLocaleString("tr-TR"),
+            carilerCount: importedCariler,
+            hareketlerCount: importedHareketler,
+            faturalarCount: importedFaturalar,
+            ceksenetCount: importedCekSenet
+        };
+
+        if (typeof app.syncCariConfigs === "function") app.syncCariConfigs();
+        if (typeof app.saveState === "function") await app.saveState();
         if (typeof app.recalculateAndRenderAll === "function") app.recalculateAndRenderAll();
 
         return {
@@ -540,11 +635,26 @@ window.ZirveExcelImporter = {
     /**
      * Çoklu Cari Excel Ekstresi
      */
-    importMultiCariExcel(matrix, fileName, appInstance) {
+    async importMultiCariExcel(matrix, fileName, appInstance) {
         const app = this.getApp(appInstance);
         if (!app || !app.state) {
             throw new Error("Uygulama belleği (App.state) bulunamadı. Lütfen sayfayı yenileyiniz.");
         }
+
+        // Kullanıcının daha önce girdiği tüm vade, ödeme şekli, grup, söz ve notları kalıcı config'e aktar
+        for (const oldC of (app.state.cariler || [])) {
+            if (oldC.userConfigured || (oldC.odemeSekli && oldC.odemeSekli !== "") || oldC.cariGrup || oldC.odemeSozuTarihi || oldC.ozelNot) {
+                if (typeof app.setCariConfig === "function") {
+                    app.setCariConfig(oldC);
+                }
+            }
+        }
+
+        app.state.cariler = [];
+        app.state.hareketler = [];
+        app.state.faturalar = [];
+        app.state.ceksenetler = [];
+
         let currentCari = null;
         let importedCariler = 0;
         let importedHareketler = 0;
@@ -568,13 +678,24 @@ window.ZirveExcelImporter = {
                 );
 
                 if (!currentCari) {
+                    const saved = this.getSavedConfig(app, kod, unvan) || {};
                     currentCari = {
                         id: "C-" + kod.replace(/[^a-zA-Z0-9]/g, "") + "-" + Math.floor(Math.random() * 10000),
                         kod,
                         unvan: unvan || kod,
                         vkn: "",
-                        telefon: "",
-                        vadeGunu: 30,
+                        telefon: saved.telefon || "",
+                        email: saved.email || "",
+                        yetkili: saved.yetkili || "",
+                        cariGrup: saved.cariGrup || "",
+                        cariTipi: saved.cariTipi || (kod.startsWith("320") ? "TEDARIKCI" : "MUSTERI"),
+                        vadeGunu: saved.vadeGunu !== undefined ? saved.vadeGunu : 30,
+                        vadeKurali: saved.vadeKurali || (saved.odemeSekli && saved.odemeSekli.includes("10") ? "TAKIP_EDEN_10" : "STANDART"),
+                        odemeSekli: saved.odemeSekli || "",
+                        odemeSozuTarihi: saved.odemeSozuTarihi || null,
+                        odemeSozuTutar: saved.odemeSozuTutar || null,
+                        ozelNot: saved.ozelNot || "",
+                        userConfigured: !!(saved.odemeSekli || saved.userConfigured),
                         doviz: "TRY",
                         kaynak: `Zirve Excel (${fileName})`
                     };
@@ -641,7 +762,19 @@ window.ZirveExcelImporter = {
             }
         }
 
-        if (typeof app.saveState === "function") app.saveState();
+        if (!app.state.settings) app.state.settings = {};
+        app.state.settings.activeReport = {
+            fileName: fileName,
+            fileType: "Excel Ekstresi",
+            uploadTime: new Date().toLocaleString("tr-TR"),
+            carilerCount: importedCariler,
+            hareketlerCount: importedHareketler,
+            faturalarCount: app.state.faturalar.length,
+            ceksenetCount: app.state.ceksenetler.length
+        };
+
+        if (typeof app.syncCariConfigs === "function") app.syncCariConfigs();
+        if (typeof app.saveState === "function") await app.saveState();
         if (typeof app.recalculateAndRenderAll === "function") app.recalculateAndRenderAll();
 
         return {
@@ -655,11 +788,25 @@ window.ZirveExcelImporter = {
     /**
      * Düz Tablo / Mizan / Cari Bakiye Listesi
      */
-    importFlatTable(matrix, fileName, appInstance) {
+    async importFlatTable(matrix, fileName, appInstance) {
         const app = this.getApp(appInstance);
         if (!app || !app.state) {
             throw new Error("Uygulama belleği (App.state) bulunamadı. Lütfen sayfayı yenileyiniz.");
         }
+
+        // Kullanıcının daha önce girdiği tüm vade, ödeme şekli, grup, söz ve notları kalıcı config'e aktar
+        for (const oldC of (app.state.cariler || [])) {
+            if (oldC.userConfigured || (oldC.odemeSekli && oldC.odemeSekli !== "") || oldC.cariGrup || oldC.odemeSozuTarihi || oldC.ozelNot) {
+                if (typeof app.setCariConfig === "function") {
+                    app.setCariConfig(oldC);
+                }
+            }
+        }
+
+        app.state.cariler = [];
+        app.state.hareketler = [];
+        app.state.faturalar = [];
+        app.state.ceksenetler = [];
         let headerRowIdx = -1;
         let colKod = -1, colUnvan = -1, colBorc = -1, colAlacak = -1, colBakiye = -1, colBA = -1;
         let colVkn = -1, colTel = -1;
@@ -718,13 +865,24 @@ window.ZirveExcelImporter = {
 
             let cari = app.state.cariler.find(c => c.kod === kod || c.unvan.toUpperCase() === unvan.toUpperCase());
             if (!cari) {
+                const saved = this.getSavedConfig(app, kod, unvan) || {};
                 cari = {
                     id: "C-" + kod.replace(/[^a-zA-Z0-9]/g, "") + "-" + Math.floor(Math.random() * 10000),
                     kod,
                     unvan,
                     vkn: colVkn !== -1 ? this.cleanStr(row[colVkn]) : "",
-                    telefon: colTel !== -1 ? this.cleanStr(row[colTel]) : "",
-                    vadeGunu: 30,
+                    telefon: colTel !== -1 ? this.cleanStr(row[colTel]) : (saved.telefon || ""),
+                    email: saved.email || "",
+                    yetkili: saved.yetkili || "",
+                    cariGrup: saved.cariGrup || "",
+                    cariTipi: saved.cariTipi || (kod.startsWith("320") ? "TEDARIKCI" : "MUSTERI"),
+                    vadeGunu: saved.vadeGunu !== undefined ? saved.vadeGunu : 30,
+                    vadeKurali: saved.vadeKurali || (saved.odemeSekli && saved.odemeSekli.includes("10") ? "TAKIP_EDEN_10" : "STANDART"),
+                    odemeSekli: saved.odemeSekli || "",
+                    odemeSozuTarihi: saved.odemeSozuTarihi || null,
+                    odemeSozuTutar: saved.odemeSozuTutar || null,
+                    ozelNot: saved.ozelNot || "",
+                    userConfigured: !!(saved.odemeSekli || saved.userConfigured),
                     doviz: "TRY",
                     kaynak: `Zirve Mizan (${fileName})`
                 };
@@ -766,7 +924,19 @@ window.ZirveExcelImporter = {
             }
         }
 
-        if (typeof app.saveState === "function") app.saveState();
+        if (!app.state.settings) app.state.settings = {};
+        app.state.settings.activeReport = {
+            fileName: fileName,
+            fileType: "Bakiye Listesi / Mizan",
+            uploadTime: new Date().toLocaleString("tr-TR"),
+            carilerCount: importedCariler,
+            hareketlerCount: importedHareketler,
+            faturalarCount: app.state.faturalar.length,
+            ceksenetCount: app.state.ceksenetler.length
+        };
+
+        if (typeof app.syncCariConfigs === "function") app.syncCariConfigs();
+        if (typeof app.saveState === "function") await app.saveState();
         if (typeof app.recalculateAndRenderAll === "function") app.recalculateAndRenderAll();
 
         return {

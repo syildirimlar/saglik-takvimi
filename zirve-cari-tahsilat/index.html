@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Zirve Cari Hesap, Fatura, Tahsilat ve Ödeme Yönetim Sistemi</title>
-    <link rel="stylesheet" href="css/style.css?v=20261022_3">
+    <link rel="stylesheet" href="css/style.css?v=20261023_4">
 </head>
 <body>
 
@@ -19,11 +19,12 @@
         </div>
 
         <div class="header-right">
-            <div class="rate-pill" title="Döviz Kurları (TL Karşılığı)">
+            <div class="rate-pill" title="Döviz Kurları (TL Karşılığı - 4 Basamak Hassasiyet)">
                 <span>USD:</span>
-                <input type="number" step="0.01" id="rateUSD" value="36.50" onchange="App.updateRates()">
+                <input type="number" step="0.0001" id="rateUSD" value="38.4520" onchange="App.updateRates()">
                 <span>EUR:</span>
-                <input type="number" step="0.01" id="rateEUR" value="39.80" onchange="App.updateRates()">
+                <input type="number" step="0.0001" id="rateEUR" value="41.6815" onchange="App.updateRates()">
+                <button class="btn btn-outline btn-sm" id="btnLiveRate" style="padding:2px 7px; border:none; background:rgba(255,255,255,0.06);" onclick="App.fetchLiveRates()" title="TCMB / Serbest Piyasa Canlı Kurlarını Güncelle">🔄 Canlı Kur</button>
             </div>
 
             <button class="btn btn-primary btn-sm" onclick="document.getElementById('mainFileInput').click()">📥 Zirve'den Yükle</button>
@@ -37,8 +38,17 @@
         <button class="nav-tab active" data-tab="dashboard" onclick="App.switchTab('dashboard')">
             Genel Bakış
         </button>
+        <button class="nav-tab" data-tab="alicilar" onclick="App.switchTab('alicilar')">
+            👥 Alıcılar (Müşteriler) <span class="nav-count" id="cntAlicilar">0</span>
+        </button>
+        <button class="nav-tab" data-tab="saticilar" onclick="App.switchTab('saticilar')">
+            🏭 Satıcılar (Tedarikçiler) <span class="nav-count" id="cntSaticilar">0</span>
+        </button>
+        <button class="nav-tab" data-tab="hatirlatici" onclick="App.switchTab('hatirlatici')">
+            🔔 Vade & Hatırlatıcı <span class="nav-count" id="cntHatirlatici">0</span>
+        </button>
         <button class="nav-tab" data-tab="cariler" onclick="App.switchTab('cariler')">
-            Cari Hesaplar <span class="nav-count" id="cntCariler">0</span>
+            📋 Tüm Cariler <span class="nav-count" id="cntCariler">0</span>
         </button>
         <button class="nav-tab" data-tab="hareketler" onclick="App.switchTab('hareketler')">
             Cari Hareketler <span class="nav-count" id="cntHareketler">0</span>
@@ -60,6 +70,18 @@
     <!-- ANA İÇERİK -->
     <main class="main-container">
 
+        <!-- AKTİF RAPOR BİLGİLENDİRME ŞERİDİ -->
+        <div id="activeReportBanner" class="active-report-banner" style="display:none;">
+            <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                <span class="badge-live">🟢 AKTİF RAPOR</span>
+                <strong id="activeReportName" style="color:#60a5fa; font-size:13px;">-</strong>
+                <span id="activeReportDetails" style="color:var(--text-muted); font-size:12px;"></span>
+            </div>
+            <div style="display:flex; align-items:center; gap:10px;">
+                <span style="color:var(--text-muted); font-size:11.5px;">💾 Bu rapor her açılışta otomatik yüklü kalır.</span>
+            </div>
+        </div>
+
         <!-- 1. GENEL BAKIŞ (DASHBOARD) -->
         <section id="tab-dashboard" class="tab-panel active">
 
@@ -67,15 +89,12 @@
             <div class="drop-zone-card" id="globalDropzone" onclick="document.getElementById('mainFileInput').click()">
                 <div class="drop-zone-icon">📥</div>
                 <div class="drop-zone-text">
-                    <div class="drop-zone-title">Zirve'den Aldığınız Excel veya PDF Dosyasını Buraya Bırakın</div>
+                    <div class="drop-zone-title">Zirve'den Aldığınız Excel veya PDF Dosyasını Buraya Sürükleyin veya Tıklayın</div>
                     <div class="drop-zone-sub">Cari Bakiye Listesi, Cari Ekstre, Mizan veya Fatura Listesi (.xlsx, .xls, .pdf)</div>
                 </div>
                 <div class="drop-zone-buttons">
-                    <button type="button" class="btn btn-primary btn-sm" onclick="event.stopPropagation(); document.getElementById('mainFileInput').click()">
-                        Dosya Seç
-                    </button>
                     <button type="button" class="btn btn-outline btn-sm" onclick="event.stopPropagation(); App.openModal('zirveExportHelpModal')">
-                        Nasıl Alınır?
+                        ❓ Nasıl Alınır?
                     </button>
                 </div>
                 <input type="file" id="mainFileInput" accept=".xlsx,.xls,.csv,.pdf,.txt" style="display:none;" onchange="App.handleAnyFileSelected(this.files[0])">
@@ -170,14 +189,174 @@
             </div>
         </section>
 
-        <!-- 2. CARİ HESAPLAR (BORÇ / ALACAK ANA MERKEZİ) -->
+        <!-- 2. ALICILAR (MÜŞTERİLER - 120 GRUBU & ALACAKLARIMIZ) -->
+        <section id="tab-alicilar" class="tab-panel">
+            <div class="card">
+                <div class="card-header">
+                    <div>
+                        <div class="card-title">👥 Alıcılar (Müşteriler - 120 Grubu)</div>
+                        <div style="font-size:12px; color:var(--text-muted);">
+                            Müşteri vadeleri, çek anlaşmaları (Ayın 10'u kuralı) ve açık alacak bakiyeleri
+                        </div>
+                    </div>
+                    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                        <button class="btn btn-primary btn-sm" onclick="App.openQuickTransactionModal('TAHSILAT')">+ Tahsilat Gir</button>
+                        <button class="btn btn-outline btn-sm" onclick="App.exportAlicilarCsv()">📥 Müşteri Listesi İndir</button>
+                    </div>
+                </div>
+
+                <!-- TOPLU VADE & GRUP ATAMA ŞERİDİ -->
+                <div class="bulk-assign-bar" id="aliciBulkBar">
+                    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                        <span style="font-weight:600; color:#93c5fd;">⚡ Seçilen (<span id="aliciSelectedCount">0</span>) Müşteri İçin Vade / Şart Belirle:</span>
+                        <select id="aliciBulkVade" class="cari-vade-select" style="max-width:320px;" onchange="App.onBulkVadeDropdownChange('alici', this.value)"></select>
+                        <input type="text" id="aliciBulkGrup" placeholder="Grup Ata (Örn: A Grubu, Otomotiv...)" style="padding:4px 8px; font-size:11.5px; border-radius:4px; border:1px solid rgba(255,255,255,0.2); background:rgba(15,23,42,0.8); color:#f8fafc; min-width:180px;">
+                        <button type="button" class="btn btn-success btn-sm" style="padding:4px 12px;" onclick="App.applyBulkAssign('alici')">💾 Seçilenlere Otomatik Uygula</button>
+                    </div>
+                    <div style="font-size:11px; color:var(--text-muted);">
+                        Tablodaki açılır kutudan her müşteriyi tek tıkla da değiştirebilirsiniz.
+                    </div>
+                </div>
+
+                <!-- FİLTRE BARI -->
+                <div class="filter-bar">
+                    <input type="text" id="aliciSearch" placeholder="Müşteri kodu, ünvan veya not ara..." style="min-width:240px;" oninput="App.renderAlicilar()">
+                    <select id="aliciFilterGrup" onchange="App.renderAlicilar()">
+                        <option value="ALL">Tüm Gruplar</option>
+                    </select>
+                    <select id="aliciFilterOdeme" onchange="App.renderAlicilar()">
+                        <option value="ALL">Tüm Ödeme Şekilleri</option>
+                        <option value="CEK_10">Ayın 10'u Çek Kuralı</option>
+                        <option value="CEK">Tüm Çekler</option>
+                        <option value="NAKIT">Nakit / Havale</option>
+                        <option value="SOZLU">Ödeme Sözü Olanlar</option>
+                    </select>
+                    <select id="aliciFilterStatus" onchange="App.renderAlicilar()">
+                        <option value="ALL">Tüm Müşteriler (Bakiyeli + Sıfır)</option>
+                        <option value="ALACAKLIYIZ" selected>Açık Alacaklı Olduklarımız</option>
+                        <option value="GECIKEN">Vadesi Geçen Alacaklar</option>
+                        <option value="KAPALI">Bakiyesi Sıfır (Kapalı) Olanlar</option>
+                    </select>
+                    <select id="aliciFilterDoviz" onchange="App.renderAlicilar()">
+                        <option value="ALL">Tüm Para Birimleri</option>
+                        <option value="TRY">TRY (₺)</option>
+                        <option value="USD">USD ($)</option>
+                        <option value="EUR">EUR (€)</option>
+                    </select>
+                </div>
+
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width:36px; text-align:center;">
+                                    <input type="checkbox" id="selectAllAlicilar" onchange="App.toggleSelectAllAlicilar(this.checked)" title="Tümünü Seç / Kaldır">
+                                </th>
+                                <th>Cari Kodu</th>
+                                <th>Müşteri Ünvanı / VKN</th>
+                                <th>Cari Grubu</th>
+                                <th style="min-width:240px;">Ödeme Şekli & Vade (Hızlı Değiştir)</th>
+                                <th class="num">Toplam Satış (B)</th>
+                                <th class="num">Tahsilat (A)</th>
+                                <th class="num">Net Alacağımız (₺)</th>
+                                <th>Vade & Gecikme</th>
+                                <th>Ödeme Sözü & Not</th>
+                                <th>İşlemler</th>
+                            </tr>
+                        </thead>
+                        <tbody id="alicilarTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- 3. SATICILAR (TEDARİKÇİLER - 320 GRUBU & BORÇLARIMIZ) -->
+        <section id="tab-saticilar" class="tab-panel">
+            <div class="card">
+                <div class="card-header">
+                    <div>
+                        <div class="card-title">🏭 Satıcılar (Tedarikçiler - 320 Grubu)</div>
+                        <div style="font-size:12px; color:var(--text-muted);">
+                            Tedarikçi ödeme vadeleri, verilecek çekler (Ayın 10'u kuralı) ve açık borç bakiyelerimiz
+                        </div>
+                    </div>
+                    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                        <button class="btn btn-danger btn-sm" onclick="App.openQuickTransactionModal('ODEME')">- Ödeme Yap</button>
+                        <button class="btn btn-outline btn-sm" onclick="App.exportSaticilarCsv()">📥 Tedarikçi Listesi İndir</button>
+                    </div>
+                </div>
+
+                <!-- TOPLU VADE & GRUP ATAMA ŞERİDİ -->
+                <div class="bulk-assign-bar" id="saticiBulkBar">
+                    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                        <span style="font-weight:600; color:#fca5a5;">⚡ Seçilen (<span id="saticiSelectedCount">0</span>) Tedarikçi İçin Vade / Şart Belirle:</span>
+                        <select id="saticiBulkVade" class="cari-vade-select" style="max-width:320px;" onchange="App.onBulkVadeDropdownChange('satici', this.value)"></select>
+                        <input type="text" id="saticiBulkGrup" placeholder="Grup Ata (Örn: Hammadde, Sarf, Fason...)" style="padding:4px 8px; font-size:11.5px; border-radius:4px; border:1px solid rgba(255,255,255,0.2); background:rgba(15,23,42,0.8); color:#f8fafc; min-width:180px;">
+                        <button type="button" class="btn btn-success btn-sm" style="padding:4px 12px;" onclick="App.applyBulkAssign('satici')">💾 Seçilenlere Otomatik Uygula</button>
+                    </div>
+                    <div style="font-size:11px; color:var(--text-muted);">
+                        Tablodaki açılır kutudan her tedarikçiyi tek tıkla da değiştirebilirsiniz.
+                    </div>
+                </div>
+
+                <!-- FİLTRE BARI -->
+                <div class="filter-bar">
+                    <input type="text" id="saticiSearch" placeholder="Tedarikçi kodu, ünvan veya not ara..." style="min-width:240px;" oninput="App.renderSaticilar()">
+                    <select id="saticiFilterGrup" onchange="App.renderSaticilar()">
+                        <option value="ALL">Tüm Gruplar</option>
+                    </select>
+                    <select id="saticiFilterOdeme" onchange="App.renderSaticilar()">
+                        <option value="ALL">Tüm Ödeme Şekilleri</option>
+                        <option value="CEK_10">Ayın 10'u Çek Kuralı</option>
+                        <option value="CEK">Tüm Çekler</option>
+                        <option value="NAKIT">Nakit / Havale</option>
+                        <option value="SOZLU">Ödeme Sözü Olanlar</option>
+                    </select>
+                    <select id="saticiFilterStatus" onchange="App.renderSaticilar()">
+                        <option value="ALL">Tüm Tedarikçiler (Bakiyeli + Sıfır)</option>
+                        <option value="BORCLUYUZ" selected>Açık Borçlu Olduklarımız</option>
+                        <option value="GECIKEN">Vadesi Geçen Borçlar</option>
+                        <option value="KAPALI">Bakiyesi Sıfır (Kapalı) Olanlar</option>
+                    </select>
+                    <select id="saticiFilterDoviz" onchange="App.renderSaticilar()">
+                        <option value="ALL">Tüm Para Birimleri</option>
+                        <option value="TRY">TRY (₺)</option>
+                        <option value="USD">USD ($)</option>
+                        <option value="EUR">EUR (€)</option>
+                    </select>
+                </div>
+
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width:36px; text-align:center;">
+                                    <input type="checkbox" id="selectAllSaticilar" onchange="App.toggleSelectAllSaticilar(this.checked)" title="Tümünü Seç / Kaldır">
+                                </th>
+                                <th>Cari Kodu</th>
+                                <th>Tedarikçi Ünvanı / VKN</th>
+                                <th>Cari Grubu</th>
+                                <th style="min-width:240px;">Ödeme Şekli & Vade (Hızlı Değiştir)</th>
+                                <th class="num">Toplam Alış (A)</th>
+                                <th class="num">Yapılan Ödeme (B)</th>
+                                <th class="num">Net Borcumuz (₺)</th>
+                                <th>Vade & Gecikme</th>
+                                <th>Ödeme Sözü & Not</th>
+                                <th>İşlemler</th>
+                            </tr>
+                        </thead>
+                        <tbody id="saticilarTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- 4. TÜM CARİ HESAPLAR (BİRLEŞİK LİSTE) -->
         <section id="tab-cariler" class="tab-panel">
             <div class="card">
                 <div class="card-header">
                     <div class="card-title">Cari Hesap Bakiyeleri</div>
                     <div style="display:flex; gap:8px; flex-wrap:wrap;">
-                        <button class="btn btn-purple btn-sm" onclick="document.getElementById('excelFileInput').click()">📂 Zirve'den Excel / PDF Yükle</button>
-                        <input type="file" id="excelFileInput" accept=".xlsx,.xls,.csv,.pdf,.txt" style="display:none;" onchange="App.handleAnyFileSelected(this.files[0])">
                         <button class="btn btn-primary btn-sm" onclick="App.openCariModal()">+ Yeni Cari</button>
                         <button class="btn btn-success btn-sm" onclick="App.openQuickTransactionModal('TAHSILAT')">+ Tahsilat</button>
                         <button class="btn btn-danger btn-sm" onclick="App.openQuickTransactionModal('ODEME')">- Ödeme</button>
@@ -186,13 +365,19 @@
                 </div>
 
                 <div class="filter-bar">
-                    <input type="text" id="cariSearch" placeholder="Cari kodu, ünvan veya VKN ara..." style="min-width:260px;" oninput="App.renderCariler()">
+                    <input type="text" id="cariSearch" placeholder="Cari kodu, ünvan veya VKN ara..." style="min-width:240px;" oninput="App.renderCariler()">
                     <select id="cariFilterStatus" onchange="App.renderCariler()">
                         <option value="ALL">Tüm Cariler (Bakiyeli + Sıfır)</option>
                         <option value="ALACAKLIYIZ">Sadece Alacaklı Olduklarımız (Tahsil Edilecek)</option>
                         <option value="BORCLUYUZ">Sadece Borçlu Olduklarımız (Ödenecek)</option>
                         <option value="GECIKEN">Vadesi Geçen Açık Bakiyeliler</option>
                         <option value="KAPALI">Bakiyesi Sıfır (Kapalı) Olanlar</option>
+                    </select>
+                    <select id="cariFilterOdemeSekli" onchange="App.renderCariler()">
+                        <option value="ALL">Tüm Ödeme Şekilleri</option>
+                        <option value="CEK">Çek ile Çalışılanlar</option>
+                        <option value="NAKIT">Nakit / Havale / EFT</option>
+                        <option value="SOZLU">Ödeme Sözü / Planı Olanlar</option>
                     </select>
                     <select id="cariFilterDoviz" onchange="App.renderCariler()">
                         <option value="ALL">Tüm Para Birimleri</option>
@@ -208,16 +393,77 @@
                             <tr>
                                 <th>Cari Kod</th>
                                 <th>Cari Ünvan / VKN</th>
+                                <th>Ödeme Şekli & Vade</th>
                                 <th class="num">Toplam Borç (B)</th>
                                 <th class="num">Toplam Alacak (A)</th>
                                 <th class="num">Net Cari Bakiye</th>
                                 <th>Bakiye Yönü</th>
-                                <th>FIFO Gecikme / En Eski Açık Vade</th>
-                                <th>Ödeme Sözü / Not</th>
+                                <th>Vade & Gecikme</th>
+                                <th>Ödeme Sözü & Not</th>
                                 <th>İşlemler</th>
                             </tr>
                         </thead>
                         <tbody id="carilerTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- YENİ: VADE & ÖDEME HATIRLATICI TAKVİMİ -->
+        <section id="tab-hatirlatici" class="tab-panel">
+            <div class="card">
+                <div class="card-header">
+                    <div>
+                        <div class="card-title">🔔 Vade & Ödeme Hatırlatıcı Takvimi</div>
+                        <div style="font-size:12px; color:var(--text-muted);">
+                            Kimin çek, kimin nakit ödeyeceği; vadeler, ödeme sözleri ve acil aranacaklar tek ekranda.
+                        </div>
+                    </div>
+                    <div style="display:flex; gap:8px;">
+                        <button class="btn btn-outline btn-sm" onclick="App.renderHatirlatici()">🔄 Yenile</button>
+                        <button class="btn btn-outline btn-sm" onclick="App.exportHatirlaticiCsv()">📥 Hatırlatma Listesi İndir</button>
+                    </div>
+                </div>
+
+                <!-- 4 KPI KARTI -->
+                <div class="kpi-grid" id="hatirlaticiKpis" style="margin-bottom:14px;"></div>
+
+                <div class="filter-bar">
+                    <input type="text" id="hatirlaticiSearch" placeholder="Cari ünvanı, kodu veya not ara..." style="min-width:240px;" oninput="App.renderHatirlatici()">
+                    <select id="hatirlaticiFilterRole" onchange="App.renderHatirlatici()">
+                        <option value="ALL">Tüm Alacak ve Borçlar</option>
+                        <option value="ALACAK">Müşteri Alacakları (Biz Tahsil Edeceğiz)</option>
+                        <option value="BORC">Tedarikçi Borçları (Biz Ödeyeceğiz)</option>
+                    </select>
+                    <select id="hatirlaticiFilterTime" onchange="App.renderHatirlatici()">
+                        <option value="ALL">Tüm Vadeler</option>
+                        <option value="GECIKEN">🚨 Vadesi Geçenler (Acil Aranacaklar)</option>
+                        <option value="BUGUN">⚠️ Bugün Vadeli Olanlar</option>
+                        <option value="BU_HAFTA">📅 Bu Hafta Vadeli (7 Gün)</option>
+                        <option value="BU_AY">📆 Bu Ay Vadeli (30 Gün)</option>
+                    </select>
+                    <select id="hatirlaticiFilterType" onchange="App.renderHatirlatici()">
+                        <option value="ALL">Tüm Ödeme Şekilleri</option>
+                        <option value="CEK">Sadece Çek ile Çalışılanlar</option>
+                        <option value="NAKIT">Sadece Nakit / Havale ile Çalışılanlar</option>
+                    </select>
+                </div>
+
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Cari Bilgisi</th>
+                                <th>Yön / Rol</th>
+                                <th>Anlaşmalı Ödeme Şekli</th>
+                                <th class="num">Açık Bakiye (₺)</th>
+                                <th>Vade / Söz Tarihi</th>
+                                <th>Kalan / Gecikme Durumu</th>
+                                <th>Hatırlatma & Takip Notu</th>
+                                <th>İşlemler</th>
+                            </tr>
+                        </thead>
+                        <tbody id="hatirlaticiTableBody"></tbody>
                     </table>
                 </div>
             </div>
@@ -255,9 +501,9 @@
                     <table>
                         <thead>
                             <tr>
-                                <th>Tarih</th>
-                                <th>Vade Tarihi</th>
-                                <th>Evrak No</th>
+                                <th class="cell-date">Fatura Tarihi</th>
+                                <th class="cell-date">Vade Tarihi</th>
+                                <th class="cell-code">Evrak No</th>
                                 <th>Cari Hesap</th>
                                 <th>İşlem Türü</th>
                                 <th>Açıklama</th>
@@ -311,9 +557,9 @@
                     <table>
                         <thead>
                             <tr>
-                                <th>Fatura Tarihi</th>
-                                <th>Vade Tarihi</th>
-                                <th>Fatura No</th>
+                                <th class="cell-date">Fatura Tarihi</th>
+                                <th class="cell-date">Vade Tarihi</th>
+                                <th class="cell-code">Fatura No</th>
                                 <th>Yön</th>
                                 <th>Cari Ünvan</th>
                                 <th class="num">Fatura Tutarı</th>
@@ -547,6 +793,17 @@
                         </div>
                     </div>
 
+                    <!-- AY SONU FATURA KURALI (TİCARİ TEAMÜL) -->
+                    <div style="background:var(--bg-body); border:1px solid var(--border); border-radius:8px; padding:12px 14px; margin-bottom:14px;">
+                        <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:13px; font-weight:600; color:#f8fafc;">
+                            <input type="checkbox" id="shiftMonthEndInvoicesCheck" checked onchange="App.toggleShiftMonthEndInvoices(this.checked)">
+                            <span>📅 Ayın Son 2 Günü Kesilen Faturaları Sonraki Ay Başı Say (Ticari Teamül)</span>
+                        </label>
+                        <div style="font-size:11.5px; color:var(--text-muted); margin-top:6px; line-height:1.5;">
+                            Müşteri ve tedarikçi mutabakatları gereği; ayın son 2 gününde (29-30 veya 30-31'i) kesilen faturalar bir sonraki ayın 1'inde kesilmiş / alınmış gibi kabul edilir. 'Takip Eden Ayın 10'u' çek vadesi otomatik olarak bir sonraki aya ötelenir (Örn: 29-30 Eylül faturası Ekim ayı sayılır, çek vadesi 10 Kasım olur).
+                        </div>
+                    </div>
+
                     <hr style="border:none; border-top:1px solid var(--border); margin:16px 0;">
 
                     <div class="card-title" style="margin-bottom:10px;">Yedekleme ve Veri Yönetimi</div>
@@ -607,6 +864,7 @@
                     <div id="ekstreCariSub" style="font-size:12px; color:var(--text-muted);"></div>
                 </div>
                 <div class="no-print" style="display:flex; gap:8px;">
+                    <button class="btn btn-outline btn-sm" onclick="App.toggleEkstreFullscreen()" title="Geniş / Tam Ekran Görünüm">⛶ Tam Ekran</button>
                     <button class="btn btn-success btn-sm" id="btnEkstreTahsilat">+ Tahsilat Gir</button>
                     <button class="btn btn-danger btn-sm" id="btnEkstreOdeme">- Ödeme Gir</button>
                     <button class="btn btn-outline btn-sm" id="btnEkstreWhatsapp">💬 WhatsApp Mutabakat</button>
@@ -617,30 +875,48 @@
             <div class="modal-body">
                 <div class="kpi-grid" id="ekstreKpiRow" style="margin-bottom:14px;"></div>
 
-                <!-- Ödeme Sözü & Cari Notu -->
-                <div class="filter-bar no-print" style="margin-bottom:14px;">
-                    <div class="form-group" style="min-width:170px;">
-                        <label>Ödeme / Tahsilat Sözü Tarihi</label>
+                <!-- Ödeme Koşulları, Vade & Söz Paneli -->
+                <div class="filter-bar no-print" style="margin-bottom:14px; background:rgba(255,255,255,0.02); padding:10px; border-radius:8px; border:1px solid var(--border);">
+                    <div class="form-group" style="min-width:160px;">
+                        <label>Ödeme Şekli</label>
+                        <select id="ekstrePaymentMethod" onchange="App.onEkstrePaymentMethodChange()">
+                            <option value="NAKIT">💵 Nakit / Havale / EFT</option>
+                            <option value="CEK_30">📑 30 Günlük Çek</option>
+                            <option value="CEK_45">📑 45 Günlük Çek</option>
+                            <option value="CEK_60">📑 60 Günlük Çek</option>
+                            <option value="CEK_90">📑 90 Günlük Çek</option>
+                            <option value="CEK_120">📑 120 Günlük Çek</option>
+                            <option value="KREDI_KARTI">💳 Kredi Kartı / DBS</option>
+                            <option value="PESIN">⚡ Peşin</option>
+                            <option value="OZEL">✏️ Özel</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="width:110px;">
+                        <label>Vade (Gün)</label>
+                        <input type="number" id="ekstreTermDays" value="30" min="0">
+                    </div>
+                    <div class="form-group" style="min-width:150px;">
+                        <label>Ödeme Sözü Tarihi</label>
                         <input type="date" id="ekstrePromiseDate">
                     </div>
-                    <div class="form-group" style="min-width:140px;">
-                        <label>Söz Verilen Tutar (₺)</label>
+                    <div class="form-group" style="min-width:130px;">
+                        <label>Söz Tutar (₺)</label>
                         <input type="number" step="0.01" id="ekstrePromiseAmount" placeholder="0.00">
                     </div>
-                    <div class="form-group" style="flex:1; min-width:220px;">
-                        <label>Cari Özel Takip Notu</label>
-                        <input type="text" id="ekstreCariNote" placeholder="Örn: Cuma günü havale geçecek, muhasebe ile görüşüldü...">
+                    <div class="form-group" style="flex:1; min-width:200px;">
+                        <label>Hatırlatma & Takip Notu</label>
+                        <input type="text" id="ekstreCariNote" placeholder="Örn: Ayın 20'sinde çek gönderecek...">
                     </div>
-                    <button class="btn btn-primary btn-sm" onclick="App.saveCariPromise()">💾 Notu & Sözü Kaydet</button>
+                    <button class="btn btn-primary btn-sm" onclick="App.saveCariPromise()">💾 Şartları Kaydet</button>
                 </div>
 
                 <div class="table-wrap">
                     <table>
                         <thead>
                             <tr>
-                                <th>Tarih</th>
-                                <th>Vade</th>
-                                <th>Evrak No</th>
+                                <th class="cell-date">Fatura Tarihi</th>
+                                <th class="cell-date">Vade Tarihi</th>
+                                <th class="cell-code">Evrak No</th>
                                 <th>İşlem Türü</th>
                                 <th>Açıklama</th>
                                 <th class="num">Borç (B)</th>
@@ -724,6 +1000,136 @@
             <div class="modal-footer">
                 <button class="btn btn-outline" onclick="App.closeModal('transactionModal')">İptal</button>
                 <button class="btn btn-success" onclick="App.saveTransaction()">💾 Cari Hareketi Kaydet</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: CARİ VADE, ÖDEME ŞEKLİ VE HATIRLATICI AYARLARI -->
+    <div class="modal-backdrop" id="cariVadeModal">
+        <div class="modal-box md">
+            <div class="modal-header">
+                <div>
+                    <h3 id="cvmTitle">Vade & Ödeme Şekli Ayarları</h3>
+                    <div id="cvmSub" style="font-size:12px; color:var(--text-muted);"></div>
+                </div>
+                <button class="btn btn-outline btn-sm" onclick="App.closeModal('cariVadeModal')">✕</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="cvmCariId">
+                <div class="form-grid" style="grid-template-columns: repeat(2, 1fr); gap:12px;">
+                    <div class="form-group">
+                        <label>Hesap Rolü / Ödeme Yönü</label>
+                        <select id="cvmRol">
+                            <option value="MUSTERI">Müşteri (Alacak Takibi - Müşteri Bize Öder)</option>
+                            <option value="TEDARIKCI">Tedarikçi (Borç Takibi - Biz Tedarikçiye Öderiz)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Cari Grubu / Kategori</label>
+                        <input type="text" id="cvmGrup" placeholder="Örn: A Grubu, Hammadde, Fason..." list="dlCariGruplar">
+                        <datalist id="dlCariGruplar">
+                            <option value="A Grubu (Stratejik)">
+                            <option value="B Grubu (Standart)">
+                            <option value="C Grubu (Riskli / Peşin)">
+                            <option value="Hammadde Tedarikçisi">
+                            <option value="Ambalaj & Sarf">
+                            <option value="Fason / Hizmet">
+                            <option value="Otomotiv">
+                            <option value="İhracat">
+                        </datalist>
+                    </div>
+
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label>Anlaşmalı Ödeme Şekli & Vade Kuralı</label>
+                        <select id="cvmOdemeSekli" onchange="App.onCvmOdemeSekliChange()">
+                            <optgroup label="📅 Çekle Ödeme (Çalışılan Ayı Takip Eden Ayın 10'una Kadar)">
+                                <option value="CEK_10" selected>📑 Çek: Takip Eden Ayın 10'u (Önerilen - Çek Teslim/Alım)</option>
+                                <option value="CEK_10_30">📑 Çek: Takip Eden Ayın 10'u + 30 Gün</option>
+                                <option value="CEK_10_45">📑 Çek: Takip Eden Ayın 10'u + 45 Gün</option>
+                                <option value="CEK_10_60">📑 Çek: Takip Eden Ayın 10'u + 60 Gün</option>
+                                <option value="CEK_10_90">📑 Çek: Takip Eden Ayın 10'u + 90 Gün</option>
+                                <option value="CEK_10_120">📑 Çek: Takip Eden Ayın 10'u + 120 Gün</option>
+                            </optgroup>
+                            <optgroup label="📑 Standart Çekler (Fatura Tarihinden İtibaren Gün)">
+                                <option value="CEK_30">📑 30 Günlük Çek</option>
+                                <option value="CEK_45">📑 45 Günlük Çek</option>
+                                <option value="CEK_60">📑 60 Günlük Çek</option>
+                                <option value="CEK_90">📑 90 Günlük Çek</option>
+                                <option value="CEK_120">📑 120 Günlük Çek</option>
+                            </optgroup>
+                            <optgroup label="💵 Nakit / Havale / EFT">
+                                <option value="NAKIT_PESIN">⚡ Peşin Havale / EFT</option>
+                                <option value="NAKIT_5">💵 Nakit (Faturadan Sonra 5 Gün Vadeli)</option>
+                                <option value="NAKIT_15">💵 Nakit (15 Gün Vadeli)</option>
+                                <option value="NAKIT_30">💵 Nakit (30 Gün Vadeli)</option>
+                                <option value="NAKIT_45">💵 Nakit (45 Gün Vadeli)</option>
+                                <option value="NAKIT_60">💵 Nakit (60 Gün Vadeli)</option>
+                            </optgroup>
+                            <optgroup label="💳 Diğer">
+                                <option value="KREDI_KARTI">💳 Kredi Kartı / DBS</option>
+                                <option value="ACIK_HESAP">⏳ Serbest Açık Hesap</option>
+                                <option value="OZEL">✏️ Özel Anlaşma</option>
+                            </optgroup>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Standart Vade Süresi (Gün)</label>
+                        <input type="number" id="cvmVadeGunu" value="60" min="0" placeholder="Örn: 30, 45, 60">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Sabit Ödeme / Tahsilat Kuralı</label>
+                        <select id="cvmOdemeGunu">
+                            <option value="TAKIP_EDEN_10" selected>📅 Çalışılan Ayı Takip Eden Ayın 10'u</option>
+                            <option value="STANDART">Fatura Tarihinden İtibaren (Standart)</option>
+                            <option value="HER_CUMA">Her Cuma Günü</option>
+                            <option value="HER_PAZARTESI">Her Pazartesi Günü</option>
+                            <option value="AYIN_15I">Her Ayın 15'i</option>
+                            <option value="AYIN_20SI">Her Ayın 20'si</option>
+                            <option value="AYIN_SONU">Her Ayın Son Günü</option>
+                            <option value="AYIN_1_15">Her Ayın 1'i ve 15'i</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Planlanan Ödeme / Tahsilat Sözü Tarihi</label>
+                        <input type="date" id="cvmSozTarihi">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Söz Verilen Tutar (₺ / Döviz)</label>
+                        <div style="display:flex; gap:6px;">
+                            <input type="number" step="0.01" id="cvmSozTutar" placeholder="0.00" style="flex:1;">
+                            <button type="button" class="btn btn-outline btn-sm" onclick="App.fillCvmCurrentBalance()" title="Güncel bakiyeyi buraya aktar">Mevcut Bakiye</button>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>İlgili Kişi / Yetkili</label>
+                        <input type="text" id="cvmYetkili" placeholder="Örn: Muhasebe Müdürü Hasan Bey">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Telefon Numarası (WhatsApp için)</label>
+                        <input type="text" id="cvmTel" placeholder="0532...">
+                    </div>
+
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label>Özel Takip Notu & Hatırlatma Açıklaması</label>
+                        <textarea id="cvmNot" rows="3" placeholder="Örn: Ayın 15'inde mutabakat yapılıyor, 60 günlük çek kesip kargoyla gönderiyor."></textarea>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer" style="display:flex; justify-content:space-between;">
+                <div>
+                    <button type="button" class="btn btn-outline btn-sm" onclick="App.copyWhatsAppReminderText(document.getElementById('cvmCariId').value)">💬 WhatsApp Hatırlatma Metni Kopyala</button>
+                </div>
+                <div style="display:flex; gap:8px;">
+                    <button type="button" class="btn btn-outline" onclick="App.closeModal('cariVadeModal')">İptal</button>
+                    <button type="button" class="btn btn-primary" onclick="App.saveCariVadeModal()">💾 Kaydet ve Hatırlatıcıyı Güncelle</button>
+                </div>
             </div>
         </div>
     </div>
@@ -870,13 +1276,16 @@
         </div>
     </div>
 
+    <!-- BİLDİRİM TOAST KUTUSU -->
+    <div id="appToast" style="display:none; position:fixed; bottom:24px; right:24px; background:#10b981; color:#fff; padding:12px 20px; border-radius:8px; font-weight:600; font-size:13px; z-index:999999; box-shadow:0 6px 20px rgba(0,0,0,0.45); border:1px solid rgba(255,255,255,0.2); transition:opacity 0.3s;"></div>
+
     <!-- YEREL OFFLINE KÜTÜPHANELER -->
     <script src="js/xlsx.full.min.js"></script>
     <script src="js/pdf.min.js"></script>
     <script src="js/pdf.worker.min.js"></script>
-    <script src="js/ubl_parser.js?v=20261022_3"></script>
-    <script src="js/excel_importer.js?v=20261022_3"></script>
-    <script src="js/cloud_bridge.js?v=20261022_3"></script>
-    <script src="js/app.js?v=20261022_3"></script>
+    <script src="js/ubl_parser.js?v=20261025_6"></script>
+    <script src="js/excel_importer.js?v=20261025_6"></script>
+    <script src="js/cloud_bridge.js?v=20261025_6"></script>
+    <script src="js/app.js?v=20261025_6"></script>
 </body>
 </html>
