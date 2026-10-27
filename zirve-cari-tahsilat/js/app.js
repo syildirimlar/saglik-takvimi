@@ -2720,6 +2720,9 @@ const App = window.App = {
     async handleExcelFileSelected(file) {
         if (!file) return;
         try {
+            if (!window.ZirveExcelImporter || typeof window.ZirveExcelImporter.processFile !== "function") {
+                throw new Error("İçe aktarıcı kütüphanesi henüz yüklenemedi. Lütfen sayfayı yenileyiniz (Ctrl + F5).");
+            }
             const res = await window.ZirveExcelImporter.processFile(file, this);
             let msg = `✅ Zirve Dosyası Başarıyla İçe Aktarıldı!\n\n• ${res.cariler} Cari Hesap işlendi.\n• ${res.hareketler} Cari Hareket / İşlem kaydedildi.`;
             if (res.faturalar) msg += `\n• ${res.faturalar} Fatura yaşlandırmaya alındı.`;

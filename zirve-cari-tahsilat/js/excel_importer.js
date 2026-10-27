@@ -475,10 +475,6 @@ window.ZirveExcelImporter = {
                     app.state.cariler.push(currentCari);
                     importedCariler++;
                 }
-                    };
-                    app.state.cariler.push(currentCari);
-                    importedCariler++;
-                }
             } else if (entry.type === "TRANSACTION") {
                 if (!currentCari) {
                     currentCari = {
