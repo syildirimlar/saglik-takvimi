@@ -1,0 +1,19 @@
+{
+  "name": "SODSAN Cari & Tahsilat Yönetimi",
+  "short_name": "SODSAN Finans",
+  "description": "Zirve Finans, Cari Hesap Bakiyeleri, Alacak ve Borç Vadeleri Yönetim Portalı",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0b0f19",
+  "theme_color": "#0f172a",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

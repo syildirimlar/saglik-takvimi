@@ -3,18 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Zirve Cari Hesap, Fatura, Tahsilat ve Ödeme Yönetim Sistemi</title>
-    <link rel="stylesheet" href="css/style.css?v=20261023_4">
+    <title>SODSAN Finans - Cari & Tahsilat Yönetimi</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+    <link rel="apple-touch-icon" href="icons/icon.svg">
+    <meta name="theme-color" content="#0f172a">
+    <link rel="stylesheet" href="css/style.css?v=20261027_1">
 </head>
 <body>
 
     <!-- ÜST BAR -->
     <header class="app-header">
         <div class="brand-box">
-            <div class="brand-logo">Z</div>
+            <div class="brand-logo" style="background:linear-gradient(135deg, #10b981, #2563eb); font-weight:900; box-shadow:0 0 14px rgba(16,185,129,0.4);">S</div>
             <div class="brand-title">
-                <h1>ZİRVE CARİ & FİNANS</h1>
-                <p id="headerFirmSubtitle">Cari Hesaplar, Yaşlandırma & Nakit Akışı</p>
+                <h1>SODSAN FİNANS & TAHSİLAT</h1>
+                <p id="headerFirmSubtitle">Zirve Cari Hesaplar, Vadeler & Nakit Akışı</p>
             </div>
         </div>
 
@@ -27,7 +31,8 @@
                 <button class="btn btn-outline btn-sm" id="btnLiveRate" style="padding:2px 7px; border:none; background:rgba(255,255,255,0.06);" onclick="App.fetchLiveRates()" title="TCMB / Serbest Piyasa Canlı Kurlarını Güncelle">🔄 Canlı Kur</button>
             </div>
 
-            <button class="btn btn-primary btn-sm" onclick="document.getElementById('mainFileInput').click()">📥 Zirve'den Yükle</button>
+            <button class="btn btn-primary btn-sm" onclick="document.getElementById('mainFileInput').click()" title="İnternetten veya Zirve'den PDF / Excel Raporu Yükle">📥 Zirve'den Yükle</button>
+            <button class="btn btn-outline btn-sm" onclick="CloudBridge.openRemoteShareModal()" title="İnternet ve Telefon Bağlantı Linkini Gör / Kopyala" style="border-color:#38bdf8; color:#38bdf8;">🌐 İnternet / Mobil</button>
             <button class="btn btn-outline btn-sm" onclick="App.openQuickTransactionModal('TAHSILAT')">+ İşlem Gir</button>
             <button class="btn btn-outline btn-sm" onclick="App.switchTab('zirve')">⚙️ Ayarlar</button>
         </div>
@@ -1283,9 +1288,16 @@
     <script src="js/xlsx.full.min.js"></script>
     <script src="js/pdf.min.js"></script>
     <script src="js/pdf.worker.min.js"></script>
-    <script src="js/ubl_parser.js?v=20261025_6"></script>
-    <script src="js/excel_importer.js?v=20261025_6"></script>
-    <script src="js/cloud_bridge.js?v=20261025_6"></script>
-    <script src="js/app.js?v=20261025_6"></script>
+    <script src="js/ubl_parser.js?v=20261027_1"></script>
+    <script src="js/excel_importer.js?v=20261027_1"></script>
+    <script src="js/cloud_bridge.js?v=20261027_1"></script>
+    <script src="js/app.js?v=20261027_1"></script>
+    <script>
+        if ('serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.hostname === 'localhost')) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js').catch(() => {});
+            });
+        }
+    </script>
 </body>
 </html>

@@ -13,15 +13,19 @@ window.CloudBridge = {
     STORAGE_APP_PIN: "zirve_app_pin_v1",
     STORAGE_LAST_CLOUD_SYNC: "zirve_cloud_last_sync_v1",
 
+    DEFAULT_ROOM_ID: "ff808181a09d98f701a17d7b5e0727c0",
+    DEFAULT_SECRET_KEY: "SODSAN2026",
+    DEFAULT_WEB_URL: "https://syildirimlar.github.io/sodsan-cari-tahsilat/",
+
     roomId: null,
     binId: null,
     secretKey: "",
     isSyncing: false,
 
     async init() {
-        this.roomId = localStorage.getItem(this.STORAGE_ROOM_ID) || "";
+        this.roomId = localStorage.getItem(this.STORAGE_ROOM_ID) || this.DEFAULT_ROOM_ID;
         this.binId = localStorage.getItem(this.STORAGE_BIN_ID) || "";
-        this.secretKey = localStorage.getItem(this.STORAGE_SECRET_KEY) || "SODSAN2026";
+        this.secretKey = localStorage.getItem(this.STORAGE_SECRET_KEY) || this.DEFAULT_SECRET_KEY;
 
         // URL'den uzaktan bağlantı parametresi geldiyse (?room=...&bin=...)
         const params = new URLSearchParams(window.location.search);
@@ -272,44 +276,69 @@ window.CloudBridge = {
         if (!remoteState || !window.App) return;
         const local = window.App.state;
 
-        // 1. Carileri birleştir (Not ve ödeme sözlerini koru)
-        const cariMap = new Map();
-        for (const c of (local.cariler || [])) cariMap.set(c.kod || c.id, c);
-        for (const rc of (remoteState.cariler || [])) {
-            const key = rc.kod || rc.id;
-            const ex = cariMap.get(key);
-            if (ex) {
-                cariMap.set(key, {
-                    ...ex,
-                    ...rc,
-                    odemeSozuTarihi: rc.odemeSozuTarihi || ex.odemeSozuTarihi,
-                    odemeSozuTutar: rc.odemeSozuTutar || ex.odemeSozuTutar,
-                    ozelNot: rc.ozelNot || ex.ozelNot
-                });
-            } else {
-                cariMap.set(key, rc);
-            }
+        // Vade kuralları ve cari ayarlarını birleştir (asla kaybolmasın)
+        if (remoteState.cariConfigs) {
+            if (!local.cariConfigs) local.cariConfigs = {};
+            Object.assign(local.cariConfigs, remoteState.cariConfigs);
         }
-        local.cariler = Array.from(cariMap.values());
+        if (remoteState.cariConfigsByUnvan) {
+            if (!local.cariConfigsByUnvan) local.cariConfigsByUnvan = {};
+            Object.assign(local.cariConfigsByUnvan, remoteState.cariConfigsByUnvan);
+        }
 
-        // 2. Hareketleri birleştir (ID bazında tekilleştir)
-        const harMap = new Map();
-        for (const h of (local.hareketler || [])) harMap.set(h.id, h);
-        for (const rh of (remoteState.hareketler || [])) harMap.set(rh.id, rh);
-        local.hareketler = Array.from(harMap.values());
+        // Eğer uzaktaki rapor daha yeniyse veya yerelde veri yoksa, uzaktaki aktif raporu benimse
+        const remoteReport = remoteState.settings?.activeReport;
+        const localReport = local.settings?.activeReport;
+        const isRemoteNewer = remoteReport && (!localReport || remoteReport.uploadTime !== localReport.uploadTime);
 
-        // 3. Faturaları birleştir
-        const fatMap = new Map();
-        for (const f of (local.faturalar || [])) fatMap.set(f.faturaNo || f.id, f);
-        for (const rf of (remoteState.faturalar || [])) fatMap.set(rf.faturaNo || rf.id, rf);
-        local.faturalar = Array.from(fatMap.values());
+        if (isRemoteNewer) {
+            local.cariler = remoteState.cariler || [];
+            local.hareketler = remoteState.hareketler || [];
+            local.faturalar = remoteState.faturalar || [];
+            local.ceksenetler = remoteState.ceksenetler || [];
+            if (!local.settings) local.settings = {};
+            local.settings.activeReport = remoteReport;
+        } else {
+            // 1. Carileri birleştir (Not ve ödeme sözlerini koru)
+            const cariMap = new Map();
+            for (const c of (local.cariler || [])) cariMap.set(c.kod || c.id, c);
+            for (const rc of (remoteState.cariler || [])) {
+                const key = rc.kod || rc.id;
+                const ex = cariMap.get(key);
+                if (ex) {
+                    cariMap.set(key, {
+                        ...ex,
+                        ...rc,
+                        odemeSozuTarihi: rc.odemeSozuTarihi || ex.odemeSozuTarihi,
+                        odemeSozuTutar: rc.odemeSozuTutar || ex.odemeSozuTutar,
+                        ozelNot: rc.ozelNot || ex.ozelNot
+                    });
+                } else {
+                    cariMap.set(key, rc);
+                }
+            }
+            local.cariler = Array.from(cariMap.values());
 
-        // 4. Çek/Senetleri birleştir
-        const csMap = new Map();
-        for (const cs of (local.ceksenetler || [])) csMap.set(cs.id, cs);
-        for (const rcs of (remoteState.ceksenetler || [])) csMap.set(rcs.id, rcs);
-        local.ceksenetler = Array.from(csMap.values());
+            // 2. Hareketleri birleştir (ID bazında tekilleştir)
+            const harMap = new Map();
+            for (const h of (local.hareketler || [])) harMap.set(h.id, h);
+            for (const rh of (remoteState.hareketler || [])) harMap.set(rh.id, rh);
+            local.hareketler = Array.from(harMap.values());
 
+            // 3. Faturaları birleştir
+            const fatMap = new Map();
+            for (const f of (local.faturalar || [])) fatMap.set(f.faturaNo || f.id, f);
+            for (const rf of (remoteState.faturalar || [])) fatMap.set(rf.faturaNo || rf.id, rf);
+            local.faturalar = Array.from(fatMap.values());
+
+            // 4. Çek/Senetleri birleştir
+            const csMap = new Map();
+            for (const cs of (local.ceksenetler || [])) csMap.set(cs.id, cs);
+            for (const rcs of (remoteState.ceksenetler || [])) csMap.set(rcs.id, rcs);
+            local.ceksenetler = Array.from(csMap.values());
+        }
+
+        window.App.syncCariConfigs();
         window.App.saveStateLocallyOnly();
         window.App.recalculateAndRenderAll();
     },
@@ -391,5 +420,51 @@ window.CloudBridge = {
             localStorage.setItem(this.STORAGE_APP_PIN, val);
             alert("🔒 Uygulama açılış PIN şifresi kaydedildi! Artık programı açarken bu şifre sorulacaktır.");
         }
+    },
+
+    openRemoteShareModal() {
+        const liveUrl = (window.location.protocol.startsWith("http") && !window.location.host.includes("localhost"))
+            ? window.location.href.split("?")[0]
+            : this.DEFAULT_WEB_URL;
+        const fullShareUrl = `${liveUrl}?room=${encodeURIComponent(this.roomId || this.DEFAULT_ROOM_ID)}&key=${encodeURIComponent(this.secretKey || this.DEFAULT_SECRET_KEY)}`;
+
+        const modalHtml = `
+            <div class="modal-backdrop" id="remoteShareModal" style="display:flex;">
+                <div class="modal-box" style="max-width:560px;">
+                    <div class="modal-header">
+                        <h3>🌐 SODSAN Finans - İnternet & Mobil Uzaktan Erişim</h3>
+                        <button class="btn btn-outline btn-sm" onclick="document.getElementById('remoteShareModal').remove()">✕</button>
+                    </div>
+                    <div class="modal-body" style="font-size:13px; line-height:1.6;">
+                        <p style="color:var(--text-muted); margin-bottom:12px;">
+                            Bu uygulama diğer tüm projelerden bağımsız, internet üzerinden çalışan bir finans portalıdır. Aşağıdaki canlı bağlantı ile evdeki bilgisayarınızdan, tabletinizden veya cep telefonunuzdan doğrudan bağlanabilir ve <strong>internet üzerinden de yeni Zirve PDF/Excel yükleyebilirsiniz.</strong>
+                        </p>
+
+                        <div style="background:var(--bg-body); padding:12px; border-radius:8px; border:1px solid var(--border); margin-bottom:14px;">
+                            <label style="font-weight:700; color:#38bdf8; display:block; margin-bottom:6px;">Canlı İnternet & Bulut Bağlantı Linkiniz:</label>
+                            <input type="text" id="shareUrlInput" value="${fullShareUrl}" readonly style="width:100%; font-size:12px; padding:8px 10px; background:rgba(15,23,42,0.9); border:1px solid #334155; color:#f8fafc; border-radius:6px; font-family:monospace;">
+                            <div style="display:flex; gap:8px; margin-top:10px;">
+                                <button class="btn btn-primary btn-sm" onclick="navigator.clipboard.writeText(document.getElementById('shareUrlInput').value); alert('✅ Uzaktan erişim linki panoya kopyalandı! WhatsApp veya e-posta ile kendinize gönderip anında açabilirsiniz.');">📋 Linki Kopyala</button>
+                                <a href="${fullShareUrl}" target="_blank" class="btn btn-outline btn-sm" style="text-decoration:none;">🚀 Yeni Sekmede Aç</a>
+                            </div>
+                        </div>
+
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; font-size:12px; background:rgba(255,255,255,0.02); padding:10px; border-radius:6px;">
+                            <div><strong>🔒 Şifreleme:</strong> AES-256-GCM Uçtan Uca</div>
+                            <div><strong>🔑 Eşitleme Kodu:</strong> <code>${(this.binId || this.roomId || '').substring(0, 16)}...</code></div>
+                            <div><strong>📱 Mobil PWA:</strong> Ana Ekrana Eklenebilir</div>
+                            <div><strong>⚡ Uzaktan Yükleme:</strong> İnternetten de Zirve Dosyası Yüklenebilir</div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-outline" onclick="document.getElementById('remoteShareModal').remove()">Kapat</button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        const existing = document.getElementById("remoteShareModal");
+        if (existing) existing.remove();
+        document.body.insertAdjacentHTML("beforeend", modalHtml);
     }
 };

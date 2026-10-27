@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a" />
+      <stop offset="50%" stop-color="#1e293b" />
+      <stop offset="100%" stop-color="#090d16" />
+    </linearGradient>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10b981" />
+      <stop offset="50%" stop-color="#059669" />
+      <stop offset="100%" stop-color="#047857" />
+    </linearGradient>
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8" />
+      <stop offset="100%" stop-color="#2563eb" />
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#000" flood-opacity="0.45"/>
+    </filter>
+  </defs>
+
+  <!-- Background with smooth rounded corners -->
+  <rect width="512" height="512" rx="112" fill="url(#bgGrad)" stroke="#334155" stroke-width="4"/>
+
+  <!-- Glowing background effect -->
+  <circle cx="256" cy="256" r="180" fill="#10b981" opacity="0.08" />
+
+  <!-- Shield / Brand Emblem -->
+  <g filter="url(#shadow)">
+    <!-- Shield Outline -->
+    <path d="M 256,90 L 390,140 L 390,270 C 390,360 256,430 256,430 C 256,430 122,360 122,270 L 122,140 Z" fill="#1e293b" stroke="url(#accentGrad)" stroke-width="8" stroke-linejoin="round" />
+
+    <!-- Stylized "S" / Financial Chart Arrow / Lira Sign -->
+    <!-- Upward Trend Bars -->
+    <rect x="180" y="270" width="28" height="70" rx="8" fill="#475569" />
+    <rect x="224" y="230" width="28" height="110" rx="8" fill="url(#accentGrad)" />
+    <rect x="268" y="190" width="28" height="150" rx="8" fill="url(#goldGrad)" />
+    <rect x="312" y="150" width="28" height="190" rx="8" fill="#10b981" />
+
+    <!-- Floating Trend Line -->
+    <path d="M 170,290 L 238,240 L 282,210 L 336,140" fill="none" stroke="#38bdf8" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" />
+    <circle cx="336" cy="140" r="10" fill="#ffffff" stroke="#38bdf8" stroke-width="4" />
+
+    <!-- Badge Text at Bottom -->
+    <text x="256" y="390" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="28" font-weight="900" fill="#f8fafc" text-anchor="middle" letter-spacing="4">SODSAN</text>
+  </g>
+</svg>
