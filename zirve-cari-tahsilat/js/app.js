@@ -312,7 +312,7 @@ const App = window.App = {
         if (localRaw) {
             try {
                 const parsed = JSON.parse(localRaw);
-                if (parsed && Array.isArray(parsed.cariler)) {
+                if (parsed && Array.isArray(parsed.cariler) && parsed.cariler.length > 0) {
                     // Eski örnek/demo verisi varsa temizle
                     const hasDemo = parsed.cariler.some(c => c.id === "C-101" || (c.unvan && c.unvan.includes("ÖZKAN METAL")));
                     if (hasDemo) {
@@ -321,25 +321,42 @@ const App = window.App = {
                         parsed.faturalar = [];
                         parsed.ceksenetler = [];
                         localStorage.setItem("zirve_cari_tahsilat_db_v1", JSON.stringify(parsed));
-                    }
-                    if (Array.isArray(parsed.hareketler)) {
-                        for (const h of parsed.hareketler) {
-                            if (h.doviz && h.doviz !== "TRY" && (!h.kur || h.kur === 1)) {
-                                h.orijinalDoviz = h.doviz;
-                                h.doviz = "TRY";
-                                h.kur = 1;
+                    } else {
+                        if (Array.isArray(parsed.hareketler)) {
+                            for (const h of parsed.hareketler) {
+                                if (h.doviz && h.doviz !== "TRY" && (!h.kur || h.kur === 1)) {
+                                    h.orijinalDoviz = h.doviz;
+                                    h.doviz = "TRY";
+                                    h.kur = 1;
+                                }
                             }
                         }
+                        this.state = parsed;
+                        if (!this.state.cariConfigs) this.state.cariConfigs = {};
+                        if (!this.state.cariConfigsByUnvan) this.state.cariConfigsByUnvan = {};
+                        return;
                     }
-                    this.state = parsed;
-                    if (!this.state.cariConfigs) this.state.cariConfigs = {};
-                    if (!this.state.cariConfigsByUnvan) this.state.cariConfigsByUnvan = {};
-                    return;
                 }
             } catch (e) {}
         }
 
-        // 3. Sıfır kurulum: Örnek/demo verisi ASLA otomatik yüklenmez, temiz başlanır
+        // 3. Web / GitHub Pages ortamında depodaki hazır veritabanından (data/zirve_finans_db.json) yükle
+        try {
+            const resStatic = await fetch("./data/zirve_finans_db.json?v=" + Date.now());
+            if (resStatic.ok) {
+                const staticData = await resStatic.json();
+                if (staticData && Array.isArray(staticData.cariler) && staticData.cariler.length > 0) {
+                    this.state = staticData;
+                    if (!this.state.cariConfigs) this.state.cariConfigs = {};
+                    if (!this.state.cariConfigsByUnvan) this.state.cariConfigsByUnvan = {};
+                    try { localStorage.setItem("zirve_cari_tahsilat_db_v1", JSON.stringify(this.state)); } catch(e) {}
+                    this.setServerBadge(true, "Web/Bulut Hazır");
+                    return;
+                }
+            }
+        } catch (e) {}
+
+        // 4. Sıfır kurulum: Temiz başla
         this.state.cariler = [];
         this.state.hareketler = [];
         this.state.faturalar = [];
