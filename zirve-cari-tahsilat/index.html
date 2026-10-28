@@ -13,7 +13,7 @@
     <meta name="apple-mobile-web-app-title" content="SODSAN Finans">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="format-detection" content="telephone=no">
-    <link rel="stylesheet" href="css/style.css?v=20261028_2">
+    <link rel="stylesheet" href="css/style.css?v=20261028_5">
 </head>
 <body>
 
@@ -262,14 +262,14 @@
                                 <th style="width:36px; text-align:center;">
                                     <input type="checkbox" id="selectAllAlicilar" onchange="App.toggleSelectAllAlicilar(this.checked)" title="Tümünü Seç / Kaldır">
                                 </th>
-                                <th>Cari Kodu</th>
-                                <th>Müşteri Ünvanı / VKN</th>
-                                <th>Cari Grubu</th>
-                                <th style="min-width:240px;">Ödeme Şekli & Vade (Hızlı Değiştir)</th>
-                                <th class="num">Toplam Satış (B)</th>
-                                <th class="num">Tahsilat (A)</th>
-                                <th class="num">Net Alacağımız (₺)</th>
-                                <th>Vade & Gecikme</th>
+                                <th class="sortable-th" onclick="App.toggleSort('alici', 'kod')" title="Cari Koduna göre sırala (A-Z / Z-A)">Cari Kodu <span id="aliciSort_kod">↕</span></th>
+                                <th class="sortable-th" onclick="App.toggleSort('alici', 'unvan')" title="Müşteri Ünvanına göre sırala (A-Z / Z-A)">Müşteri Ünvanı / VKN <span id="aliciSort_unvan">↕</span></th>
+                                <th class="sortable-th" onclick="App.toggleSort('alici', 'grup')" title="Cari Grubuna göre sırala">Cari Grubu <span id="aliciSort_grup">↕</span></th>
+                                <th class="sortable-th" onclick="App.toggleSort('alici', 'odeme')" title="Vade gününe göre sırala" style="min-width:240px;">Ödeme Şekli & Vade (Hızlı Değiştir) <span id="aliciSort_odeme">↕</span></th>
+                                <th class="num sortable-th" onclick="App.toggleSort('alici', 'toplamBorc')" title="Toplam Satış Tutarına göre sırala">Toplam Satış (B) <span id="aliciSort_toplamBorc">↕</span></th>
+                                <th class="num sortable-th" onclick="App.toggleSort('alici', 'toplamAlacak')" title="Tahsilat Tutarına göre sırala">Tahsilat (A) <span id="aliciSort_toplamAlacak">↕</span></th>
+                                <th class="num sortable-th" onclick="App.toggleSort('alici', 'netBakiye')" title="Net Alacak Tutarına göre sırala">Net Alacağımız (₺) <span id="aliciSort_netBakiye">▼</span></th>
+                                <th class="sortable-th" onclick="App.toggleSort('alici', 'vade')" title="Vade ve Gecikme Gününe göre sırala">Vade & Gecikme <span id="aliciSort_vade">↕</span></th>
                                 <th>Ödeme Sözü & Not</th>
                                 <th>İşlemler</th>
                             </tr>
@@ -343,14 +343,14 @@
                                 <th style="width:36px; text-align:center;">
                                     <input type="checkbox" id="selectAllSaticilar" onchange="App.toggleSelectAllSaticilar(this.checked)" title="Tümünü Seç / Kaldır">
                                 </th>
-                                <th>Cari Kodu</th>
-                                <th>Tedarikçi Ünvanı / VKN</th>
-                                <th>Cari Grubu</th>
-                                <th style="min-width:240px;">Ödeme Şekli & Vade (Hızlı Değiştir)</th>
-                                <th class="num">Toplam Alış (A)</th>
-                                <th class="num">Yapılan Ödeme (B)</th>
-                                <th class="num">Net Borcumuz (₺)</th>
-                                <th>Vade & Gecikme</th>
+                                <th class="sortable-th" onclick="App.toggleSort('satici', 'kod')" title="Cari Koduna göre sırala (A-Z / Z-A)">Cari Kodu <span id="saticiSort_kod">↕</span></th>
+                                <th class="sortable-th" onclick="App.toggleSort('satici', 'unvan')" title="Tedarikçi Ünvanına göre sırala (A-Z / Z-A)">Tedarikçi Ünvanı / VKN <span id="saticiSort_unvan">↕</span></th>
+                                <th class="sortable-th" onclick="App.toggleSort('satici', 'grup')" title="Cari Grubuna göre sırala">Cari Grubu <span id="saticiSort_grup">↕</span></th>
+                                <th class="sortable-th" onclick="App.toggleSort('satici', 'odeme')" title="Vade gününe göre sırala" style="min-width:240px;">Ödeme Şekli & Vade (Hızlı Değiştir) <span id="saticiSort_odeme">↕</span></th>
+                                <th class="num sortable-th" onclick="App.toggleSort('satici', 'toplamAlacak')" title="Toplam Alış Tutarına göre sırala">Toplam Alış (A) <span id="saticiSort_toplamAlacak">↕</span></th>
+                                <th class="num sortable-th" onclick="App.toggleSort('satici', 'toplamBorc')" title="Yapılan Ödeme Tutarına göre sırala">Yapılan Ödeme (B) <span id="saticiSort_toplamBorc">↕</span></th>
+                                <th class="num sortable-th" onclick="App.toggleSort('satici', 'netBorc')" title="Net Borç Tutarına göre sırala">Net Borcumuz (₺) <span id="saticiSort_netBorc">▼</span></th>
+                                <th class="sortable-th" onclick="App.toggleSort('satici', 'vade')" title="Vade ve Gecikme Gününe göre sırala">Vade & Gecikme <span id="saticiSort_vade">↕</span></th>
                                 <th>Ödeme Sözü & Not</th>
                                 <th>İşlemler</th>
                             </tr>
@@ -1192,10 +1192,10 @@
     <script src="js/xlsx.full.min.js"></script>
     <script src="js/pdf.min.js"></script>
     <script src="js/pdf.worker.min.js"></script>
-    <script src="js/ubl_parser.js?v=20261028_4"></script>
-    <script src="js/excel_importer.js?v=20261028_4"></script>
-    <script src="js/cloud_bridge.js?v=20261028_4"></script>
-    <script src="js/app.js?v=20261028_4"></script>
+    <script src="js/ubl_parser.js?v=20261028_5"></script>
+    <script src="js/excel_importer.js?v=20261028_5"></script>
+    <script src="js/cloud_bridge.js?v=20261028_5"></script>
+    <script src="js/app.js?v=20261028_5"></script>
     <script>
         if ('serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.hostname === 'localhost')) {
             window.addEventListener('load', () => {

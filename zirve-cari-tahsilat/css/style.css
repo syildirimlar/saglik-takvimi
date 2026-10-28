@@ -518,6 +518,17 @@ th {
     box-shadow: 0 1px 0 var(--border);
 }
 
+.sortable-th {
+    cursor: pointer !important;
+    user-select: none !important;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.sortable-th:hover {
+    background: #1e293b !important;
+    color: #38bdf8 !important;
+}
+
 td {
     padding: 7px 10px;
     border-bottom: 1px solid #162033;

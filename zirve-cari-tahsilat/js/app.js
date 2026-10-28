@@ -27,6 +27,8 @@ const App = window.App = {
     computedCarilerMap: {},
     selectedAliciIds: new Set(),
     selectedSaticiIds: new Set(),
+    aliciSort: { column: "netBakiye", order: "desc" },
+    saticiSort: { column: "netBorc", order: "desc" },
 
     vadeOptions: [
         { value: "CEK_10", label: "Ayın 10'u Çek", days: 0, rule: "TAKIP_EDEN_10" },
@@ -1062,6 +1064,97 @@ const App = window.App = {
         }
     },
 
+    // ================= TABLO SIRALAMA FONKSİYONLARI (KÜÇÜKTEN BÜYÜĞE / BÜYÜKTEN KÜÇÜĞE) =================
+    sortList(list, sortConfig, type = "alici") {
+        if (!sortConfig || !sortConfig.column) return list;
+        const { column, order } = sortConfig;
+        const dir = order === "asc" ? 1 : -1;
+
+        return list.slice().sort((a, b) => {
+            let va, vb;
+            switch (column) {
+                case "kod":
+                    va = a.kod || "";
+                    vb = b.kod || "";
+                    return dir * va.localeCompare(vb, "tr", { numeric: true });
+                case "unvan":
+                    va = a.unvan || "";
+                    vb = b.unvan || "";
+                    return dir * va.localeCompare(vb, "tr");
+                case "grup":
+                    va = a.cariGrup || "";
+                    vb = b.cariGrup || "";
+                    return dir * va.localeCompare(vb, "tr");
+                case "odeme":
+                    va = (a.vadeGunu !== undefined ? a.vadeGunu : 30);
+                    vb = (b.vadeGunu !== undefined ? b.vadeGunu : 30);
+                    if (va !== vb) return dir * (va - vb);
+                    return dir * ((a.odemeSekli || "").localeCompare(b.odemeSekli || "", "tr"));
+                case "toplamBorc":
+                    va = a.toplamBorc || 0;
+                    vb = b.toplamBorc || 0;
+                    return dir * (va - vb);
+                case "toplamAlacak":
+                    va = a.toplamAlacak || 0;
+                    vb = b.toplamAlacak || 0;
+                    return dir * (va - vb);
+                case "netBakiye":
+                    va = a.netBakiye || 0;
+                    vb = b.netBakiye || 0;
+                    return dir * (va - vb);
+                case "netBorc":
+                    va = Math.abs(a.netBakiye || 0);
+                    vb = Math.abs(b.netBakiye || 0);
+                    return dir * (va - vb);
+                case "vade":
+                    va = a.enEskiAcikVade || "9999-99-99";
+                    vb = b.enEskiAcikVade || "9999-99-99";
+                    return dir * va.localeCompare(vb);
+                default:
+                    return 0;
+            }
+        });
+    },
+
+    toggleSort(tableType, column) {
+        const sortProp = tableType === "alici" ? "aliciSort" : "saticiSort";
+        if (this[sortProp].column === column) {
+            this[sortProp].order = this[sortProp].order === "asc" ? "desc" : "asc";
+        } else {
+            this[sortProp].column = column;
+            const isNumeric = ["toplamBorc", "toplamAlacak", "netBakiye", "netBorc"].includes(column);
+            this[sortProp].order = isNumeric ? "desc" : "asc";
+        }
+
+        if (tableType === "alici") {
+            this.renderAlicilar();
+        } else {
+            this.renderSaticilar();
+        }
+    },
+
+    updateSortHeaderIcons(tableType) {
+        const sort = tableType === "alici" ? this.aliciSort : this.saticiSort;
+        const prefix = tableType === "alici" ? "aliciSort_" : "saticiSort_";
+        const columns = ["kod", "unvan", "grup", "odeme", "toplamBorc", "toplamAlacak", (tableType === "alici" ? "netBakiye" : "netBorc"), "vade"];
+
+        columns.forEach(col => {
+            const el = document.getElementById(prefix + col);
+            if (!el) return;
+            if (sort.column === col) {
+                el.textContent = sort.order === "asc" ? " ▲" : " ▼";
+                el.style.color = "#38bdf8";
+                el.style.opacity = "1";
+                el.style.fontWeight = "bold";
+            } else {
+                el.textContent = " ↕";
+                el.style.color = "var(--text-muted)";
+                el.style.opacity = "0.35";
+                el.style.fontWeight = "normal";
+            }
+        });
+    },
+
     // ================= ALICILAR (MÜŞTERİLER - 120 GRUBU) RENDER =================
     renderAlicilar() {
         const q = (document.getElementById("aliciSearch")?.value || "").toLowerCase().trim();
@@ -1117,7 +1210,8 @@ const App = window.App = {
             list = list.filter(c => (c.doviz || "TRY") === dovizFilter);
         }
 
-        list.sort((a, b) => b.netBakiye - a.netBakiye);
+        list = this.sortList(list, this.aliciSort, "alici");
+        this.updateSortHeaderIcons("alici");
 
         const tbody = document.getElementById("alicilarTableBody");
         if (!tbody) return;
@@ -1238,7 +1332,8 @@ const App = window.App = {
             list = list.filter(c => (c.doviz || "TRY") === dovizFilter);
         }
 
-        list.sort((a, b) => a.netBakiye - b.netBakiye);
+        list = this.sortList(list, this.saticiSort, "satici");
+        this.updateSortHeaderIcons("satici");
 
         const tbody = document.getElementById("saticilarTableBody");
         if (!tbody) return;
