@@ -376,8 +376,8 @@ const App = window.App = {
         this.saveState();
         this.recalculateAndRenderAll();
         this.showToast(checked
-            ? "? Ay sonu teamül kuralı aktif: Ayın son 2 günü kesilen faturalar bir sonraki ay başı kabul edilir."
-            : "?? Ay sonu teamül kuralı kapatıldı: Faturalar doğrudan kesildiği gün baz alınarak hesaplanır.");
+            ? "📅 Ay sonu teamül kuralı aktif: Ayın son 2 günü kesilen faturalar bir sonraki ay başı kabul edilir."
+            : "ℹ️ Ay sonu teamül kuralı kapatıldı: Faturalar doğrudan kesildiği gün baz alınarak hesaplanır.");
     },
 
     saveSettings() {
@@ -397,7 +397,7 @@ const App = window.App = {
 
     async fetchLiveRates() {
         const btn = document.getElementById("btnLiveRate");
-        if (btn) btn.textContent = "? Alınıyor...";
+        if (btn) btn.textContent = "⏳ Alınıyor...";
         try {
             const resp = await fetch("https://open.er-api.com/v6/latest/USD");
             if (!resp.ok) throw new Error("Kur servisi yanıt vermedi (" + resp.status + ")");
@@ -417,15 +417,15 @@ const App = window.App = {
                 await this.saveState();
                 this.recalculateAndRenderAll();
                 
-                alert(`? Canlı Döviz Kurları Başarıyla Alındı!\n\n• USD / TRY: ${usdStr} ?\n• EUR / TRY: ${eurStr} ?\n\nTüm dövizli cariler, faturalar ve bakiyeler güncel kurla (4 basamak hassasiyetle) anında hesaplandı.`);
+                alert(`✅ Canlı Döviz Kurları Başarıyla Alındı!\n\n• USD / TRY: ${usdStr} ₺\n• EUR / TRY: ${eurStr} ₺\n\nTüm dövizli cariler, faturalar ve bakiyeler güncel kurla (4 basamak hassasiyetle) anında hesaplandı.`);
             } else {
                 throw new Error("Kur verisi çözümlenemedi.");
             }
         } catch (e) {
             console.warn("Canlı kur alma hatası:", e);
-            alert("?? Canlı kur servisine ulaşılamadı (" + e.message + "). Kurları kutulardan elle yazıp 'Enter'a basabilirsiniz.");
+            alert("⚠️ Canlı kur servisine ulaşılamadı (" + e.message + "). Kurları kutulardan elle yazıp 'Enter'a basabilirsiniz.");
         } finally {
-            if (btn) btn.textContent = "?? Canlı Kur";
+            if (btn) btn.textContent = "🔄 Canlı Kur";
         }
     },
 
@@ -499,7 +499,7 @@ const App = window.App = {
                 vadeTarihi,
                 text: `${diffDays} gün gecikti`,
                 badgeClass: "badge-warn",
-                html: `<span class="badge badge-warn" style="font-weight:600; white-space:nowrap;">?? ${diffDays} gün gecikti</span>`
+                html: `<span class="badge badge-warn" style="font-weight:600; white-space:nowrap;">⚠️ ${diffDays} gün gecikti</span>`
             };
         } else if (diffDays < 0) {
             const rem = Math.abs(diffDays);
@@ -511,7 +511,7 @@ const App = window.App = {
                 vadeTarihi,
                 text: `${rem} gün kaldı`,
                 badgeClass: "badge-neutral",
-                html: `<span class="badge badge-neutral" style="color:#38bdf8; font-weight:600; white-space:nowrap;">? ${rem} gün kaldı</span>`
+                html: `<span class="badge badge-neutral" style="color:#38bdf8; font-weight:600; white-space:nowrap;">⏱️ ${rem} gün kaldı</span>`
             };
         } else {
             return {
@@ -522,7 +522,7 @@ const App = window.App = {
                 vadeTarihi,
                 text: "Bugün vadeli",
                 badgeClass: "badge-warn",
-                html: `<span class="badge badge-warn" style="background:#f59e0b; color:#fff; font-weight:600; white-space:nowrap;">?? Bugün vadeli</span>`
+                html: `<span class="badge badge-warn" style="background:#f59e0b; color:#fff; font-weight:600; white-space:nowrap;">🔔 Bugün vadeli</span>`
             };
         }
     },
@@ -858,7 +858,7 @@ const App = window.App = {
             banner.style.display = "flex";
             const nameEl = document.getElementById("activeReportName");
             const detEl = document.getElementById("activeReportDetails");
-            if (nameEl) nameEl.textContent = `?? ${rep.fileName || "Zirve Raporu"}`;
+            if (nameEl) nameEl.textContent = `📄 ${rep.fileName || "Zirve Raporu"}`;
             if (detEl) {
                 detEl.textContent = `• Yüklenme: ${rep.uploadTime || "-"} • ${this.state.cariler.length} Cari Hesap • ${this.state.hareketler.length} Hareket • ${this.state.faturalar.length} Fatura`;
             }
@@ -866,7 +866,7 @@ const App = window.App = {
             banner.style.display = "flex";
             const nameEl = document.getElementById("activeReportName");
             const detEl = document.getElementById("activeReportDetails");
-            if (nameEl) nameEl.textContent = "?? Kayıtlı Zirve Raporu";
+            if (nameEl) nameEl.textContent = "📁 Kayıtlı Zirve Raporu";
             if (detEl) {
                 detEl.textContent = `• ${this.state.cariler.length} Cari Hesap • ${this.state.hareketler.length} Hareket • ${this.state.faturalar.length} Fatura`;
             }
@@ -1080,7 +1080,7 @@ const App = window.App = {
             allGroups.forEach(g => {
                 const opt = document.createElement("option");
                 opt.value = g;
-                opt.textContent = `?? ${g}`;
+                opt.textContent = `🏷️ ${g}`;
                 grupSelect.appendChild(opt);
             });
         }
@@ -1140,10 +1140,10 @@ const App = window.App = {
             }
 
             const sozHtml = c.odemeSozuTarihi
-                ? `<div style="font-size:11.5px; color:#38bdf8;"><strong>?? Söz:</strong> ${c.odemeSozuTarihi} ${c.odemeSozuTutar ? `(${this.formatMoney(c.odemeSozuTutar)})` : ''}</div>`
+                ? `<div style="font-size:11.5px; color:#38bdf8;"><strong>💬 Söz:</strong> ${c.odemeSozuTarihi} ${c.odemeSozuTutar ? `(${this.formatMoney(c.odemeSozuTutar)})` : ''}</div>`
                 : '';
             const notHtml = c.ozelNot
-                ? `<div style="font-size:11px; color:var(--text-muted); max-width:200px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${c.ozelNot}">?? ${c.ozelNot}</div>`
+                ? `<div style="font-size:11px; color:var(--text-muted); max-width:200px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${c.ozelNot}">📝 ${c.ozelNot}</div>`
                 : '';
 
             return `
@@ -1201,7 +1201,7 @@ const App = window.App = {
             allGroups.forEach(g => {
                 const opt = document.createElement("option");
                 opt.value = g;
-                opt.textContent = `?? ${g}`;
+                opt.textContent = `🏷️ ${g}`;
                 grupSelect.appendChild(opt);
             });
         }
@@ -1262,10 +1262,10 @@ const App = window.App = {
             }
 
             const sozHtml = c.odemeSozuTarihi
-                ? `<div style="font-size:11.5px; color:#f87171;"><strong>?? Söz:</strong> ${c.odemeSozuTarihi} ${c.odemeSozuTutar ? `(${this.formatMoney(c.odemeSozuTutar)})` : ''}</div>`
+                ? `<div style="font-size:11.5px; color:#f87171;"><strong>💬 Söz:</strong> ${c.odemeSozuTarihi} ${c.odemeSozuTutar ? `(${this.formatMoney(c.odemeSozuTutar)})` : ''}</div>`
                 : '';
             const notHtml = c.ozelNot
-                ? `<div style="font-size:11px; color:var(--text-muted); max-width:200px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${c.ozelNot}">?? ${c.ozelNot}</div>`
+                ? `<div style="font-size:11px; color:var(--text-muted); max-width:200px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${c.ozelNot}">📝 ${c.ozelNot}</div>`
                 : '';
 
             return `
@@ -1629,7 +1629,7 @@ const App = window.App = {
             <div class="kpi-card">
                 <div class="kpi-label">Faturadan Hesaplanan Vade Durumu</div>
                 <div class="kpi-value" style="font-size:13.5px; font-weight:600; margin-top:2px;">
-                    ${vadeDurumu ? `?? ${this.formatDisplayDate(c.enEskiAcikVade)} • ${vadeDurumu.text}` : '<span style="color:var(--text-muted); font-size:12px;">Açık Bakiye Yok (Kapalı)</span>'}
+                    ${vadeDurumu ? `📅 ${this.formatDisplayDate(c.enEskiAcikVade)} • ${vadeDurumu.text}` : '<span style="color:var(--text-muted); font-size:12px;">Açık Bakiye Yok (Kapalı)</span>'}
                 </div>
             </div>
         `;
@@ -1856,7 +1856,7 @@ const App = window.App = {
 
         if (navigator.clipboard && navigator.clipboard.writeText) {
             navigator.clipboard.writeText(msg).then(() => {
-                alert("?? Hatırlatma metni panoya kopyalandı!\n\nWhatsApp, SMS veya e-posta ile yapıştırıp gönderebilirsiniz:\n\n" + msg);
+                alert("📋 Hatırlatma metni panoya kopyalandı!\n\nWhatsApp, SMS veya e-posta ile yapıştırıp gönderebilirsiniz:\n\n" + msg);
             }).catch(() => {
                 prompt("Metni kopyalayınız (Ctrl+C):", msg);
             });
@@ -1997,18 +1997,18 @@ const App = window.App = {
                 const days = it.vadeGunu || it.odemeSekli.split("_")[1] || 60;
                 odemeBadge = `<span class="badge badge-cek">?? ${days} Günlük Çek</span>`;
             } else if (it.odemeSekli === "KREDI_KARTI") {
-                odemeBadge = `<span class="badge badge-purple">?? Kredi Kartı / DBS</span>`;
+                odemeBadge = `<span class="badge badge-purple">💳 Kredi Kartı / DBS</span>`;
             } else if (it.odemeSekli === "PESIN") {
-                odemeBadge = `<span class="badge badge-alacak">? Peşin</span>`;
+                odemeBadge = `<span class="badge badge-alacak">💵 Peşin</span>`;
             }
 
             let durumBadge = "";
             if (it.daysDiff > 0) {
-                durumBadge = `<span class="badge badge-today">?? ${it.daysDiff} Gün Gecikti</span>`;
+                durumBadge = `<span class="badge badge-today">⚠️ ${it.daysDiff} Gün Gecikti</span>`;
             } else if (it.daysDiff === 0) {
-                durumBadge = `<span class="badge badge-warn">?? BUGÜN VADESİ</span>`;
+                durumBadge = `<span class="badge badge-warn">🔔 BUGÜN VADESİ</span>`;
             } else if (it.daysDiff >= -7) {
-                durumBadge = `<span class="badge badge-week">?? ${Math.abs(it.daysDiff)} Gün Kaldı</span>`;
+                durumBadge = `<span class="badge badge-week">⏱️ ${Math.abs(it.daysDiff)} Gün Kaldı</span>`;
             } else {
                 durumBadge = `<span class="badge badge-neutral">${Math.abs(it.daysDiff)} Gün Kaldı</span>`;
             }
@@ -2513,9 +2513,9 @@ const App = window.App = {
     onTrTypeChange() {
         const t = document.getElementById("trType").value;
         const titleEl = document.getElementById("transModalTitle");
-        if (t === "TAHSILAT") titleEl.textContent = "?? Müşteriden Tahsilat / Gelen Havale Girişi";
-        else if (t === "ODEME") titleEl.textContent = "?? Tedarikçiye Ödeme / Gönderilen EFT Girişi";
-        else titleEl.textContent = "?? Cari Hesap Hareketi Girişi";
+        if (t === "TAHSILAT") titleEl.textContent = "💰 Müşteriden Tahsilat / Gelen Havale Girişi";
+        else if (t === "ODEME") titleEl.textContent = "💸 Tedarikçiye Ödeme / Gönderilen EFT Girişi";
+        else titleEl.textContent = "📝 Cari Hesap Hareketi Girişi";
     },
 
     saveTransaction() {
@@ -2669,13 +2669,13 @@ const App = window.App = {
                 throw new Error("İçe aktarıcı kütüphanesi henüz yüklenemedi. Lütfen sayfayı yenileyiniz (Ctrl + F5).");
             }
             const res = await window.ZirveExcelImporter.processFile(file, this);
-            let msg = `? Zirve Dosyası Başarıyla İçe Aktarıldı!\n\n• ${res.cariler} Cari Hesap işlendi.\n• ${res.hareketler} Cari Hareket / İşlem kaydedildi.`;
+            let msg = `✅ Zirve Dosyası Başarıyla İçe Aktarıldı!\n\n• ${res.cariler} Cari Hesap işlendi.\n• ${res.hareketler} Cari Hareket / İşlem kaydedildi.`;
             if (res.faturalar) msg += `\n• ${res.faturalar} Fatura yaşlandırmaya alındı.`;
             if (res.ceksenet) msg += `\n• ${res.ceksenet} Çek/Senet portföye eklendi.`;
             msg += `\n• Toplam Aktif Cari: ${res.totalCariler || this.state.cariler.length}\n\nTüm bakiyeler, gecikmiş vadeler ve nakit akışı takvimi otomatik hesaplandı.`;
             alert(msg);
         } catch (e) {
-            alert("? Dosya okuma hatası: " + e.message);
+            alert("❌ Dosya okuma hatası: " + e.message);
         }
     },
 

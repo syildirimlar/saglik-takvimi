@@ -489,10 +489,16 @@ input:focus, select:focus, textarea:focus {
     border-radius: 8px;
     border: 1px solid var(--border);
     background: var(--bg-card);
+    width: 100%;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x pan-y;
+    scrollbar-width: thin;
+    scrollbar-color: #38bdf8 rgba(255, 255, 255, 0.05);
 }
 
 table {
     width: 100%;
+    min-width: 100%;
     border-collapse: collapse;
     font-size: 12.5px;
 }
@@ -860,19 +866,39 @@ td.cell-code {
     .kpi-card {
         padding: 9px 10px !important;
         border-radius: 8px !important;
+        overflow: hidden !important;
     }
 
     .kpi-label {
-        font-size: 10px !important;
+        font-size: 10.5px !important;
+        white-space: normal !important;
+        line-height: 1.25 !important;
     }
 
-    .kpi-val {
-        font-size: 16px !important;
+    .kpi-val, .kpi-value {
+        font-size: clamp(13px, 4vw, 16.5px) !important;
         letter-spacing: -0.3px !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        margin: 4px 0 2px !important;
     }
 
     .kpi-sub {
         font-size: 9.5px !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 2px !important;
+        white-space: normal !important;
+        word-break: break-word !important;
+        margin-top: 4px !important;
+    }
+
+    .kpi-sub span {
+        white-space: normal !important;
+        word-break: break-word !important;
+        display: block !important;
     }
 
     /* İki Kolonlu Izgara -> Tek Kolon */
@@ -952,16 +978,55 @@ td.cell-code {
 
     /* Tablolar ve Kaydırma */
     .table-wrap {
+        display: block !important;
+        width: 100% !important;
+        max-width: 100% !important;
         border-radius: 8px !important;
         overflow-x: auto !important;
+        overflow-y: hidden !important;
         -webkit-overflow-scrolling: touch !important;
+        touch-action: pan-x pan-y !important;
+        overscroll-behavior-x: contain !important;
         max-height: 62vh !important;
+        scrollbar-width: thin !important;
+        scrollbar-color: #38bdf8 rgba(255, 255, 255, 0.05) !important;
+    }
+
+    .table-wrap::-webkit-scrollbar {
+        height: 5px !important;
+        display: block !important;
+    }
+    .table-wrap::-webkit-scrollbar-track {
+        background: rgba(15, 23, 42, 0.6) !important;
+        border-radius: 4px !important;
+    }
+    .table-wrap::-webkit-scrollbar-thumb {
+        background: #38bdf8 !important;
+        border-radius: 4px !important;
+    }
+
+    .table-wrap table {
+        width: max-content !important;
+        min-width: 100% !important;
+    }
+
+    #tab-dashboard .table-wrap table {
+        min-width: 500px !important;
     }
 
     th, td {
         padding: 7px 8px !important;
         font-size: 12px !important;
         white-space: nowrap !important;
+    }
+
+    /* Genel Bakış Tablolarında Cari Ünvanın Rahat Okunması */
+    #tab-dashboard .table-wrap td:first-child {
+        min-width: 140px !important;
+        max-width: 190px !important;
+        white-space: normal !important;
+        word-break: break-word !important;
+        line-height: 1.3 !important;
     }
 
     th {
