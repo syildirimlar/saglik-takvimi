@@ -1131,7 +1131,7 @@ const App = window.App = {
                 if (c.enEskiAcikVade) {
                     const info = this.getVadeDurumu(c.enEskiAcikVade);
                     gecikmeHtml = `
-                        <div style="font-weight:600; font-size:12px; white-space:nowrap;">?? ${this.formatDisplayDate(c.enEskiAcikVade)}</div>
+                        <div style="font-weight:600; font-size:12px; white-space:nowrap;">📅 ${this.formatDisplayDate(c.enEskiAcikVade)}</div>
                         <div style="margin-top:2px;">${info.html}</div>
                     `;
                 } else {
@@ -1172,7 +1172,7 @@ const App = window.App = {
                     <td>${gecikmeHtml}</td>
                     <td>${sozHtml}${notHtml || (!sozHtml ? '<span style="color:var(--text-muted); font-size:11px;">-</span>' : '')}</td>
                     <td style="white-space:nowrap;">
-                        <button class="btn btn-outline btn-sm" onclick="App.openCariVadeModal('${c.id}')" title="Vade, Grup ve Not Düzenle">?? Vade / Not</button>
+                        <button class="btn btn-outline btn-sm" onclick="App.openCariVadeModal('${c.id}')" title="Vade, Grup ve Not Düzenle">⚙️ Vade / Not</button>
                         <button class="btn btn-outline btn-sm" onclick="App.openCariEkstre('${c.id}')">Ekstre</button>
                         <button class="btn btn-success btn-sm" onclick="App.openQuickTransactionModal('TAHSILAT', '${c.id}')">+ Tahsilat</button>
                     </td>
@@ -1253,7 +1253,7 @@ const App = window.App = {
                 if (c.enEskiAcikVade) {
                     const info = this.getVadeDurumu(c.enEskiAcikVade);
                     gecikmeHtml = `
-                        <div style="font-weight:600; font-size:12px; white-space:nowrap;">?? ${this.formatDisplayDate(c.enEskiAcikVade)}</div>
+                        <div style="font-weight:600; font-size:12px; white-space:nowrap;">📅 ${this.formatDisplayDate(c.enEskiAcikVade)}</div>
                         <div style="margin-top:2px;">${info.html}</div>
                     `;
                 } else {
@@ -1294,7 +1294,7 @@ const App = window.App = {
                     <td>${gecikmeHtml}</td>
                     <td>${sozHtml}${notHtml || (!sozHtml ? '<span style="color:var(--text-muted); font-size:11px;">-</span>' : '')}</td>
                     <td style="white-space:nowrap;">
-                        <button class="btn btn-outline btn-sm" onclick="App.openCariVadeModal('${c.id}')" title="Vade, Grup ve Not Düzenle">?? Vade / Not</button>
+                        <button class="btn btn-outline btn-sm" onclick="App.openCariVadeModal('${c.id}')" title="Vade, Grup ve Not Düzenle">⚙️ Vade / Not</button>
                         <button class="btn btn-outline btn-sm" onclick="App.openCariEkstre('${c.id}')">Ekstre</button>
                         <button class="btn btn-danger btn-sm" onclick="App.openQuickTransactionModal('ODEME', '${c.id}')">- Ödeme</button>
                     </td>
@@ -1513,19 +1513,19 @@ const App = window.App = {
                 yonBadge = `<span class="badge badge-borc">Borçlu (Ödenecek)</span>`;
             }
 
-            let odemeBadge = `<span class="badge badge-nakit">?? Nakit (30G)</span>`;
+            let odemeBadge = `<span class="badge badge-nakit">💵 Nakit (30G)</span>`;
             if (c.odemeSekli) {
                 if (c.odemeSekli.startsWith("CEK")) {
                     const days = c.vadeGunu || c.odemeSekli.split("_")[1] || 60;
-                    odemeBadge = `<span class="badge badge-cek">?? ${days}G Çek</span>`;
+                    odemeBadge = `<span class="badge badge-cek">📑 ${days}G Çek</span>`;
                 } else if (c.odemeSekli === "KREDI_KARTI") {
-                    odemeBadge = `<span class="badge badge-purple">?? K.Kartı</span>`;
+                    odemeBadge = `<span class="badge badge-purple">💳 K.Kartı</span>`;
                 } else if (c.odemeSekli === "PESIN") {
-                    odemeBadge = `<span class="badge badge-alacak">? Peşin</span>`;
+                    odemeBadge = `<span class="badge badge-alacak">⚡ Peşin</span>`;
                 } else if (c.odemeSekli === "OZEL") {
-                    odemeBadge = `<span class="badge badge-neutral">?? Özel (${c.vadeGunu || 30}G)</span>`;
+                    odemeBadge = `<span class="badge badge-neutral">✏️ Özel (${c.vadeGunu || 30}G)</span>`;
                 } else {
-                    odemeBadge = `<span class="badge badge-nakit">?? Nakit (${c.vadeGunu || 30}G)</span>`;
+                    odemeBadge = `<span class="badge badge-nakit">💵 Nakit (${c.vadeGunu || 30}G)</span>`;
                 }
             } else if (c.vadeGunu) {
                 odemeBadge = `<span class="badge badge-neutral">Vade: ${c.vadeGunu}G</span>`;
@@ -1535,7 +1535,7 @@ const App = window.App = {
             if (c.bakiyeYonu !== "KAPALI" && c.enEskiAcikVade) {
                 const info = this.getVadeDurumu(c.enEskiAcikVade);
                 gecikmeHtml = `
-                    <div style="font-weight:600; font-size:12px; white-space:nowrap;">?? ${this.formatDisplayDate(c.enEskiAcikVade)}</div>
+                    <div style="font-weight:600; font-size:12px; white-space:nowrap;">📅 ${this.formatDisplayDate(c.enEskiAcikVade)}</div>
                     <div style="margin-top:2px;">${info.html}</div>
                 `;
             }
@@ -1566,7 +1566,7 @@ const App = window.App = {
                     <td>
                         <div style="display:flex; gap:5px; flex-wrap:wrap;">
                             <button class="btn btn-primary btn-sm" onclick="App.openCariEkstre('${c.id}')">Ekstre</button>
-                            <button class="btn btn-outline btn-sm" onclick="App.openCariVadeModal('${c.id}')" title="Vade ve Ödeme Şekli Ayarla">?? Vade/Şart</button>
+                            <button class="btn btn-outline btn-sm" onclick="App.openCariVadeModal('${c.id}')" title="Vade ve Ödeme Şekli Ayarla">⚙️ Vade/Şart</button>
                             <button class="btn btn-success btn-sm" onclick="App.openQuickTransactionModal('TAHSILAT', '${c.id}')" title="Müşteriden Tahsilat">+Tahsilat</button>
                             <button class="btn btn-danger btn-sm" onclick="App.openQuickTransactionModal('ODEME', '${c.id}')" title="Tedarikçiye Ödeme">-Ödeme</button>
                         </div>
@@ -1953,28 +1953,28 @@ const App = window.App = {
         if (kpisEl) {
             kpisEl.innerHTML = `
                 <div class="kpi-card borc" style="border-left: 4px solid #ef4444;">
-                    <div class="kpi-label">?? Vadesi Geçen Müşteri Alacakları</div>
+                    <div class="kpi-label">⚠️ Vadesi Geçen Müşteri Alacakları</div>
                     <div class="kpi-value text-borc">${this.formatMoney(totalGecikenAlacak)}</div>
                     <div class="kpi-sub">
                         <span><strong>${countGecikenAlacak} Müşteri</strong> aranmayı bekliyor</span>
                     </div>
                 </div>
                 <div class="kpi-card borc" style="border-left: 4px solid #f59e0b;">
-                    <div class="kpi-label">?? Vadesi Geçen Tedarikçi Borçlarımız</div>
+                    <div class="kpi-label">⚠️ Vadesi Geçen Tedarikçi Borçlarımız</div>
                     <div class="kpi-value text-warn">${this.formatMoney(totalGecikenBorc)}</div>
                     <div class="kpi-sub">
                         <span><strong>${countGecikenBorc} Tedarikçi</strong> için ödeme gecikti</span>
                     </div>
                 </div>
                 <div class="kpi-card alacak" style="border-left: 4px solid #10b981;">
-                    <div class="kpi-label">?? Bu Hafta Beklenen Müşteri Tahsilatları</div>
+                    <div class="kpi-label">💰 Bu Hafta Beklenen Müşteri Tahsilatları</div>
                     <div class="kpi-value text-alacak">${this.formatMoney(totalBuHaftaAlacak)}</div>
                     <div class="kpi-sub">
                         <span>Önümüzdeki 7 gün içinde tahsil edilecek</span>
                     </div>
                 </div>
                 <div class="kpi-card" style="border-left: 4px solid #3b82f6;">
-                    <div class="kpi-label">?? Bu Hafta Yapılacak Ödemelerimiz</div>
+                    <div class="kpi-label">💸 Bu Hafta Yapılacak Ödemelerimiz</div>
                     <div class="kpi-value text-info">${this.formatMoney(totalBuHaftaBorc)}</div>
                     <div class="kpi-sub">
                         <span>Önümüzdeki 7 gün içinde nakit/çek çıkışı</span>
@@ -1992,10 +1992,10 @@ const App = window.App = {
                 ? `<span class="badge badge-alacak">Müşteri (Alacak)</span>`
                 : `<span class="badge badge-borc">Tedarikçi (Borç)</span>`;
 
-            let odemeBadge = `<span class="badge badge-nakit">?? Nakit / EFT</span>`;
+            let odemeBadge = `<span class="badge badge-nakit">💵 Nakit / EFT</span>`;
             if (it.odemeSekli.startsWith("CEK")) {
                 const days = it.vadeGunu || it.odemeSekli.split("_")[1] || 60;
-                odemeBadge = `<span class="badge badge-cek">?? ${days} Günlük Çek</span>`;
+                odemeBadge = `<span class="badge badge-cek">📑 ${days} Günlük Çek</span>`;
             } else if (it.odemeSekli === "KREDI_KARTI") {
                 odemeBadge = `<span class="badge badge-purple">💳 Kredi Kartı / DBS</span>`;
             } else if (it.odemeSekli === "PESIN") {
@@ -2042,8 +2042,8 @@ const App = window.App = {
                     </td>
                     <td>
                         <div style="display:flex; gap:5px; flex-wrap:wrap;">
-                            <button class="btn btn-outline btn-sm" onclick="App.openCariVadeModal('${c.id}')" title="Vade ve Ödeme Şeklini Düzenle">?? Vade / Şart</button>
-                            <button class="btn btn-outline btn-sm" onclick="App.copyWhatsAppReminderText('${c.id}')" title="WhatsApp veya SMS Hatırlatma Metnini Kopyala">?? Not Kopyala</button>
+                            <button class="btn btn-outline btn-sm" onclick="App.openCariVadeModal('${c.id}')" title="Vade ve Ödeme Şeklini Düzenle">⚙️ Vade / Şart</button>
+                            <button class="btn btn-outline btn-sm" onclick="App.copyWhatsAppReminderText('${c.id}')" title="WhatsApp veya SMS Hatırlatma Metnini Kopyala">📋 Not Kopyala</button>
                             <button class="btn btn-primary btn-sm" onclick="App.openCariEkstre('${c.id}')">Ekstre</button>
                             ${it.isAlacak
                                 ? `<button class="btn btn-success btn-sm" onclick="App.openQuickTransactionModal('TAHSILAT', '${c.id}')">+Tahsilat</button>`
@@ -2135,7 +2135,7 @@ const App = window.App = {
                     <td class="num ${h.alacak > 0 ? 'text-borc' : ''}">${h.alacak > 0 ? this.formatMoney(h.alacak, h.doviz) : '-'}</td>
                     <td class="nowrap"><span style="font-size:11.5px; color:var(--text-muted);">${h.kaynak || 'Manuel'}</span></td>
                     <td class="nowrap">
-                        <button class="btn btn-outline btn-sm" onclick="App.deleteHareket('${h.id}')" title="Hareketi Sil">???</button>
+                        <button class="btn btn-outline btn-sm" onclick="App.deleteHareket('${h.id}')" title="Hareketi Sil">🗑️</button>
                     </td>
                 </tr>
             `;
