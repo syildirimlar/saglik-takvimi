@@ -753,6 +753,7 @@
                     <div style="display:flex; gap:10px; flex-wrap:wrap;">
                         <button class="btn btn-primary" onclick="CloudBridge.pushToCloud(true)">☁️ Şimdi Şifrele ve Buluta Yükle (Bilgisayar)</button>
                         <button class="btn btn-success" onclick="CloudBridge.pullFromCloud(true)">📥 Buluttaki En Son Verileri Çek (Telefon / Ev)</button>
+                        <button class="btn btn-outline" onclick="CloudBridge.pullDirectFromRepo(true)" style="border-color:#38bdf8; color:#38bdf8;">🌐 Depo / Site Verisini Çek (Yedek Hat)</button>
                         <button class="btn btn-outline" onclick="CloudBridge.resetToDefaultBin()" title="Varsayılan Eşitleme Kodunu (ccddcda) Geri Yükle">🔄 Varsayılan Koda Dön</button>
                     </div>
                 </div>
@@ -1191,10 +1192,10 @@
     <script src="js/xlsx.full.min.js"></script>
     <script src="js/pdf.min.js"></script>
     <script src="js/pdf.worker.min.js"></script>
-    <script src="js/ubl_parser.js?v=20261028_2"></script>
-    <script src="js/excel_importer.js?v=20261028_2"></script>
-    <script src="js/cloud_bridge.js?v=20261028_2"></script>
-    <script src="js/app.js?v=20261028_2"></script>
+    <script src="js/ubl_parser.js?v=20261028_3"></script>
+    <script src="js/excel_importer.js?v=20261028_3"></script>
+    <script src="js/cloud_bridge.js?v=20261028_3"></script>
+    <script src="js/app.js?v=20261028_3"></script>
     <script>
         if ('serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.hostname === 'localhost')) {
             window.addEventListener('load', () => {

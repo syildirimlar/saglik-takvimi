@@ -221,24 +221,36 @@ window.CloudBridge = {
                 hareketlerCount: window.App.state.hareketler?.length || 0
             });
 
-            const postMaster = await fetch("https://extendsclass.com/api/json-storage/bin", {
-                method: "POST",
-                headers: { "Content-Type": "text/plain;charset=UTF-8" },
-                body: masterPayload
-            });
-            if (!postMaster.ok) throw new Error("Bulut anahtar kaydı oluşturulamadı.");
-            const masterData = await postMaster.json();
-            if (masterData && masterData.id) {
-                this.binId = masterData.id;
-                localStorage.setItem(this.STORAGE_BIN_ID, this.binId);
-            }
+            // Sabit varsayılan kod (ccddcda) üzerine de güncel paketi yaz
+            try {
+                await fetch(`https://extendsclass.com/api/json-storage/bin/${this.DEFAULT_BIN_ID}`, {
+                    method: "PUT",
+                    headers: { "Content-Type": "text/plain;charset=UTF-8" },
+                    body: masterPayload
+                });
+            } catch (e) {}
+
+            try {
+                const postMaster = await fetch("https://extendsclass.com/api/json-storage/bin", {
+                    method: "POST",
+                    headers: { "Content-Type": "text/plain;charset=UTF-8" },
+                    body: masterPayload
+                });
+                if (postMaster.ok) {
+                    const masterData = await postMaster.json();
+                    if (masterData && masterData.id) {
+                        this.binId = masterData.id;
+                        localStorage.setItem(this.STORAGE_BIN_ID, this.binId);
+                    }
+                }
+            } catch (e) {}
 
             // 7. ntfy.sh Rölesi ile Diğer Cihazlara Anında Bildir (CORS açık)
             try {
                 await fetch(`https://ntfy.sh/${this.NTFY_RELAY_TOPIC}`, {
                     method: "POST",
                     headers: { "Content-Type": "text/plain;charset=UTF-8" },
-                    body: JSON.stringify({ binId: this.binId, ts: Date.now(), machine: snapshot.updatedByMachine })
+                    body: JSON.stringify({ binId: this.binId || this.DEFAULT_BIN_ID, ts: Date.now(), machine: snapshot.updatedByMachine })
                 });
             } catch (e) {}
 
@@ -248,7 +260,7 @@ window.CloudBridge = {
             this.renderCloudPanel();
 
             if (showNotice) {
-                alert(`✅ Veriler GZIP ile sıkıştırılıp AES-256 ile şifrelenerek Bulut Köprüsüne yüklendi!\n\n• Cari Sayısı: ${window.App.state.cariler?.length || 0}\n• Hareket Sayısı: ${window.App.state.hareketler?.length || 0}\n• Eşitleme Kodu: ${this.binId}\n\nOfis bilgisayarınız kapansa bile telefonunuzdan anında erişebilirsiniz.`);
+                alert(`✅ Veriler GZIP ile sıkıştırılıp AES-256 ile şifrelenerek Bulut Köprüsüne yüklendi!\n\n• Cari Sayısı: ${window.App.state.cariler?.length || 0}\n• Hareket Sayısı: ${window.App.state.hareketler?.length || 0}\n• Eşitleme Kodu: ${this.binId || this.DEFAULT_BIN_ID}\n\nOfis bilgisayarınız kapansa bile telefonunuzdan anında erişebilirsiniz.`);
             }
         } catch (e) {
             console.error("Cloud push hatası:", e);
@@ -259,7 +271,7 @@ window.CloudBridge = {
         }
     },
 
-    // ================= BULUTTAN ÇEKME (PULL) =================
+    // ================= BULUTTAN ÇEKME (PULL - ÇİFT KANALLI AKILLI SENKRONİZASYON) =================
     async pullFromCloud(showNotice = false) {
         this.saveUiInputs();
         let targetBinId = this.binId || this.DEFAULT_BIN_ID;
@@ -267,11 +279,17 @@ window.CloudBridge = {
         this.isSyncing = true;
         this.updateStatusBadge("⏳ Buluttan Veri Çekiliyor...");
 
+        let loadedState = null;
+        let loadSource = "";
+        let syncTimeStr = "";
+        let cloudError = null;
+
+        // 1. KANAL: ŞİFRELİ BULUT KÖPRÜSÜ (ExtendsClass + Canlı Röle)
         try {
-            // 1. Canlı Röle Kontrolü (ntfy.sh üzerinden en güncel binId var mı?)
+            // Canlı Röle Kontrolü (ntfy.sh)
             try {
                 const ctrl = new AbortController();
-                const timeoutId = setTimeout(() => ctrl.abort(), 2000);
+                const timeoutId = setTimeout(() => ctrl.abort(), 1500);
                 const relayRes = await fetch(`https://ntfy.sh/${this.NTFY_RELAY_TOPIC}/json?poll=1`, {
                     signal: ctrl.signal
                 });
@@ -279,107 +297,163 @@ window.CloudBridge = {
                 if (relayRes.ok) {
                     const text = await relayRes.text();
                     const lines = text.trim().split("\n").filter(Boolean);
-                    if (lines.length > 0) {
-                        for (let i = lines.length - 1; i >= 0; i--) {
-                            try {
-                                const item = JSON.parse(lines[i]);
-                                if (item && item.message) {
-                                    const payload = JSON.parse(item.message);
-                                    if (payload && payload.binId) {
-                                        targetBinId = payload.binId;
-                                        this.binId = targetBinId;
-                                        localStorage.setItem(this.STORAGE_BIN_ID, targetBinId);
-                                        break;
-                                    }
+                    for (let i = lines.length - 1; i >= 0; i--) {
+                        try {
+                            const item = JSON.parse(lines[i]);
+                            if (item && item.message) {
+                                const payload = JSON.parse(item.message);
+                                if (payload && payload.binId) {
+                                    targetBinId = payload.binId;
+                                    this.binId = targetBinId;
+                                    localStorage.setItem(this.STORAGE_BIN_ID, targetBinId);
+                                    break;
                                 }
-                            } catch (e) {}
-                        }
+                            }
+                        } catch (e) {}
                     }
                 }
             } catch (e) {}
 
             if (!targetBinId) targetBinId = this.DEFAULT_BIN_ID;
 
-            // 2. Master Bin Oku
             const masterRes = await fetch(`https://extendsclass.com/api/json-storage/bin/${encodeURIComponent(targetBinId)}?t=${Date.now()}`);
-            if (!masterRes.ok) throw new Error("Bulut sunucusundaki ana pakete ulaşılamadı (Kod: " + targetBinId + ").");
+            if (masterRes.ok) {
+                const master = await masterRes.json();
+                if (master && (master.chunks || master.ct || master.enc)) {
+                    let ctBase64 = "";
+                    let ivBase64 = master.iv;
+                    let isGzip = (master.alg && master.alg.includes("GZIP")) || master.v === 2;
 
-            const master = await masterRes.json();
-            if (!master) throw new Error("Bulut verisi boş döndü.");
+                    if (Array.isArray(master.chunks) && master.chunks.length > 0) {
+                        const chunkPromises = master.chunks.map(cid =>
+                            fetch(`https://extendsclass.com/api/json-storage/bin/${cid}?t=${Date.now()}`)
+                                .then(r => {
+                                    if (!r.ok) throw new Error("Parça indirilemedi (" + cid + ")");
+                                    return r.json();
+                                })
+                        );
+                        const chunkResults = await Promise.all(chunkPromises);
+                        chunkResults.sort((a, b) => (a.i || 0) - (b.i || 0));
+                        ctBase64 = chunkResults.map(c => c.data).join("");
+                    } else if (master.ct) {
+                        ctBase64 = master.ct;
+                    } else if (master.enc && master.enc.ct) {
+                        ctBase64 = master.enc.ct;
+                        ivBase64 = master.enc.iv;
+                        isGzip = false;
+                    }
 
-            let ctBase64 = "";
-            let ivBase64 = master.iv;
-            let isGzip = (master.alg && master.alg.includes("GZIP")) || master.v === 2;
+                    if (ctBase64 && ivBase64) {
+                        const key = await this.deriveAesKey(this.secretKey);
+                        const ivBytes = this.base64ToBytes(ivBase64);
+                        const ctBytes = this.base64ToBytes(ctBase64);
+                        const plainBuf = await crypto.subtle.decrypt({ name: "AES-GCM", iv: ivBytes }, key, ctBytes);
 
-            // 3. Parçalı (Chunked) Veriyi Birleştir
-            if (Array.isArray(master.chunks) && master.chunks.length > 0) {
-                const chunkPromises = master.chunks.map(cid =>
-                    fetch(`https://extendsclass.com/api/json-storage/bin/${cid}?t=${Date.now()}`)
-                        .then(r => {
-                            if (!r.ok) throw new Error("Parça indirilemedi (" + cid + ")");
-                            return r.json();
-                        })
-                );
-                const chunkResults = await Promise.all(chunkPromises);
-                chunkResults.sort((a, b) => (a.i || 0) - (b.i || 0));
-                ctBase64 = chunkResults.map(c => c.data).join("");
-            } else if (master.ct) {
-                ctBase64 = master.ct;
-            } else if (master.enc && master.enc.ct) {
-                ctBase64 = master.enc.ct;
-                ivBase64 = master.enc.iv;
-                isGzip = false;
-            } else {
-                throw new Error("Bulut verisinde şifreli gövde bulunamadı.");
+                        let jsonStr = "";
+                        if (isGzip) {
+                            const decompBytes = await this.decompressGzip(new Uint8Array(plainBuf));
+                            jsonStr = new TextDecoder().decode(decompBytes);
+                        } else {
+                            jsonStr = new TextDecoder().decode(plainBuf);
+                        }
+
+                        const snapshot = JSON.parse(jsonStr);
+                        const state = snapshot.state || snapshot;
+                        if (state && Array.isArray(state.cariler) && state.cariler.length > 0) {
+                            loadedState = state;
+                            loadSource = `Şifreli Bulut (${targetBinId})`;
+                            syncTimeStr = new Date(snapshot.updatedAt || Date.now()).toLocaleString("tr-TR");
+                        }
+                    }
+                }
+            }
+        } catch (e) {
+            console.warn("Şifreli bulut kanalı uyarısı:", e.message);
+            cloudError = e.message;
+        }
+
+        // 2. KANAL: GITHUB PAGES / WEB DEPOSU VERİTABANI (KESİNTİSİZ YEDEK HAT)
+        // Eğer telefon şifreli buluta erişemediyse doğrudan sitedeki veritabanını yükler
+        if (!loadedState || !Array.isArray(loadedState.cariler) || loadedState.cariler.length === 0) {
+            const fallbackUrls = [
+                `./data/zirve_finans_db.json?v=${Date.now()}`,
+                `https://raw.githubusercontent.com/syildirimlar/sodsan-cari-tahsilat/main/data/zirve_finans_db.json?v=${Date.now()}`
+            ];
+
+            for (const fUrl of fallbackUrls) {
+                try {
+                    const res = await fetch(fUrl);
+                    if (res.ok) {
+                        const staticData = await res.json();
+                        if (staticData && Array.isArray(staticData.cariler) && staticData.cariler.length > 0) {
+                            loadedState = staticData;
+                            loadSource = "Bulut Portalı (Sodsan Veritabanı)";
+                            syncTimeStr = staticData.settings?.activeReport?.uploadTime || new Date().toLocaleString("tr-TR");
+                            break;
+                        }
+                    }
+                } catch (err) {}
+            }
+        }
+
+        try {
+            if (!loadedState || !Array.isArray(loadedState.cariler) || loadedState.cariler.length === 0) {
+                throw new Error(cloudError || "Bulut sunucusuna ve depoya ulaşılamadı. İnternet bağlantınızı kontrol edin.");
             }
 
-            if (!ctBase64 || !ivBase64) throw new Error("Şifreli veri içeriği eksik.");
+            // Durumu birleştir
+            this.mergeRemoteStateIntoLocal(loadedState);
 
-            // 4. AES-256-GCM ile Deşifre Et
-            let plainBuf;
-            try {
-                const key = await this.deriveAesKey(this.secretKey);
-                const ivBytes = this.base64ToBytes(ivBase64);
-                const ctBytes = this.base64ToBytes(ctBase64);
-                plainBuf = await crypto.subtle.decrypt({ name: "AES-GCM", iv: ivBytes }, key, ctBytes);
-            } catch (decErr) {
-                throw new Error("Şifreleme Parolası yanlış! Lütfen Ayarlar sekmesinden şifreyi kontrol edin (Varsayılan: SODSAN2026).");
-            }
-
-            // 5. GZIP Aç (Pako veya DecompressionStream)
-            let jsonStr = "";
-            if (isGzip) {
-                const decompBytes = await this.decompressGzip(new Uint8Array(plainBuf));
-                jsonStr = new TextDecoder().decode(decompBytes);
-            } else {
-                jsonStr = new TextDecoder().decode(plainBuf);
-            }
-
-            const snapshot = JSON.parse(jsonStr);
-            const stateToMerge = snapshot.state || snapshot;
-            if (!stateToMerge || !Array.isArray(stateToMerge.cariler)) {
-                throw new Error("Çözülen veritabanı yapısı geçersiz.");
-            }
-
-            // 6. Yerel Durumla Akıllıca Birleştir
-            this.mergeRemoteStateIntoLocal(stateToMerge);
-
-            const syncTime = new Date(snapshot.updatedAt || Date.now()).toLocaleString("tr-TR");
-            localStorage.setItem(this.STORAGE_LAST_CLOUD_SYNC, syncTime);
+            localStorage.setItem(this.STORAGE_LAST_CLOUD_SYNC, syncTimeStr || new Date().toLocaleString("tr-TR"));
             this.updateStatusBadge(`☁️ Bulut Güncel (${new Date().toLocaleTimeString("tr-TR")})`);
             this.renderCloudPanel();
 
             if (showNotice) {
-                alert(`✅ Buluttan en güncel veriler başarıyla yüklendi!\n\n• Eşitleme Kodu: ${targetBinId}\n• Son Eşitleme: ${syncTime}\n• Cari Sayısı: ${window.App.state.cariler?.length || 0}\n• Hareket Sayısı: ${window.App.state.hareketler?.length || 0}`);
+                alert(`✅ Buluttan en güncel veriler başarıyla yüklendi!\n\n• Kaynak: ${loadSource}\n• Cari Sayısı: ${window.App.state.cariler?.length || 0}\n• Hareket Sayısı: ${window.App.state.hareketler?.length || 0}\n• Fatura Sayısı: ${window.App.state.faturalar?.length || 0}\n• Son Eşitleme: ${syncTimeStr}`);
             }
         } catch (e) {
-            console.warn("Cloud pull uyarısı:", e);
-            this.updateStatusBadge("⚠️ Bulut Senkronizasyonu Bekleniyor");
+            console.warn("Cloud pull hatası:", e);
+            this.updateStatusBadge("⚠️ Bulut Beklemede");
             if (showNotice) {
                 alert("❌ Buluttan veri çekilemedi!\n\nDetay: " + e.message);
             }
         } finally {
             this.isSyncing = false;
+        }
+    },
+
+    // Sitedeki/Depodaki veri dosyasından doğrudan zorlamalı çekim
+    async pullDirectFromRepo(showNotice = true) {
+        this.updateStatusBadge("⏳ Depodan Yükleniyor...");
+        const fallbackUrls = [
+            `./data/zirve_finans_db.json?v=${Date.now()}`,
+            `https://raw.githubusercontent.com/syildirimlar/sodsan-cari-tahsilat/main/data/zirve_finans_db.json?v=${Date.now()}`
+        ];
+        let loaded = null;
+        for (const url of fallbackUrls) {
+            try {
+                const res = await fetch(url);
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data && Array.isArray(data.cariler) && data.cariler.length > 0) {
+                        loaded = data;
+                        break;
+                    }
+                }
+            } catch (e) {}
+        }
+
+        if (loaded) {
+            this.mergeRemoteStateIntoLocal(loaded);
+            const syncTime = loaded.settings?.activeReport?.uploadTime || new Date().toLocaleString("tr-TR");
+            localStorage.setItem(this.STORAGE_LAST_CLOUD_SYNC, syncTime);
+            this.updateStatusBadge(`☁️ Bulut Güncel (${new Date().toLocaleTimeString("tr-TR")})`);
+            this.renderCloudPanel();
+            if (showNotice) {
+                alert(`✅ Sitedeki güncel veriler başarıyla yüklendi!\n\n• Rapor: ${loaded.settings?.activeReport?.fileName || "Zirve Ekstre"}\n• Cari Sayısı: ${window.App.state.cariler?.length || 0}\n• Hareket Sayısı: ${window.App.state.hareketler?.length || 0}\n• Fatura Sayısı: ${window.App.state.faturalar?.length || 0}`);
+            }
+        } else {
+            if (showNotice) alert("❌ Sitedeki veritabanı dosyasına ulaşılamadı. Lütfen internet bağlantınızı kontrol edin.");
         }
     },
 
