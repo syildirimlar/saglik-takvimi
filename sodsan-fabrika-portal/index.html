@@ -41,7 +41,7 @@
   <script defer src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   
   <!-- Custom CSS -->
-  <link rel="stylesheet" href="css/style.css?v=7.0">
+  <link rel="stylesheet" href="css/style.css?v=7.1">
 </head>
 <body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 min-h-screen">
 
@@ -309,7 +309,7 @@
     <div id="portal-main-wrapper" class="lg:pl-72 flex-1 flex flex-col min-w-0 min-h-screen">
       
       <!-- Üst Bilgi ve Sayfa Başlık Çubuğu -->
-      <header class="top-header sticky top-0 z-30 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-3 sm:px-6 py-2 flex items-center justify-between gap-2 sm:gap-3 shadow-xs">
+      <header class="top-header sticky top-0 z-30 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-3 sm:px-6 py-2 flex items-center justify-between gap-2 sm:gap-3 shadow-xs">
         <!-- Sol: Mobil Menü Butonu, Logo & Sayfa Başlığı -->
         <div class="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
           <button id="btn-toggle-sidebar" class="lg:hidden p-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-200 text-base font-black transition cursor-pointer flex-shrink-0" title="Menüyü Aç">
@@ -1638,7 +1638,7 @@
   </div> <!-- /#portal-app-wrapper -->
 
   <!-- ==================== MOBİL HIZLI ALT GEZİNME ÇUBUĞU ==================== -->
-  <nav class="mobile-bottom-bar fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 py-1.5 px-1 flex justify-around items-center z-40 shadow-lg lg:hidden">
+  <nav class="mobile-bottom-bar fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 py-1.5 px-1 flex justify-around items-center z-40 shadow-lg lg:hidden">
     <button class="mobile-tab-btn flex flex-col items-center text-xs text-blue-600 font-bold flex-1 cursor-pointer" data-tab="tab-production">
       <span class="text-base sm:text-lg">⚙️</span>
       <span class="text-[9px] sm:text-[10px]">Üretim</span>
@@ -4048,7 +4048,7 @@
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js?v=51').catch(err => {
+        navigator.serviceWorker.register('sw.js?v=52').catch(err => {
           console.log('SW registration failed:', err);
         });
       });
@@ -4056,6 +4056,6 @@
   </script>
 
   <!-- ES Modül Girişi -->
-  <script type="module" src="js/app.js?v=7.0"></script>
+  <script type="module" src="js/app.js?v=7.1"></script>
 </body>
 </html>
