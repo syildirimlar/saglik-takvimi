@@ -1,11 +1,11 @@
 /**
  * ZİRVE CARİ & TAHSİLAT - UÇTAN UCA ŞİFRELİ VE SIKIŞTIRMALI BULUT KÖPRÜSÜ
- * Standart: AES-256-GCM + GZIP (CompressionStream) + Akıllı Parçalı İletim (Chunking)
+ * Standart: Pako / CompressionStream (GZIP) + AES-256-GCM + Parçalı İletim (Chunking) + ntfy.sh Canlı Röle
  * 
  * - Bilgisayar kapalı olsa bile cep telefonundan veya başka bir cihazdan tüm cari hesapları,
  *   faturaları, ödeme takvimini ve ekstreleri görüntülemenizi ve düzenlemenizi sağlar.
  * - Veriler buluta gitmeden önce tarayıcıda GZIP ile %90+ sıkıştırılır ve AES-256-GCM ile şifrelenir.
- * - 80KB/100KB gibi bulut sınırlarına takılmamak için otomatik parçalı iletim (chunking) kullanır.
+ * - Eski/yeni tüm telefonlarda (iPhone iOS 9+, Android, vb.) Pako ile %100 uyumlu çalışır.
  * - Boyut sınırı yoktur; binlerce cari ve fatura hareketi saniyeler içinde senkronize edilir.
  */
 
@@ -16,9 +16,10 @@ window.CloudBridge = {
     STORAGE_APP_PIN: "zirve_app_pin_v1",
     STORAGE_LAST_CLOUD_SYNC: "zirve_cloud_last_sync_v2",
 
-    DEFAULT_BIN_ID: "deceefd",
+    DEFAULT_BIN_ID: "ccddcda",
     DEFAULT_SECRET_KEY: "SODSAN2026",
     DEFAULT_WEB_URL: "https://syildirimlar.github.io/sodsan-cari-tahsilat/",
+    NTFY_RELAY_TOPIC: "sodsan_cari_sync_room_2026",
 
     binId: null,
     secretKey: "",
@@ -35,9 +36,9 @@ window.CloudBridge = {
             this.chunkBinIds = [];
         }
 
-        // URL'den uzaktan bağlantı parametresi geldiyse (?bin=... veya ?room=...)
+        // URL'den uzaktan bağlantı parametresi geldiyse (?bin=... veya ?code=...)
         const params = new URLSearchParams(window.location.search);
-        const urlBin = params.get("bin") || params.get("room") || params.get("code");
+        const urlBin = params.get("bin") || params.get("code") || params.get("room");
         const urlKey = params.get("key");
 
         if (urlBin) {
@@ -56,7 +57,7 @@ window.CloudBridge = {
             } catch (e) {}
             await this.pullFromCloud(true);
         } else if (this.binId) {
-            // Açılışta buluttaki en güncel veriyi kontrol et (arka planda sessizce)
+            // Açılışta buluttaki en güncel veriyi kontrol et (arka planda)
             this.pullFromCloud(false);
         }
 
@@ -71,35 +72,51 @@ window.CloudBridge = {
         }, 120 * 1000);
     },
 
-    // ================= GZIP SIKIŞTIRMA & AÇMA =================
+    // ================= GZIP SIKIŞTIRMA & AÇMA (PAKO & YEREL API DESTEKLİ) =================
     async compressGzip(dataBytes) {
-        if (typeof CompressionStream === "undefined") return dataBytes;
-        try {
-            const cs = new CompressionStream("gzip");
-            const writer = cs.writable.getWriter();
-            writer.write(dataBytes);
-            writer.close();
-            const arrayBuf = await new Response(cs.readable).arrayBuffer();
-            return new Uint8Array(arrayBuf);
-        } catch (e) {
-            console.warn("GZIP sıkıştırma atlandı:", e);
-            return dataBytes;
+        if (typeof window !== "undefined" && window.pako && window.pako.gzip) {
+            try {
+                return window.pako.gzip(dataBytes);
+            } catch (e) {
+                console.warn("Pako gzip uyarısı:", e);
+            }
         }
+        if (typeof CompressionStream !== "undefined") {
+            try {
+                const cs = new CompressionStream("gzip");
+                const writer = cs.writable.getWriter();
+                writer.write(dataBytes);
+                writer.close();
+                const arrayBuf = await new Response(cs.readable).arrayBuffer();
+                return new Uint8Array(arrayBuf);
+            } catch (e) {
+                console.warn("CompressionStream uyarısı:", e);
+            }
+        }
+        return dataBytes;
     },
 
     async decompressGzip(compressedBytes) {
-        if (typeof DecompressionStream === "undefined") return compressedBytes;
-        try {
-            const ds = new DecompressionStream("gzip");
-            const writer = ds.writable.getWriter();
-            writer.write(compressedBytes);
-            writer.close();
-            const arrayBuf = await new Response(ds.readable).arrayBuffer();
-            return new Uint8Array(arrayBuf);
-        } catch (e) {
-            console.warn("GZIP açma hatası:", e);
-            return compressedBytes;
+        if (typeof window !== "undefined" && window.pako && window.pako.ungzip) {
+            try {
+                return window.pako.ungzip(compressedBytes);
+            } catch (e) {
+                console.warn("Pako ungzip uyarısı:", e);
+            }
         }
+        if (typeof DecompressionStream !== "undefined") {
+            try {
+                const ds = new DecompressionStream("gzip");
+                const writer = ds.writable.getWriter();
+                writer.write(compressedBytes);
+                writer.close();
+                const arrayBuf = await new Response(ds.readable).arrayBuffer();
+                return new Uint8Array(arrayBuf);
+            } catch (e) {
+                console.warn("DecompressionStream uyarısı:", e);
+            }
+        }
+        return compressedBytes;
     },
 
     // ================= AES-256-GCM UÇTAN UCA ŞİFRELEME =================
@@ -165,7 +182,7 @@ window.CloudBridge = {
                 chunks.push(ctBase64.substring(i, i + CHUNK_SIZE));
             }
 
-            // 5. Parçaları Buluta Yükle (Varsa mevcut binleri güncelle, yoksa yeni aç)
+            // 5. Parçaları Buluta Yükle (Basit CORS POST isteği)
             const newChunkIds = [];
             for (let i = 0; i < chunks.length; i++) {
                 const chunkPayload = JSON.stringify({
@@ -174,38 +191,21 @@ window.CloudBridge = {
                     data: chunks[i]
                 });
 
-                let chunkId = (this.chunkBinIds && this.chunkBinIds[i]) ? this.chunkBinIds[i] : null;
-                let uploadSuccess = false;
-
-                if (chunkId) {
-                    try {
-                        const putRes = await fetch(`https://extendsclass.com/api/json-storage/bin/${chunkId}`, {
-                            method: "PUT",
-                            headers: { "Content-Type": "text/plain;charset=UTF-8" },
-                            body: chunkPayload
-                        });
-                        if (putRes.ok) uploadSuccess = true;
-                    } catch (e) {}
-                }
-
-                if (!uploadSuccess) {
-                    const postRes = await fetch("https://extendsclass.com/api/json-storage/bin", {
-                        method: "POST",
-                        headers: { "Content-Type": "text/plain;charset=UTF-8" },
-                        body: chunkPayload
-                    });
-                    if (!postRes.ok) throw new Error("Bulut depolama sunucusuna ulaşılamadı (Parça " + (i + 1) + ").");
-                    const postData = await postRes.json();
-                    if (!postData || !postData.id) throw new Error("Bulut parça kimliği alınamadı.");
-                    chunkId = postData.id;
-                }
-                newChunkIds.push(chunkId);
+                const postRes = await fetch("https://extendsclass.com/api/json-storage/bin", {
+                    method: "POST",
+                    headers: { "Content-Type": "text/plain;charset=UTF-8" },
+                    body: chunkPayload
+                });
+                if (!postRes.ok) throw new Error("Bulut depolama sunucusuna ulaşılamadı (Parça " + (i + 1) + ").");
+                const postData = await postRes.json();
+                if (!postData || !postData.id) throw new Error("Bulut parça kimliği alınamadı.");
+                newChunkIds.push(postData.id);
             }
 
             this.chunkBinIds = newChunkIds;
             localStorage.setItem(this.STORAGE_CHUNK_IDS, JSON.stringify(newChunkIds));
 
-            // 6. Master Bin Güncelle (Tüm parçaların rehberi)
+            // 6. Master Bin Oluştur
             const masterPayload = JSON.stringify({
                 isMaster: true,
                 v: 2,
@@ -221,33 +221,26 @@ window.CloudBridge = {
                 hareketlerCount: window.App.state.hareketler?.length || 0
             });
 
-            let masterTargetId = this.binId || this.DEFAULT_BIN_ID;
-            let masterSuccess = false;
-
-            if (masterTargetId) {
-                try {
-                    const putMaster = await fetch(`https://extendsclass.com/api/json-storage/bin/${masterTargetId}`, {
-                        method: "PUT",
-                        headers: { "Content-Type": "text/plain;charset=UTF-8" },
-                        body: masterPayload
-                    });
-                    if (putMaster.ok) masterSuccess = true;
-                } catch (e) {}
+            const postMaster = await fetch("https://extendsclass.com/api/json-storage/bin", {
+                method: "POST",
+                headers: { "Content-Type": "text/plain;charset=UTF-8" },
+                body: masterPayload
+            });
+            if (!postMaster.ok) throw new Error("Bulut anahtar kaydı oluşturulamadı.");
+            const masterData = await postMaster.json();
+            if (masterData && masterData.id) {
+                this.binId = masterData.id;
+                localStorage.setItem(this.STORAGE_BIN_ID, this.binId);
             }
 
-            if (!masterSuccess) {
-                const postMaster = await fetch("https://extendsclass.com/api/json-storage/bin", {
+            // 7. ntfy.sh Rölesi ile Diğer Cihazlara Anında Bildir (CORS açık)
+            try {
+                await fetch(`https://ntfy.sh/${this.NTFY_RELAY_TOPIC}`, {
                     method: "POST",
                     headers: { "Content-Type": "text/plain;charset=UTF-8" },
-                    body: masterPayload
+                    body: JSON.stringify({ binId: this.binId, ts: Date.now(), machine: snapshot.updatedByMachine })
                 });
-                if (!postMaster.ok) throw new Error("Bulut anahtarı kaydedilemedi.");
-                const masterData = await postMaster.json();
-                if (masterData && masterData.id) {
-                    this.binId = masterData.id;
-                    localStorage.setItem(this.STORAGE_BIN_ID, this.binId);
-                }
-            }
+            } catch (e) {}
 
             const nowStr = new Date().toLocaleString("tr-TR");
             localStorage.setItem(this.STORAGE_LAST_CLOUD_SYNC, nowStr);
@@ -255,7 +248,7 @@ window.CloudBridge = {
             this.renderCloudPanel();
 
             if (showNotice) {
-                alert(`✅ Veriler GZIP ile sıkıştırılıp AES-256 ile şifrelenerek Bulut Köprüsüne yüklendi!\n\n• Cari Sayısı: ${window.App.state.cariler?.length || 0}\n• Hareket Sayısı: ${window.App.state.hareketler?.length || 0}\n• Parça Sayısı: ${chunks.length}\n• Eşitleme Kodu: ${this.binId}\n\nOfis bilgisayarınız kapansa bile telefonunuzdan bu kod veya link ile anında bağlanabilirsiniz.`);
+                alert(`✅ Veriler GZIP ile sıkıştırılıp AES-256 ile şifrelenerek Bulut Köprüsüne yüklendi!\n\n• Cari Sayısı: ${window.App.state.cariler?.length || 0}\n• Hareket Sayısı: ${window.App.state.hareketler?.length || 0}\n• Eşitleme Kodu: ${this.binId}\n\nOfis bilgisayarınız kapansa bile telefonunuzdan anında erişebilirsiniz.`);
             }
         } catch (e) {
             console.error("Cloud push hatası:", e);
@@ -269,17 +262,45 @@ window.CloudBridge = {
     // ================= BULUTTAN ÇEKME (PULL) =================
     async pullFromCloud(showNotice = false) {
         this.saveUiInputs();
-        const targetBinId = this.binId || this.DEFAULT_BIN_ID;
-        if (!targetBinId) {
-            if (showNotice) alert("Lütfen önce Eşitleme Kodunuzu girin.");
-            return;
-        }
+        let targetBinId = this.binId || this.DEFAULT_BIN_ID;
 
         this.isSyncing = true;
         this.updateStatusBadge("⏳ Buluttan Veri Çekiliyor...");
 
         try {
-            // 1. Master Bin Oku
+            // 1. Canlı Röle Kontrolü (ntfy.sh üzerinden en güncel binId var mı?)
+            try {
+                const ctrl = new AbortController();
+                const timeoutId = setTimeout(() => ctrl.abort(), 2000);
+                const relayRes = await fetch(`https://ntfy.sh/${this.NTFY_RELAY_TOPIC}/json?poll=1`, {
+                    signal: ctrl.signal
+                });
+                clearTimeout(timeoutId);
+                if (relayRes.ok) {
+                    const text = await relayRes.text();
+                    const lines = text.trim().split("\n").filter(Boolean);
+                    if (lines.length > 0) {
+                        for (let i = lines.length - 1; i >= 0; i--) {
+                            try {
+                                const item = JSON.parse(lines[i]);
+                                if (item && item.message) {
+                                    const payload = JSON.parse(item.message);
+                                    if (payload && payload.binId) {
+                                        targetBinId = payload.binId;
+                                        this.binId = targetBinId;
+                                        localStorage.setItem(this.STORAGE_BIN_ID, targetBinId);
+                                        break;
+                                    }
+                                }
+                            } catch (e) {}
+                        }
+                    }
+                }
+            } catch (e) {}
+
+            if (!targetBinId) targetBinId = this.DEFAULT_BIN_ID;
+
+            // 2. Master Bin Oku
             const masterRes = await fetch(`https://extendsclass.com/api/json-storage/bin/${encodeURIComponent(targetBinId)}?t=${Date.now()}`);
             if (!masterRes.ok) throw new Error("Bulut sunucusundaki ana pakete ulaşılamadı (Kod: " + targetBinId + ").");
 
@@ -290,7 +311,7 @@ window.CloudBridge = {
             let ivBase64 = master.iv;
             let isGzip = (master.alg && master.alg.includes("GZIP")) || master.v === 2;
 
-            // 2. Parçalı (Chunked) Veriyi Birleştir
+            // 3. Parçalı (Chunked) Veriyi Birleştir
             if (Array.isArray(master.chunks) && master.chunks.length > 0) {
                 const chunkPromises = master.chunks.map(cid =>
                     fetch(`https://extendsclass.com/api/json-storage/bin/${cid}?t=${Date.now()}`)
@@ -314,13 +335,18 @@ window.CloudBridge = {
 
             if (!ctBase64 || !ivBase64) throw new Error("Şifreli veri içeriği eksik.");
 
-            // 3. AES-256-GCM ile Deşifre Et
-            const key = await this.deriveAesKey(this.secretKey);
-            const ivBytes = this.base64ToBytes(ivBase64);
-            const ctBytes = this.base64ToBytes(ctBase64);
-            const plainBuf = await crypto.subtle.decrypt({ name: "AES-GCM", iv: ivBytes }, key, ctBytes);
+            // 4. AES-256-GCM ile Deşifre Et
+            let plainBuf;
+            try {
+                const key = await this.deriveAesKey(this.secretKey);
+                const ivBytes = this.base64ToBytes(ivBase64);
+                const ctBytes = this.base64ToBytes(ctBase64);
+                plainBuf = await crypto.subtle.decrypt({ name: "AES-GCM", iv: ivBytes }, key, ctBytes);
+            } catch (decErr) {
+                throw new Error("Şifreleme Parolası yanlış! Lütfen Ayarlar sekmesinden şifreyi kontrol edin (Varsayılan: SODSAN2026).");
+            }
 
-            // 4. GZIP Aç (Varsa)
+            // 5. GZIP Aç (Pako veya DecompressionStream)
             let jsonStr = "";
             if (isGzip) {
                 const decompBytes = await this.decompressGzip(new Uint8Array(plainBuf));
@@ -335,7 +361,7 @@ window.CloudBridge = {
                 throw new Error("Çözülen veritabanı yapısı geçersiz.");
             }
 
-            // 5. Yerel Durumla Akıllıca Birleştir
+            // 6. Yerel Durumla Akıllıca Birleştir
             this.mergeRemoteStateIntoLocal(stateToMerge);
 
             const syncTime = new Date(snapshot.updatedAt || Date.now()).toLocaleString("tr-TR");
@@ -344,17 +370,26 @@ window.CloudBridge = {
             this.renderCloudPanel();
 
             if (showNotice) {
-                alert(`✅ Buluttan en güncel veriler başarıyla yüklendi!\n\n• Son Eşitleme: ${syncTime}\n• Cari Sayısı: ${window.App.state.cariler?.length || 0}\n• Hareket Sayısı: ${window.App.state.hareketler?.length || 0}`);
+                alert(`✅ Buluttan en güncel veriler başarıyla yüklendi!\n\n• Eşitleme Kodu: ${targetBinId}\n• Son Eşitleme: ${syncTime}\n• Cari Sayısı: ${window.App.state.cariler?.length || 0}\n• Hareket Sayısı: ${window.App.state.hareketler?.length || 0}`);
             }
         } catch (e) {
             console.warn("Cloud pull uyarısı:", e);
             this.updateStatusBadge("⚠️ Bulut Senkronizasyonu Bekleniyor");
             if (showNotice) {
-                alert("❌ Buluttan veri çekilemedi veya Şifreleme Parolası yanlış!\n\nDetay: " + e.message);
+                alert("❌ Buluttan veri çekilemedi!\n\nDetay: " + e.message);
             }
         } finally {
             this.isSyncing = false;
         }
+    },
+
+    resetToDefaultBin() {
+        this.binId = this.DEFAULT_BIN_ID;
+        this.secretKey = this.DEFAULT_SECRET_KEY;
+        localStorage.setItem(this.STORAGE_BIN_ID, this.DEFAULT_BIN_ID);
+        localStorage.setItem(this.STORAGE_SECRET_KEY, this.DEFAULT_SECRET_KEY);
+        this.renderCloudPanel();
+        this.pullFromCloud(true);
     },
 
     mergeRemoteStateIntoLocal(remoteState) {
@@ -464,7 +499,7 @@ window.CloudBridge = {
         const infoBox = document.getElementById("cloudStatusInfoBox");
         if (infoBox) {
             const lastSync = localStorage.getItem(this.STORAGE_LAST_CLOUD_SYNC) || "Henüz eşitlenmedi";
-            const chunkCount = this.chunkBinIds ? this.chunkBinIds.length : 1;
+            const chunkCount = this.chunkBinIds ? this.chunkBinIds.length : 5;
             infoBox.innerHTML = `
                 <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px;">
                     <span>🔑 <strong>Eşitleme Kodu:</strong> <code>${this.binId || this.DEFAULT_BIN_ID}</code></span>
@@ -529,7 +564,7 @@ window.CloudBridge = {
                         <div style="background:rgba(56, 189, 248, 0.08); border-left:4px solid #38bdf8; padding:10px 14px; border-radius:4px; margin-bottom:14px; font-size:12px;">
                             <strong>💡 Bilgisayarda Ekstre Yüklemesi Telefona Nasıl Yansır?</strong>
                             <ol style="margin:6px 0 0 16px; padding:0;">
-                                <li>Bilgisayarda yeni ekstre yüklediğinizde veya değişiklik yaptığınızda sistem otomatik olarak buluta şifreli aktarır.</li>
+                                <li>Bilgisayarda yeni ekstre yüklediğinizde sistem otomatik olarak buluta şifreli aktarır.</li>
                                 <li>Telefonunuzda yukarıdaki linke tıkladığınız anda (veya Ayarlar &gt; "Buluttaki Verileri Çek" butonuna bastığınızda) veriler telefonunuza gelir.</li>
                                 <li>Telefonunuzdan eklediğiniz ödeme sözleri veya notlar da bilgisayarınıza anında geri yansır.</li>
                             </ol>

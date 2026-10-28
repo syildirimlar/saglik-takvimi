@@ -1,11 +1,12 @@
 // SODSAN Cari & Tahsilat - Service Worker
-const CACHE_NAME = 'sodsan-finans-cache-v6';
+const CACHE_NAME = 'sodsan-finans-cache-v7';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
   './css/style.css',
   './manifest.json',
   './icons/icon.svg',
+  './js/pako.min.js',
   './js/xlsx.full.min.js',
   './js/pdf.min.js',
   './js/pdf.worker.min.js',

@@ -444,7 +444,7 @@ const App = window.App = {
     formatMoney(amount, currency = "TRY") {
         const val = parseFloat(amount) || 0;
         const cur = (currency || "TRY").toUpperCase();
-        const sym = cur === "USD" ? "$" : cur === "EUR" ? "€" : "?";
+        const sym = cur === "USD" ? "$" : cur === "EUR" ? "€" : "₺";
         return val.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " " + sym;
     },
 

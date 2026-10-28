@@ -753,6 +753,7 @@
                     <div style="display:flex; gap:10px; flex-wrap:wrap;">
                         <button class="btn btn-primary" onclick="CloudBridge.pushToCloud(true)">☁️ Şimdi Şifrele ve Buluta Yükle (Bilgisayar)</button>
                         <button class="btn btn-success" onclick="CloudBridge.pullFromCloud(true)">📥 Buluttaki En Son Verileri Çek (Telefon / Ev)</button>
+                        <button class="btn btn-outline" onclick="CloudBridge.resetToDefaultBin()" title="Varsayılan Eşitleme Kodunu (ccddcda) Geri Yükle">🔄 Varsayılan Koda Dön</button>
                     </div>
                 </div>
             </div>
@@ -1186,13 +1187,14 @@
     <div id="appToast" style="display:none; position:fixed; bottom:24px; right:24px; background:#10b981; color:#fff; padding:12px 20px; border-radius:8px; font-weight:600; font-size:13px; z-index:999999; box-shadow:0 6px 20px rgba(0,0,0,0.45); border:1px solid rgba(255,255,255,0.2); transition:opacity 0.3s;"></div>
 
     <!-- YEREL OFFLINE KÜTÜPHANELER -->
+    <script src="js/pako.min.js"></script>
     <script src="js/xlsx.full.min.js"></script>
     <script src="js/pdf.min.js"></script>
     <script src="js/pdf.worker.min.js"></script>
-    <script src="js/ubl_parser.js?v=20261027_cloud_v3"></script>
-    <script src="js/excel_importer.js?v=20261027_cloud_v3"></script>
-    <script src="js/cloud_bridge.js?v=20261027_cloud_v3"></script>
-    <script src="js/app.js?v=20261027_cloud_v3"></script>
+    <script src="js/ubl_parser.js?v=20261028_1"></script>
+    <script src="js/excel_importer.js?v=20261028_1"></script>
+    <script src="js/cloud_bridge.js?v=20261028_1"></script>
+    <script src="js/app.js?v=20261028_1"></script>
     <script>
         if ('serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.hostname === 'localhost')) {
             window.addEventListener('load', () => {
