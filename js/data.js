@@ -852,7 +852,7 @@ export class StateManager {
     }
   }
 
-  saveState() {
+  saveState(skipCloudNotify = false) {
     try {
       this.state._lastSyncTime = new Date().toISOString();
       const dataStr = JSON.stringify(this.state);
@@ -863,7 +863,7 @@ export class StateManager {
         if (typeof window.__broadcastPortalChange === "function") {
           window.__broadcastPortalChange();
         }
-        if (window.__cloudSyncService && typeof window.__cloudSyncService.notifyLocalChange === "function") {
+        if (!skipCloudNotify && window.__cloudSyncService && typeof window.__cloudSyncService.notifyLocalChange === "function") {
           window.__cloudSyncService.notifyLocalChange();
         }
       }
@@ -1155,12 +1155,12 @@ export class StateManager {
     return JSON.stringify(this.state);
   }
 
-  importDataJson(jsonString) {
+  importDataJson(jsonString, skipCloudNotify = false) {
     try {
       const parsed = JSON.parse(jsonString);
       if (parsed.departments && parsed.users) {
         this.state = parsed;
-        this.saveState();
+        this.saveState(skipCloudNotify);
         return true;
       }
     } catch (e) {

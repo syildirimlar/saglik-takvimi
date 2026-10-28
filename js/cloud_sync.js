@@ -101,6 +101,11 @@ export class CloudSyncService {
               return;
             }
 
+            // Eğer şu an bir senkronizasyon yürütülüyorsa çakışmayı önle
+            if (this.isSyncing) {
+              return;
+            }
+
             console.log("[CloudSync] Diğer cihazdan anlık canlı güncelleme alındı. İndiriliyor...");
             await this.pullFromCloud(true);
           }
@@ -117,15 +122,16 @@ export class CloudSyncService {
     }
   }
 
-  // Yerel veride değişiklik olduğunda buluta göndermeyi sıraya al (Debounce: 1.5 sn)
+  // Yerel veride değişiklik olduğunda buluta göndermeyi sıraya al (Debounce: 2.5 sn)
   notifyLocalChange() {
+    if (this.isSyncing) return; // Buluttan çekilirken geri buluta döngü başlatma
     if (this.pushDebounceTimer) {
       clearTimeout(this.pushDebounceTimer);
     }
     this.updateStatus("SYNCING", "Buluta aktarılıyor...");
     this.pushDebounceTimer = setTimeout(() => {
       this.pushToCloud();
-    }, 1500);
+    }, 2500);
   }
 
   async pushToCloud() {
@@ -246,7 +252,7 @@ export class CloudSyncService {
         const remoteJsonText = await fileResp.text();
         const currentUser = appState.state.currentUser;
 
-        const imported = appState.importDataJson(remoteJsonText);
+        const imported = appState.importDataJson(remoteJsonText, true); // true: Buluttan çekilen veriyi tekrar buluta gönderme loopunu kır
         if (imported) {
           if (currentUser) {
             appState.state.currentUser = currentUser;

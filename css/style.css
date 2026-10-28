@@ -280,23 +280,22 @@ html.dark .nav-tab-btn.active {
   border-color: rgba(59, 130, 246, 0.4);
 }
 
-/* Modals */
+/* Modals - Bellek tüketimini sıfırlayan ve donmaları önleyen hafif yapı */
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background-color: rgba(15, 23, 42, 0.6);
-  backdrop-filter: blur(4px);
+  background-color: rgba(15, 23, 42, 0.7);
   z-index: 50;
-  display: flex;
+  display: none !important;
   align-items: center;
   justify-content: center;
   padding: 1rem;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.2s ease;
 }
 
 .modal-backdrop.show {
+  display: flex !important;
   opacity: 1;
   pointer-events: auto;
 }
@@ -308,13 +307,7 @@ html.dark .nav-tab-btn.active {
   max-width: 580px;
   max-height: 90vh;
   overflow-y: auto;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-  transform: scale(0.95);
-  transition: transform 0.2s ease;
-}
-
-.modal-backdrop.show .modal-card {
-  transform: scale(1);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
 }
 
 /* Forklift Pulse Animation - Titreme ve ekran sarsıntısını önleyen GPU dostu puls */
@@ -331,9 +324,6 @@ html.dark .nav-tab-btn.active {
 
 .pulse-emergency {
   animation: emergency-pulse 2s ease-in-out infinite;
-  transform: translateZ(0); /* Donanım hızlandırma ile izole GPU katmanı */
-  contain: layout paint;
-  will-change: background-color, box-shadow;
 }
 
 /* Feed item hover */
@@ -634,17 +624,6 @@ html, body {
 
 /* Sekme ve kaydırma optimizasyonu */
 .tab-pane {
-  -webkit-overflow-scrolling: touch;
-}
-
-/* Modallarda donanım hızlandırma */
-.modal-backdrop {
-  will-change: opacity;
-}
-
-.modal-content {
-  transform: translateZ(0);
-  will-change: transform, opacity;
   -webkit-overflow-scrolling: touch;
 }
 
