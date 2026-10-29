@@ -1231,6 +1231,10 @@ export class StateManager {
       pressure: reportData.pressure || "",
       producedQuantity: produced,
       defectQuantity: defect,
+      leftProduced: reportData.leftProduced != null ? Number(reportData.leftProduced) : null,
+      rightProduced: reportData.rightProduced != null ? Number(reportData.rightProduced) : null,
+      leftScrap: reportData.leftScrap != null ? Number(reportData.leftScrap) : null,
+      rightScrap: reportData.rightScrap != null ? Number(reportData.rightScrap) : null,
       defectReasons: Array.isArray(reportData.defectReasons) ? reportData.defectReasons : (reportData.defectReasons ? [reportData.defectReasons] : []),
       rawMaterialLot: reportData.rawMaterialLot || "",
       notes: reportData.notes || "",
@@ -1242,6 +1246,10 @@ export class StateManager {
     // Üretim ve fire toplamlarını güncelle
     plan.producedQuantity = (Number(plan.producedQuantity) || 0) + produced;
     plan.defectQuantity = (Number(plan.defectQuantity) || 0) + defect;
+    if (reportData.leftProduced != null) plan.leftProduced = (Number(plan.leftProduced) || 0) + Number(reportData.leftProduced);
+    if (reportData.rightProduced != null) plan.rightProduced = (Number(plan.rightProduced) || 0) + Number(reportData.rightProduced);
+    if (reportData.leftScrap != null) plan.leftScrap = (Number(plan.leftScrap) || 0) + Number(reportData.leftScrap);
+    if (reportData.rightScrap != null) plan.rightScrap = (Number(plan.rightScrap) || 0) + Number(reportData.rightScrap);
     if (reportData.barrelTemp) plan.lastBarrelTemp = reportData.barrelTemp;
     if (reportData.cycleTime) plan.lastCycleTime = reportData.cycleTime;
     if (reportData.pressure) plan.lastPressure = reportData.pressure;

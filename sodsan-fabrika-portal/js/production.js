@@ -179,6 +179,47 @@ export class ProductionModule {
       });
     }
 
+    // 2 Gözlü (Sol + Sağ) Ayrı Giriş Kontrolleri
+    const splitToggle = document.getElementById("shift-report-toggle-split");
+    const splitContainer = document.getElementById("shift-report-split-container");
+    const leftProd = document.getElementById("shift-report-left-produced");
+    const rightProd = document.getElementById("shift-report-right-produced");
+    const leftScrap = document.getElementById("shift-report-left-scrap");
+    const rightScrap = document.getElementById("shift-report-right-scrap");
+    const totalProd = document.getElementById("shift-report-produced");
+    const totalScrap = document.getElementById("shift-report-scrap");
+
+    const updateTotalsFromSplit = () => {
+      if (splitToggle && splitToggle.checked) {
+        if (totalProd) {
+          const l = Number(leftProd?.value) || 0;
+          const r = Number(rightProd?.value) || 0;
+          totalProd.value = (l + r) > 0 ? (l + r) : "";
+        }
+        if (totalScrap) {
+          const l = Number(leftScrap?.value) || 0;
+          const r = Number(rightScrap?.value) || 0;
+          totalScrap.value = (l + r);
+        }
+      }
+    };
+
+    if (splitToggle && splitContainer) {
+      splitToggle.addEventListener("change", () => {
+        if (splitToggle.checked) {
+          splitContainer.classList.remove("hidden");
+          updateTotalsFromSplit();
+        } else {
+          splitContainer.classList.add("hidden");
+        }
+      });
+    }
+
+    if (leftProd) leftProd.addEventListener("input", updateTotalsFromSplit);
+    if (rightProd) rightProd.addEventListener("input", updateTotalsFromSplit);
+    if (leftScrap) leftScrap.addEventListener("input", updateTotalsFromSplit);
+    if (rightScrap) rightScrap.addEventListener("input", updateTotalsFromSplit);
+
     // Yazdırma Butonu
     const btnPrintPlan = document.getElementById("btn-print-production-plan");
     if (btnPrintPlan) {
@@ -490,10 +531,43 @@ export class ProductionModule {
     form.reset();
     document.getElementById("shift-report-plan-id").value = plan.id;
     
+    // 2 Gözlü (Sol + Sağ) Giriş Alanlarını Sıfırla ve Kalıp Tipine Göre Otomatik Belirle
+    const splitToggle = document.getElementById("shift-report-toggle-split");
+    const splitContainer = document.getElementById("shift-report-split-container");
+    const leftProd = document.getElementById("shift-report-left-produced");
+    const rightProd = document.getElementById("shift-report-right-produced");
+    const leftScrap = document.getElementById("shift-report-left-scrap");
+    const rightScrap = document.getElementById("shift-report-right-scrap");
+    if (leftProd) leftProd.value = "";
+    if (rightProd) rightProd.value = "";
+    if (leftScrap) leftScrap.value = "0";
+    if (rightScrap) rightScrap.value = "0";
+
+    const is2Cavity = (plan.cavityCount && (
+      plan.cavityCount.includes("2") ||
+      plan.cavityCount.toLowerCase().includes("sağ") ||
+      plan.cavityCount.toLowerCase().includes("sol")
+    )) || (plan.leftProduced != null || plan.rightProduced != null);
+
+    if (splitToggle && splitContainer) {
+      if (is2Cavity) {
+        splitToggle.checked = true;
+        splitContainer.classList.remove("hidden");
+      } else {
+        splitToggle.checked = false;
+        splitContainer.classList.add("hidden");
+      }
+    }
+
     const macMoldEl = document.getElementById("shift-report-mac-mold-display");
     const targetEl = document.getElementById("shift-report-target-display");
     if (macMoldEl) macMoldEl.textContent = `${plan.machineName} • ${plan.moldName} (${plan.moldCode || 'KLP'})`;
-    if (targetEl) targetEl.textContent = `${Number(plan.producedQuantity || 0).toLocaleString('tr-TR')} / ${Number(plan.targetQuantity || 0).toLocaleString('tr-TR')} Adet Sağlam (${plan.defectQuantity ? plan.defectQuantity + ' Fire' : 'Fire Yok'})`;
+    
+    let splitInfo = "";
+    if (plan.leftProduced || plan.rightProduced) {
+      splitInfo = ` • (Sol: ${Number(plan.leftProduced || 0).toLocaleString('tr-TR')} / Sağ: ${Number(plan.rightProduced || 0).toLocaleString('tr-TR')})`;
+    }
+    if (targetEl) targetEl.textContent = `${Number(plan.producedQuantity || 0).toLocaleString('tr-TR')} / ${Number(plan.targetQuantity || 0).toLocaleString('tr-TR')} Adet Sağlam${splitInfo} (${plan.defectQuantity ? plan.defectQuantity + ' Fire' : 'Fire Yok'})`;
 
     // Oturumdaki kullanıcıyı vardiya amiri olarak getir
     const curUser = appState.state.currentUser;
@@ -543,6 +617,13 @@ export class ProductionModule {
     const isCompleted = document.getElementById("shift-report-action-finish")?.checked;
     const action = isCompleted ? "BITTI" : "DEVAM_EDIYOR";
 
+    // 2 Gözlü (Sol / Sağ) verileri
+    const isSplit = document.getElementById("shift-report-toggle-split")?.checked;
+    const leftProduced = isSplit ? (Number(document.getElementById("shift-report-left-produced")?.value) || 0) : null;
+    const rightProduced = isSplit ? (Number(document.getElementById("shift-report-right-produced")?.value) || 0) : null;
+    const leftScrap = isSplit ? (Number(document.getElementById("shift-report-left-scrap")?.value) || 0) : null;
+    const rightScrap = isSplit ? (Number(document.getElementById("shift-report-right-scrap")?.value) || 0) : null;
+
     const res = appState.saveShiftProductionReport(planId, {
       shift,
       supervisorName,
@@ -551,6 +632,10 @@ export class ProductionModule {
       pressure,
       producedQuantity,
       defectQuantity,
+      leftProduced,
+      rightProduced,
+      leftScrap,
+      rightScrap,
       defectReasons: checkedReasons,
       rawMaterialLot,
       notes,
@@ -626,6 +711,16 @@ export class ProductionModule {
             </div>
           </div>
 
+          ${(r.leftProduced != null && r.rightProduced != null) ? `
+            <div class="bg-indigo-50/70 dark:bg-indigo-950/40 p-2 rounded-lg border border-indigo-100 dark:border-indigo-900/60 flex items-center justify-between text-xs">
+              <span class="font-bold text-indigo-900 dark:text-indigo-200">2 Göz Detayı:</span>
+              <div class="flex items-center gap-3">
+                <span class="font-black text-indigo-700 dark:text-indigo-300">👈 Sol: ${Number(r.leftProduced).toLocaleString('tr-TR')} Sağlam ${r.leftScrap ? `(${r.leftScrap} Fire)` : ''}</span>
+                <span class="font-black text-indigo-700 dark:text-indigo-300">👉 Sağ: ${Number(r.rightProduced).toLocaleString('tr-TR')} Sağlam ${r.rightScrap ? `(${r.rightScrap} Fire)` : ''}</span>
+              </div>
+            </div>
+          ` : ''}
+
           <div class="flex items-center gap-3 text-[11px] text-slate-500 bg-slate-50 dark:bg-slate-800/30 p-2 rounded-lg">
             <span>🌡️ Isı: <b>${r.barrelTemp ? r.barrelTemp + '°C' : '-'}</b></span>
             <span>⏱️ Çevrim: <b>${r.cycleTime ? r.cycleTime + ' sn' : '-'}</b></span>
@@ -670,10 +765,11 @@ export class ProductionModule {
              (plan.notes ? `📝 *Not:* ${plan.notes}\n` : '') +
              `\n🏭 _SODSAN Fabrika Portalı_`;
     } else if (type === "COMPLETED") {
+      const splitTxt = (plan.leftProduced || plan.rightProduced) ? ` (👈 ${Number(plan.leftProduced || 0).toLocaleString('tr-TR')} Sol / 👉 ${Number(plan.rightProduced || 0).toLocaleString('tr-TR')} Sağ)` : '';
       text = `🎉 *KALIP BASKISI TAMAMLANDI!*\n\n` +
              `⚙️ *Makine:* ${plan.machineName}\n` +
              `🔩 *Kalıp:* ${plan.moldName}\n` +
-             `✅ *Üretilen:* ${Number(plan.producedQuantity).toLocaleString('tr-TR')} / ${Number(plan.targetQuantity).toLocaleString('tr-TR')} Adet\n` +
+             `✅ *Üretilen:* ${Number(plan.producedQuantity).toLocaleString('tr-TR')} / ${Number(plan.targetQuantity).toLocaleString('tr-TR')} Adet${splitTxt}\n` +
              `👤 *Sorumlu:* ${plan.operatorName}\n` +
              `\n_Kalıp sökümü ve yeni kalıp bağlama hazırlığı yapılabilir._\n` +
              `🏭 _SODSAN Fabrika Portalı_`;
@@ -936,6 +1032,11 @@ export class ProductionModule {
 
                       <td class="py-3 px-3 sm:px-4 text-center font-black text-blue-700 text-sm">
                         ${produced.toLocaleString("tr-TR")} <span class="text-[10px] text-slate-400 font-normal">${plan.unit}</span>
+                        ${(plan.leftProduced || plan.rightProduced) ? `
+                          <div class="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 mt-0.5 whitespace-nowrap">
+                            👈 ${Number(plan.leftProduced || 0).toLocaleString("tr-TR")} Sol • 👉 ${Number(plan.rightProduced || 0).toLocaleString("tr-TR")} Sağ
+                          </div>
+                        ` : ''}
                       </td>
 
                       <td class="py-3 px-3 sm:px-4">
@@ -1089,6 +1190,11 @@ export class ProductionModule {
                       <span class="text-slate-800">🎯 ${produced.toLocaleString("tr-TR")} / ${target.toLocaleString("tr-TR")} ${plan.unit}</span>
                       <span class="text-blue-700 font-extrabold">%${pct}</span>
                     </div>
+                    ${(plan.leftProduced || plan.rightProduced) ? `
+                      <div class="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 mb-1">
+                        👈 ${Number(plan.leftProduced || 0).toLocaleString("tr-TR")} Sol • 👉 ${Number(plan.rightProduced || 0).toLocaleString("tr-TR")} Sağ
+                      </div>
+                    ` : ''}
                     <div class="w-full bg-slate-200 rounded-full h-2.5 overflow-hidden">
                       <div class="${barColor} h-2.5 rounded-full transition-all duration-500" style="width: ${pct}%"></div>
                     </div>
@@ -1194,6 +1300,11 @@ export class ProductionModule {
                       <span class="font-black text-emerald-600 dark:text-emerald-400 text-xs sm:text-sm">
                         ${produced.toLocaleString("tr-TR")} / ${target.toLocaleString("tr-TR")}
                       </span>
+                      ${(plan.leftProduced || plan.rightProduced) ? `
+                        <div class="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 mt-0.5 whitespace-nowrap">
+                          👈 ${Number(plan.leftProduced || 0).toLocaleString("tr-TR")} Sol • 👉 ${Number(plan.rightProduced || 0).toLocaleString("tr-TR")} Sağ
+                        </div>
+                      ` : ''}
                       <div class="text-[10px] font-bold text-slate-400">%${pct} Tamamlandı</div>
                     </td>
 

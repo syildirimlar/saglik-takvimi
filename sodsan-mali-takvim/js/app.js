@@ -67,6 +67,7 @@ const App = (function() {
                 PayrollModule.render();
                 break;
             case "calendar":
+                CalendarModule.init();
                 CalendarModule.render();
                 break;
             case "missing_info":
@@ -136,15 +137,22 @@ const App = (function() {
     function changeActiveDate(newIsoDateStr) {
         if (!newIsoDateStr) return;
         SODSAN_DB.setActiveDate(newIsoDateStr);
+        if (typeof CalendarModule !== 'undefined') {
+            CalendarModule.selectDate(newIsoDateStr);
+        }
         refresh();
         showToast(`Çalışma tarihi ${newIsoDateStr} olarak değiştirildi.`, "info");
     }
 
     function resetToRealDate() {
-        const todayIso = new Date().toISOString().slice(0, 10);
-        SODSAN_DB.setActiveDate(todayIso);
-        refresh();
-        showToast("Gerçek sistem tarihine dönüldü: " + todayIso, "success");
+        const realToday = SODSAN_DB.getRealToday();
+        SODSAN_DB.setActiveDate(realToday);
+        if (typeof CalendarModule !== 'undefined') {
+            CalendarModule.jumpToToday();
+        } else {
+            refresh();
+        }
+        showToast("Gerçek sistem tarihine dönüldü: " + realToday, "success");
     }
 
     // GÖREV İŞLEMLERİ

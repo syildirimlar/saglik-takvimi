@@ -4,13 +4,24 @@
  */
 
 const SODSAN_DB = (function() {
-    const DB_KEY = "sodsan_mali_takvim_db_v2";
+    const DB_KEY = "sodsan_mali_takvim_db_v3";
+
+    function formatLocalISO(dateObj) {
+        const y = dateObj.getFullYear();
+        const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+        const d = String(dateObj.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+    }
+
+    function getRealToday() {
+        return formatLocalISO(new Date());
+    }
 
     let state = {
         settings: {},
         users: [],
         currentUser: null,
-        activeDate: "2026-10-21", // Gerçek sistem tarihi veya kullanıcının seçtiği gün
+        activeDate: getRealToday(), // Gerçek sistem tarihi veya kullanıcının seçtiği gün
         tasks: [],
         invoices: [],
         payments: [],
@@ -26,8 +37,10 @@ const SODSAN_DB = (function() {
     function init() {
         try {
             localStorage.removeItem("sodsan_mali_takvim_db_v1");
+            localStorage.removeItem("sodsan_mali_takvim_db_v2");
         } catch(e) {}
 
+        const realToday = getRealToday();
         const stored = localStorage.getItem(DB_KEY);
         if (stored) {
             try {
@@ -43,11 +56,13 @@ const SODSAN_DB = (function() {
             loadInitialSeed();
         }
 
-        // Sistem tarihini bugünden başlat (Eğer kaydedilmemişse)
-        const todayStr = getTodayISO();
-        if (!state.activeDate) {
-            state.activeDate = todayStr;
-        }
+        // Sistem tarihini bugünden başlat:
+        // Eğer kullanıcı mevcut oturumunda (session) geçici bir tarih seçmemişse her zaman GERÇEK BUGÜN alınır!
+        let sessionDate = null;
+        try {
+            sessionDate = (typeof sessionStorage !== 'undefined') ? sessionStorage.getItem("sodsan_simulated_date") : null;
+        } catch(e) {}
+        state.activeDate = sessionDate || realToday;
 
         // Aktif kullanıcıyı ayarla
         if (!state.currentUser && state.users && state.users.length > 0) {
@@ -95,6 +110,7 @@ const SODSAN_DB = (function() {
     // Yıl boyunca tüm sabit SODSAN rutinlerini otomatik oluştur
     function ensureRoutinesGeneratedForYear(year) {
         const existingRoutineIds = new Set(state.tasks.map(t => t.routineKey).filter(Boolean));
+        const realToday = getRealToday();
 
         // 12 Ay için döngü
         for (let month = 1; month <= 12; month++) {
@@ -102,101 +118,111 @@ const SODSAN_DB = (function() {
 
             // 1) Her ayın 8'i: Mali Müşavir Ziyareti
             const key8 = `ROUTINE_${year}_${mStr}_08_MUSAVIR`;
+            const date8 = `${year}-${mStr}-08`;
+            const isPast8 = (date8 < realToday);
             if (!existingRoutineIds.has(key8)) {
                 state.tasks.push({
                     id: "TSK_" + key8,
                     routineKey: key8,
-                    date: `${year}-${mStr}-08`,
-                    dueDate: `${year}-${mStr}-08`,
+                    date: date8,
+                    dueDate: date8,
                     title: `Mali Müşavir 1. Aylık Ziyareti (${month}. Ay)`,
                     category: "Mali Müşavir",
                     priority: "Yüksek",
-                    status: (year < 2026 || (year === 2026 && month < 10)) ? "Tamamlandı" : "Bekliyor",
+                    status: isPast8 ? "Tamamlandı" : "Bekliyor",
                     assignedTo: "Salih / Muhasebe",
                     description: "Muhasebe kayıtlarının kontrolü, evrak kontrolü, eksik kayıtların kontrolü, mali müşavirle gerekli konuların görüşülmesi.",
                     note: "Ziyaret öncesi eksik evrak ve banka ekstreleri hazır edilmeli.",
-                    completedAt: (year < 2026 || (year === 2026 && month < 10)) ? `${year}-${mStr}-08 17:00` : null,
+                    completedAt: isPast8 ? `${date8} 17:00` : null,
                     isDeleted: false
                 });
             }
 
             // 2) Her ayın 10'u: Maaş Ödemesi
             const key10 = `ROUTINE_${year}_${mStr}_10_MAAS`;
+            const date10 = `${year}-${mStr}-10`;
+            const isPast10 = (date10 < realToday);
             if (!existingRoutineIds.has(key10)) {
                 state.tasks.push({
                     id: "TSK_" + key10,
                     routineKey: key10,
-                    date: `${year}-${mStr}-10`,
-                    dueDate: `${year}-${mStr}-10`,
+                    date: date10,
+                    dueDate: date10,
                     title: `Personel Maaş Ödemesi (${month}. Ay - 60 Kişi)`,
                     category: "Maaş",
                     priority: "Acil",
-                    status: (year < 2026 || (year === 2026 && month < 10) || (year === 2026 && month === 10)) ? "Tamamlandı" : "Bekliyor",
+                    status: isPast10 ? "Tamamlandı" : "Bekliyor",
                     assignedTo: "Muhasebe / Banka",
                     description: "60 fabrika çalışanının net maaş transfer dosyasının bankaya iletilmesi ve hesap bakiyesinin teyidi.",
                     note: "Garanti BBVA toplu ödeme kanalı kullanılır.",
-                    completedAt: (year < 2026 || (year === 2026 && month <= 10)) ? `${year}-${mStr}-10 11:30` : null,
+                    completedAt: isPast10 ? `${date10} 11:30` : null,
                     isDeleted: false
                 });
             }
 
             // 3) Her ayın 20'si: Kredi Kartı Ödemeleri + Banka Kontrolleri
             const key20 = `ROUTINE_${year}_${mStr}_20_KK`;
+            const date20 = `${year}-${mStr}-20`;
+            const isPast20 = (date20 < realToday);
             if (!existingRoutineIds.has(key20)) {
                 state.tasks.push({
                     id: "TSK_" + key20,
                     routineKey: key20,
-                    date: `${year}-${mStr}-20`,
-                    dueDate: `${year}-${mStr}-20`,
+                    date: date20,
+                    dueDate: date20,
                     title: `Kredi Kartı Ödemesi & Ekstre / Bakiye Kontrolü`,
                     category: "Kredi kartı",
                     priority: "Yüksek",
-                    status: (year < 2026 || (year === 2026 && month < 10) || (year === 2026 && month === 10)) ? "Tamamlandı" : "Bekliyor",
+                    status: isPast20 ? "Tamamlandı" : "Bekliyor",
                     assignedTo: "Muhasebe",
                     description: "Şirket kredi kartları ekstre kontrolü, banka vadesiz hesap bakiyeleri kontrolü ve otomatik ödeme talimatlarının teyidi.",
                     note: "Ekstre borçları ve virmanlar kontrol edildi.",
-                    completedAt: (year < 2026 || (year === 2026 && month <= 10)) ? `${year}-${mStr}-20 16:00` : null,
+                    completedAt: isPast20 ? `${date20} 16:00` : null,
                     isDeleted: false
                 });
             }
 
             // 4) Her ayın 21'i: Mali Müşavir Ziyareti (Vergi/SGK/Bordro Kontrolü)
             const key21 = `ROUTINE_${year}_${mStr}_21_MUSAVIR`;
+            const date21 = `${year}-${mStr}-21`;
+            const isPast21 = (date21 < realToday);
+            const isToday21 = (date21 === realToday);
             if (!existingRoutineIds.has(key21)) {
-                const isCurrentToday = (year === 2026 && month === 10);
                 state.tasks.push({
                     id: "TSK_" + key21,
                     routineKey: key21,
-                    date: `${year}-${mStr}-21`,
-                    dueDate: `${year}-${mStr}-21`,
+                    date: date21,
+                    dueDate: date21,
                     title: `Mali Müşavir 2. Aylık Ziyareti (${month}. Ay)`,
                     category: "Mali Müşavir",
                     priority: "Yüksek",
-                    status: (year < 2026 || (year === 2026 && month < 10)) ? "Tamamlandı" : (isCurrentToday ? "Devam ediyor" : "Bekliyor"),
+                    status: isPast21 ? "Tamamlandı" : (isToday21 ? "Devam ediyor" : "Bekliyor"),
                     assignedTo: "Salih / Mali Müşavir",
                     description: "Vergi kontrolü, SGK kontrolü, Bordro kontrolü, Yaklaşan ödeme ve beyanname kontrolü.",
-                    note: isCurrentToday ? "BUGÜN: Saat 14:00'te toplantı yapılacak, Eylül MPHB ve KDV tutarları netleştirilecek." : "",
-                    completedAt: (year < 2026 || (year === 2026 && month < 10)) ? `${year}-${mStr}-21 17:30` : null,
+                    note: isToday21 ? "BUGÜN: Toplantı yapılacak, vergi ve SGK tutarları netleştirilecek." : "",
+                    completedAt: isPast21 ? `${date21} 17:30` : null,
                     isDeleted: false
                 });
             }
 
             // 5) Her ayın 25'i: Maaş Avansı
             const key25 = `ROUTINE_${year}_${mStr}_25_AVANS`;
+            const date25 = `${year}-${mStr}-25`;
+            const isPast25 = (date25 < realToday);
             if (!existingRoutineIds.has(key25)) {
                 state.tasks.push({
                     id: "TSK_" + key25,
                     routineKey: key25,
-                    date: `${year}-${mStr}-25`,
-                    dueDate: `${year}-${mStr}-25`,
+                    date: date25,
+                    dueDate: date25,
                     title: `Personel Maaş Avansı Ödemesi (${month}. Ay)`,
                     category: "Avans",
                     priority: "Yüksek",
-                    status: (year < 2026 || (year === 2026 && month < 10)) ? "Tamamlandı" : "Bekliyor",
+                    status: isPast25 ? "Tamamlandı" : "Bekliyor",
                     assignedTo: "Muhasebe / İK",
                     description: "Avans talep eden 60 fabrika çalışanının avans listesinin hazırlanması ve bankadan transferi.",
                     note: "25'i hafta sonuna geliyorsa Cuma günü liste hazırlanır.",
-                    completedAt: (year < 2026 || (year === 2026 && month < 10)) ? `${year}-${mStr}-25 14:00` : null,
+                    completedAt: isPast25 ? `${date25} 14:00` : null,
                     isDeleted: false
                 });
             }
@@ -206,8 +232,9 @@ const SODSAN_DB = (function() {
         const d = new Date(year, 0, 1);
         while (d.getFullYear() === year) {
             const dayOfWeek = d.getDay(); // 4 = Perşembe, 5 = Cuma
-            const isoDate = d.toISOString().slice(0, 10);
-            const isPast = (isoDate < "2026-10-21");
+            const isoDate = formatLocalISO(d);
+            const isPast = (isoDate < realToday);
+            const isToday = (isoDate === realToday);
 
             if (dayOfWeek === 4) { // Perşembe
                 const keyThu = `ROUTINE_${isoDate}_THU_LIST`;
@@ -220,7 +247,7 @@ const SODSAN_DB = (function() {
                         title: `Tedarikçi Ödeme Listesi Hazırlanması & Onaya Sunulması`,
                         category: "Ödeme",
                         priority: "Yüksek",
-                        status: isPast ? "Tamamlandı" : "Bekliyor",
+                        status: isPast ? "Tamamlandı" : (isToday ? "Bekliyor" : "Bekliyor"),
                         assignedTo: "Muhasebe / Salih (Onay)",
                         description: "Cuma günü ödenecek hammadde, koli, nakliye ve hizmet faturalarının taranması, listenin hazırlanıp yönetici onayına sunulması.",
                         note: "Onaylanan liste Cuma sabahı banka talimatına dönüştürülür.",
@@ -307,9 +334,20 @@ const SODSAN_DB = (function() {
             logAction(state.currentUser, "Güncelleme", "Ayarlar", "SETTING", "Sistem ayarları güncellendi.");
         },
 
-        getActiveDate: () => state.activeDate || getTodayISO(),
+        getRealToday: getRealToday,
+        formatLocalISO: formatLocalISO,
+        getActiveDate: () => state.activeDate || getRealToday(),
         setActiveDate: (dateStr) => {
+            if (!dateStr) return;
             state.activeDate = dateStr;
+            const realToday = getRealToday();
+            try {
+                if (dateStr === realToday) {
+                    sessionStorage.removeItem("sodsan_simulated_date");
+                } else {
+                    sessionStorage.setItem("sodsan_simulated_date", dateStr);
+                }
+            } catch(e) {}
             save();
         },
 

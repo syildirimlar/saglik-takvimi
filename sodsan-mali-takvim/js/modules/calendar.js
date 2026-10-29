@@ -7,7 +7,7 @@ const CalendarModule = (function() {
 
     let currentYear = 2026;
     let currentMonth = 9; // 0-indexed, 9 = Ekim (October)
-    let selectedDate = "2026-10-21";
+    let selectedDate = null;
 
     const MONTH_NAMES = [
         "Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran",
@@ -17,12 +17,15 @@ const CalendarModule = (function() {
     const DAY_NAMES = ["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"];
 
     function init(year, month) {
-        if (year !== undefined) currentYear = year;
-        if (month !== undefined) currentMonth = month;
-        const activeDate = SODSAN_DB.getActiveDate();
-        if (activeDate) {
-            selectedDate = activeDate;
-            const parts = activeDate.split('-');
+        const realToday = SODSAN_DB.getRealToday();
+        const activeDate = SODSAN_DB.getActiveDate() || realToday;
+        selectedDate = selectedDate || activeDate;
+        
+        if (year !== undefined && month !== undefined) {
+            currentYear = year;
+            currentMonth = month;
+        } else {
+            const parts = (selectedDate || activeDate).split('-');
             currentYear = parseInt(parts[0], 10);
             currentMonth = parseInt(parts[1], 10) - 1;
         }
@@ -37,6 +40,11 @@ const CalendarModule = (function() {
         const allInvoices = SODSAN_DB.getInvoices();
         const allTaxes = SODSAN_DB.getTaxes();
         const activeSystemDate = SODSAN_DB.getActiveDate();
+        const realToday = SODSAN_DB.getRealToday();
+
+        if (!selectedDate) {
+            selectedDate = activeSystemDate || realToday;
+        }
 
         // Ayın ilk günü ve toplam gün sayısı
         const firstDayOfMonth = new Date(currentYear, currentMonth, 1);
@@ -71,6 +79,11 @@ const CalendarModule = (function() {
             const dayInvoices = allInvoices.filter(i => i.dueDate === iso);
             const dayTaxes = allTaxes.filter(t => t.dueDate === iso);
 
+            const isToday = (iso === realToday);
+            const isSelected = (iso === selectedDate);
+            const isActiveDate = (iso === activeSystemDate && activeSystemDate !== realToday);
+            const isPast = (iso < realToday);
+
             calendarCells.push({
                 day: day,
                 isCurrentMonth: true,
@@ -79,8 +92,10 @@ const CalendarModule = (function() {
                 payments: dayPayments,
                 invoices: dayInvoices,
                 taxes: dayTaxes,
-                isToday: (iso === activeSystemDate),
-                isSelected: (iso === selectedDate)
+                isToday: isToday,
+                isSelected: isSelected,
+                isActiveDate: isActiveDate,
+                isPast: isPast
             });
         }
 
@@ -138,13 +153,13 @@ const CalendarModule = (function() {
                             }
 
                             const hasEvents = (cell.tasks.length > 0 || cell.payments.length > 0 || cell.taxes.length > 0);
-                            const isPast = (cell.isoDate < activeSystemDate);
+                            const isPast = (cell.isoDate < realToday);
 
                             return `
                                 <div class="cal-cell ${cell.isToday ? 'cell-today' : ''} ${cell.isSelected ? 'cell-selected' : ''} ${isPast ? 'cell-past' : ''}" onclick="CalendarModule.selectDate('${cell.isoDate}')">
                                     <div class="cell-top">
                                         <span class="cell-num">${cell.day}</span>
-                                        ${cell.isToday ? '<span class="today-tag">BUGÜN</span>' : ''}
+                                        ${cell.isToday ? '<span class="today-tag">BUGÜN</span>' : (cell.isActiveDate ? '<span class="today-tag" style="background:#f59e0b;">SEÇİLİ</span>' : '')}
                                     </div>
                                     <div class="cell-badges">
                                         ${(cell.taxes || []).map(t => `
@@ -332,12 +347,16 @@ const CalendarModule = (function() {
     }
 
     function jumpToToday() {
-        const active = SODSAN_DB.getActiveDate();
-        selectedDate = active;
-        const parts = active.split('-');
+        const realToday = SODSAN_DB.getRealToday();
+        selectedDate = realToday;
+        SODSAN_DB.setActiveDate(realToday);
+        const parts = realToday.split('-');
         currentYear = parseInt(parts[0], 10);
         currentMonth = parseInt(parts[1], 10) - 1;
         render();
+        if (typeof App !== 'undefined' && App.refresh) {
+            App.refresh();
+        }
     }
 
     return {

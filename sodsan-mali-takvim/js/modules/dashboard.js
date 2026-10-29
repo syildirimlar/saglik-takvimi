@@ -495,16 +495,23 @@ const DashboardModule = (function() {
     }
 
     // Yardımcı Tarih Fonksiyonları
+    function formatLocalISO(dateObj) {
+        const y = dateObj.getFullYear();
+        const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+        const d = String(dateObj.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+    }
+
     function getOffsetDate(baseIsoStr, days) {
         const parts = baseIsoStr.split('-');
-        const d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+        const d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
         d.setDate(d.getDate() + days);
-        return d.toISOString().slice(0, 10);
+        return formatLocalISO(d);
     }
 
     function getWeekDates(baseIsoStr) {
         const parts = baseIsoStr.split('-');
-        const curr = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+        const curr = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
         const day = curr.getDay();
         const diff = curr.getDate() - day + (day === 0 ? -6 : 1); // Pazartesi
         const monday = new Date(curr.setDate(diff));
@@ -513,7 +520,7 @@ const DashboardModule = (function() {
         for (let i = 0; i < 7; i++) {
             const next = new Date(monday);
             next.setDate(monday.getDate() + i);
-            dates.push(next.toISOString().slice(0, 10));
+            dates.push(formatLocalISO(next));
         }
         return dates;
     }
