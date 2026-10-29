@@ -1194,7 +1194,7 @@ body {
 
 .cal-grid-header {
     display: grid;
-    grid-template-columns: repeat(7, 1fr);
+    grid-template-columns: 44px repeat(7, 1fr);
     text-align: center;
     font-weight: 700;
     font-size: 12px;
@@ -1205,10 +1205,52 @@ body {
 
 .cal-grid {
     display: grid;
-    grid-template-columns: repeat(7, 1fr);
+    grid-template-columns: 44px repeat(7, 1fr);
     grid-auto-rows: minmax(90px, auto);
     border-left: 1px solid var(--border);
     border-top: 1px solid var(--border);
+}
+
+.cal-week-cell {
+    background: #f8fafc;
+    border-right: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    user-select: none;
+    padding: 6px 2px;
+    transition: background 0.15s ease;
+}
+
+.cal-week-cell:hover {
+    background: #eff6ff;
+}
+
+.cal-week-cell .week-label {
+    font-size: 9px;
+    font-weight: 800;
+    color: var(--text-muted);
+    letter-spacing: -0.05em;
+    line-height: 1;
+}
+
+.cal-week-cell .week-num {
+    font-size: 14px;
+    font-weight: 900;
+    color: var(--primary);
+    line-height: 1.1;
+    margin-top: 2px;
+}
+
+.cal-week-cell.cell-current-week {
+    background: #eff6ff;
+}
+
+.cal-week-cell.cell-current-week .week-num {
+    color: #1d4ed8;
+    text-decoration: underline;
 }
 
 .cal-cell {

@@ -94,6 +94,14 @@ export class CalendarModule {
     return `${y}-${m}-${d}`;
   }
 
+  getISOWeekNumber(date) {
+    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+    const dayNum = d.getUTCDay() || 7;
+    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+    return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+  }
+
   render() {
     const titleEl = document.getElementById("cal-month-title");
     const gridEl = document.getElementById("cal-grid");
@@ -108,7 +116,14 @@ export class CalendarModule {
     // Hafta Başlıkları ve Gün Hücreleri
     gridEl.innerHTML = "";
 
-    // Başlıklar
+    // 1. Sütun Başlığı: Hafta (Hf)
+    const weekHeader = document.createElement("div");
+    weekHeader.className = "calendar-day-header calendar-week-header";
+    weekHeader.title = "Hafta Numarası (ISO 8601)";
+    weekHeader.textContent = "Hf";
+    gridEl.appendChild(weekHeader);
+
+    // Gün Başlıkları (Pzt, Sal, Çar, ...)
     this.dayNames.forEach(name => {
       const headerCell = document.createElement("div");
       headerCell.className = "calendar-day-header";
@@ -121,26 +136,72 @@ export class CalendarModule {
     let startDayIndex = firstDayOfMonth.getDay() - 1;
     if (startDayIndex === -1) startDayIndex = 6; // Pazar düzeltmesi
 
+    // Tüm 42 günü (6 hafta x 7 gün) sırayla topla
+    const allDays = [];
+
     // Önceki aydan kalan günler
     const daysInPrevMonth = new Date(year, month, 0).getDate();
     for (let i = startDayIndex - 1; i >= 0; i--) {
-      const prevDate = new Date(year, month - 1, daysInPrevMonth - i);
-      gridEl.appendChild(this.createDayCell(prevDate, true));
+      allDays.push({
+        date: new Date(year, month - 1, daysInPrevMonth - i),
+        isOtherMonth: true
+      });
     }
 
     // Bu ayın günleri
     const daysInMonth = new Date(year, month + 1, 0).getDate();
     for (let day = 1; day <= daysInMonth; day++) {
-      const currentCellDate = new Date(year, month, day);
-      gridEl.appendChild(this.createDayCell(currentCellDate, false));
+      allDays.push({
+        date: new Date(year, month, day),
+        isOtherMonth: false
+      });
     }
 
     // Bir sonraki aydan tamamlayıcı günler (42 hücreye tamamlamak için)
     const totalCellsSoFar = startDayIndex + daysInMonth;
     const remainingCells = 42 - totalCellsSoFar;
     for (let i = 1; i <= remainingCells; i++) {
-      const nextDate = new Date(year, month + 1, i);
-      gridEl.appendChild(this.createDayCell(nextDate, true));
+      allDays.push({
+        date: new Date(year, month + 1, i),
+        isOtherMonth: true
+      });
+    }
+
+    // 6 Hafta Satırını Render Et (Her satırın soluna hafta sayısı)
+    const now = new Date();
+    const currentIsoWeek = this.getISOWeekNumber(now);
+    const currentYear = now.getFullYear();
+
+    for (let w = 0; w < 6; w++) {
+      const weekDays = allDays.slice(w * 7, (w + 1) * 7);
+      const mondayDate = weekDays[0].date;
+      const sundayDate = weekDays[6].date;
+      const weekNum = this.getISOWeekNumber(mondayDate);
+
+      // Sol taraftaki Hafta Sayısı Hücresi
+      const weekCell = document.createElement("div");
+      weekCell.className = "calendar-week-cell";
+      
+      const isCurrent = (weekNum === currentIsoWeek && (mondayDate.getFullYear() === currentYear || sundayDate.getFullYear() === currentYear));
+      if (isCurrent) {
+        weekCell.classList.add("current-week");
+      }
+
+      const startFmt = `${mondayDate.getDate()} ${this.monthNames[mondayDate.getMonth()].slice(0, 3)}`;
+      const endFmt = `${sundayDate.getDate()} ${this.monthNames[sundayDate.getMonth()].slice(0, 3)}`;
+      weekCell.title = `${weekNum}. Hafta (${startFmt} - ${endFmt})${isCurrent ? ' • Bu Hafta' : ''}`;
+
+      weekCell.innerHTML = `
+        <span class="week-tag">HF</span>
+        <span class="week-number">${weekNum}</span>
+      `;
+
+      gridEl.appendChild(weekCell);
+
+      // Bu haftanın 7 gününü ekle
+      weekDays.forEach(dayItem => {
+        gridEl.appendChild(this.createDayCell(dayItem.date, dayItem.isOtherMonth));
+      });
     }
 
     // Yan paneldeki seçili gün detayını da güncelle

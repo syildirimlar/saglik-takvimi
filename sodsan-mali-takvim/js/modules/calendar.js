@@ -16,6 +16,14 @@ const CalendarModule = (function() {
 
     const DAY_NAMES = ["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"];
 
+    function getISOWeekNumber(d) {
+        const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+        const dayNum = date.getUTCDay() || 7;
+        date.setUTCDate(date.getUTCDate() + 4 - dayNum);
+        const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+        return Math.ceil((((date - yearStart) / 86400000) + 1) / 7);
+    }
+
     function init(year, month) {
         const realToday = SODSAN_DB.getRealToday();
         const activeDate = SODSAN_DB.getActiveDate() || realToday;
@@ -59,11 +67,13 @@ const CalendarModule = (function() {
 
         // Önceki ayın günleri
         for (let i = startingDay - 1; i >= 0; i--) {
+            const pDate = new Date(currentYear, currentMonth - 1, daysInPrevMonth - i);
+            const pIso = `${pDate.getFullYear()}-${String(pDate.getMonth() + 1).padStart(2, '0')}-${String(pDate.getDate()).padStart(2, '0')}`;
             calendarCells.push({
                 day: daysInPrevMonth - i,
                 isCurrentMonth: false,
                 isPrev: true,
-                isoDate: ""
+                isoDate: pIso
             });
         }
 
@@ -102,11 +112,13 @@ const CalendarModule = (function() {
         // Sonraki ayın günleri (42 hücreye tamamlamak için)
         const remaining = 42 - calendarCells.length;
         for (let i = 1; i <= remaining; i++) {
+            const nDate = new Date(currentYear, currentMonth + 1, i);
+            const nIso = `${nDate.getFullYear()}-${String(nDate.getMonth() + 1).padStart(2, '0')}-${String(nDate.getDate()).padStart(2, '0')}`;
             calendarCells.push({
                 day: i,
                 isCurrentMonth: false,
                 isNext: true,
-                isoDate: ""
+                isoDate: nIso
             });
         }
 
@@ -142,50 +154,75 @@ const CalendarModule = (function() {
 
                     <!-- GÜN İSİMLERİ -->
                     <div class="cal-grid-header">
+                        <div class="cal-day-name" style="font-weight: 800; color: #64748b;" title="Hafta Numarası (ISO 8601)">Hf</div>
                         ${DAY_NAMES.map(d => `<div class="cal-day-name">${d}</div>`).join('')}
                     </div>
 
-                    <!-- GÜN HÜCRELERİ (7x6) -->
+                    <!-- GÜN HÜCRELERİ (8x6) -->
                     <div class="cal-grid">
-                        ${calendarCells.map(cell => {
-                            if (!cell.isCurrentMonth) {
-                                return `<div class="cal-cell cell-muted"><span class="cell-num">${cell.day}</span></div>`;
+                        ${[0, 1, 2, 3, 4, 5].map(w => {
+                            const weekRow = calendarCells.slice(w * 7, (w + 1) * 7);
+                            const monIso = weekRow[0].isoDate;
+                            let weekNum = 1;
+                            let isCurWeek = false;
+                            if (monIso) {
+                                const monParts = monIso.split('-');
+                                const monDate = new Date(parseInt(monParts[0], 10), parseInt(monParts[1], 10) - 1, parseInt(monParts[2], 10));
+                                weekNum = getISOWeekNumber(monDate);
+                                const realNow = new Date();
+                                const curWeekNum = getISOWeekNumber(realNow);
+                                isCurWeek = (weekNum === curWeekNum && monDate.getFullYear() === realNow.getFullYear());
                             }
 
-                            const hasEvents = (cell.tasks.length > 0 || cell.payments.length > 0 || cell.taxes.length > 0);
-                            const isPast = (cell.isoDate < realToday);
-
-                            return `
-                                <div class="cal-cell ${cell.isToday ? 'cell-today' : ''} ${cell.isSelected ? 'cell-selected' : ''} ${isPast ? 'cell-past' : ''}" onclick="CalendarModule.selectDate('${cell.isoDate}')">
-                                    <div class="cell-top">
-                                        <span class="cell-num">${cell.day}</span>
-                                        ${cell.isToday ? '<span class="today-tag">BUGÜN</span>' : (cell.isActiveDate ? '<span class="today-tag" style="background:#f59e0b;">SEÇİLİ</span>' : '')}
-                                    </div>
-                                    <div class="cell-badges">
-                                        ${(cell.taxes || []).map(t => `
-                                            <span class="event-badge badge-tax" title="Vergi: ${t.type}">
-                                                🏛️ ${t.type.slice(0, 10)}
-                                            </span>
-                                        `).join('')}
-                                        ${(cell.tasks || []).slice(0, 2).map(t => {
-                                            const catClass = getCategoryBadgeClass(t.category);
-                                            return `
-                                                <span class="event-badge ${catClass}" title="${t.title}">
-                                                    ${t.title.slice(0, 18)}..
-                                                </span>
-                                            `;
-                                        }).join('')}
-                                        ${(cell.tasks && cell.tasks.length > 2) ? `
-                                            <span class="event-badge badge-more">+${cell.tasks.length - 2} görev</span>
-                                        ` : ''}
-                                        ${(cell.payments || []).map(p => `
-                                            <span class="event-badge badge-payment" title="Ödeme: ${p.entity}">
-                                                💸 ${(p.amount || 0).toLocaleString('tr-TR')} ₺
-                                            </span>
-                                        `).join('')}
-                                    </div>
+                            const weekHtml = `
+                                <div class="cal-week-cell ${isCurWeek ? 'cell-current-week' : ''}" title="${weekNum}. Hafta">
+                                    <span class="week-label">HF</span>
+                                    <span class="week-num">${weekNum}</span>
                                 </div>
                             `;
+
+                            const daysHtml = weekRow.map(cell => {
+                                if (!cell.isCurrentMonth) {
+                                    return `<div class="cal-cell cell-muted"><span class="cell-num">${cell.day}</span></div>`;
+                                }
+
+                                const hasEvents = (cell.tasks.length > 0 || cell.payments.length > 0 || cell.taxes.length > 0);
+                                const isPast = (cell.isoDate < realToday);
+
+                                return `
+                                    <div class="cal-cell ${cell.isToday ? 'cell-today' : ''} ${cell.isSelected ? 'cell-selected' : ''} ${isPast ? 'cell-past' : ''}" onclick="CalendarModule.selectDate('${cell.isoDate}')">
+                                        <div class="cell-top">
+                                            <span class="cell-num">${cell.day}</span>
+                                            ${cell.isToday ? '<span class="today-tag">BUGÜN</span>' : (cell.isActiveDate ? '<span class="today-tag" style="background:#f59e0b;">SEÇİLİ</span>' : '')}
+                                        </div>
+                                        <div class="cell-badges">
+                                            ${(cell.taxes || []).map(t => `
+                                                <span class="event-badge badge-tax" title="Vergi: ${t.type}">
+                                                    🏛️ ${t.type.slice(0, 10)}
+                                                </span>
+                                            `).join('')}
+                                            ${(cell.tasks || []).slice(0, 2).map(t => {
+                                                const catClass = getCategoryBadgeClass(t.category);
+                                                return `
+                                                    <span class="event-badge ${catClass}" title="${t.title}">
+                                                        ${t.title.slice(0, 18)}..
+                                                    </span>
+                                                `;
+                                            }).join('')}
+                                            ${(cell.tasks && cell.tasks.length > 2) ? `
+                                                <span class="event-badge badge-more">+${cell.tasks.length - 2} görev</span>
+                                            ` : ''}
+                                            ${(cell.payments || []).map(p => `
+                                                <span class="event-badge badge-payment" title="Ödeme: ${p.entity}">
+                                                    💸 ${(p.amount || 0).toLocaleString('tr-TR')} ₺
+                                                </span>
+                                            `).join('')}
+                                        </div>
+                                    </div>
+                                `;
+                            }).join('');
+
+                            return weekHtml + daysHtml;
                         }).join('')}
                     </div>
                 </div>
