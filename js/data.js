@@ -368,9 +368,9 @@ export const DEFAULT_FORKLIFTS = [];
 
 // Varsayılan Telegram Bot Yapılandırması
 export const DEFAULT_TELEGRAM_CONFIG = {
-  botToken: "8946959841:AAFj2Wtzf8n1FNcRjc5gYkJZOrBlci5c1HA",
-  chatId: "-1004438133842",
-  enabled: true,
+  botToken: "",
+  chatId: "",
+  enabled: false,
   notifyForkliftNew: true,
   notifyForkliftEnRoute: true,
   notifyForkliftDone: true,
@@ -739,13 +739,13 @@ export class StateManager {
       }
 
       // Telegram Yapılandırması
-      if (!parsed.telegramConfig || !parsed.telegramConfig.botToken) {
+      if (!parsed.telegramConfig) {
         parsed.telegramConfig = JSON.parse(JSON.stringify(DEFAULT_TELEGRAM_CONFIG));
       } else {
         parsed.telegramConfig = {
-          botToken: parsed.telegramConfig.botToken || DEFAULT_TELEGRAM_CONFIG.botToken,
-          chatId: parsed.telegramConfig.chatId || DEFAULT_TELEGRAM_CONFIG.chatId,
-          enabled: parsed.telegramConfig.enabled !== false,
+          botToken: parsed.telegramConfig.botToken || "",
+          chatId: parsed.telegramConfig.chatId || "",
+          enabled: !!parsed.telegramConfig.enabled && !!parsed.telegramConfig.botToken,
           notifyForkliftNew: parsed.telegramConfig.notifyForkliftNew !== false,
           notifyForkliftEnRoute: parsed.telegramConfig.notifyForkliftEnRoute !== false,
           notifyForkliftDone: parsed.telegramConfig.notifyForkliftDone !== false,
