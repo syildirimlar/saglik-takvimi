@@ -1009,6 +1009,18 @@ export class StateManager {
     return newService;
   }
 
+  updateExternalService(id, updatedData) {
+    if (!Array.isArray(this.state.externalServices)) return null;
+    const idx = this.state.externalServices.findIndex(s => s.id === id);
+    if (idx === -1) return null;
+    this.state.externalServices[idx] = {
+      ...this.state.externalServices[idx],
+      ...updatedData
+    };
+    this.saveState();
+    return this.state.externalServices[idx];
+  }
+
   deleteExternalService(id) {
     if (!Array.isArray(this.state.externalServices)) return;
     this.state.externalServices = this.state.externalServices.filter(s => s.id !== id);
@@ -1445,6 +1457,10 @@ export function deleteMachine(id) {
 
 export function addExternalService(service) {
   return appState.addExternalService(service);
+}
+
+export function updateExternalService(id, updatedData) {
+  return appState.updateExternalService(id, updatedData);
 }
 
 export function deleteExternalService(id) {

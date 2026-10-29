@@ -148,6 +148,10 @@ const CalendarModule = (function() {
                             <span class="legend-item"><span class="legend-dot dot-blue"></span> Tedarikçi</span>
                             <span class="legend-item"><span class="legend-dot dot-orange"></span> Kredi Kartı</span>
                             <span class="legend-item"><span class="legend-dot dot-teal"></span> Mali Müşavir</span>
+                            <span class="legend-item"><span class="legend-dot dot-ges"></span> GES (7 & 16)</span>
+                            <span class="legend-item"><span class="legend-dot dot-electric"></span> Elektrik (15 & 26)</span>
+                            <span class="legend-item"><span class="legend-dot dot-water"></span> Su (22)</span>
+                            <span class="legend-item"><span class="legend-dot dot-phone"></span> Telefon/GSM (16 & 19)</span>
                             <span class="legend-item"><span class="legend-dot dot-indigo"></span> Fatura</span>
                         </div>
                     </div>
@@ -356,6 +360,10 @@ const CalendarModule = (function() {
         if (c.includes("tedarikçi")) return "badge-supplier";
         if (c.includes("kredi kart")) return "badge-card";
         if (c.includes("mali müşavir")) return "badge-teal";
+        if (c.includes("ges") || c.includes("enerji")) return "badge-ges";
+        if (c.includes("elektrik") || c.includes("uedaş") || c.includes("uedas")) return "badge-electric";
+        if (c.includes("su")) return "badge-water";
+        if (c.includes("telefon") || c.includes("vodafone") || c.includes("iletişim")) return "badge-phone";
         if (c.includes("fatura")) return "badge-invoice";
         return "badge-secondary";
     }

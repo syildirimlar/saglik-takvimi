@@ -7,15 +7,22 @@
 const SODSAN_INITIAL_DATA = {
     settings: {
         companyName: "SODSAN OTO PLASTİK YEDEK PARÇA SAN. VE TİC. LTD. ŞTİ.",
-        systemDate: "2026-10-21",
         employeeCount: 60,
-        salaryDay: 10,
-        advanceDay: 25,
-        advisorFirstVisitDay: 8,
-        advisorSecondVisitDay: 21,
-        creditCardPaymentDay: 20,
-        supplierPaymentDayName: "Cuma",
-        supplierListDayName: "Perşembe",
+        gesPaymentCheckDay: 7, // Her ayın 7'si: GES faturalarının ödeme kontrolü
+        advisorFirstVisitDay: 8, // Her ayın 8'i: Mali müşavir ziyareti
+        salaryDay: 10, // Her ayın 10'u: Maaş ödemesi
+        uedasInvoiceProcessDay: 15, // Her ayın 15'i: UEDAŞ elektrik faturalarının işlenmesi & avans alacak/borç kontrolü
+        phoneInvoiceDay: 16, // Her ayın 16'sı: SODSAN telefon Ziraat otomatik ödeme kontrolü
+        gesInvoiceDay: 16, // Her ayın 16'sı: GES faturalarının UEDAŞ'a kesilmesi
+        vodafoneInvoiceDay: 19, // Her ayın 19'u: Vodafone Ziraat otomatik ödeme kontrolü
+        creditCardPaymentDay: 20, // Her ayın 20'si: Kredi kartı ödemeleri
+        advisorSecondVisitDay: 21, // Her ayın 21'i: Mali müşavir ziyareti
+        waterInvoiceDayMerkez: 22, // Her ayın 22'si: SODSAN merkez su faturası Ziraat otomatik ödeme kontrolü
+        waterInvoiceDaySube: 22, // Her ayın 22'si: SODSAN şube su faturası Ziraat otomatik ödeme kontrolü
+        advanceDay: 25, // Her ayın 25'i: Maaş avansı
+        electricityPaymentDay: 26, // Her ayın 26'sı: Elektrik faturası ödeme / borç-alacak mahsup günü
+        supplierPaymentDayName: "Cuma", // Her Cuma: Tedarikçi fatura ödemesi
+        supplierListDayName: "Perşembe", // Her Perşembe: Tedarikçi ödeme listesi hazırlama ve onaya sunma
         hasRent: false, // Şirket mülkü (Kira ödemesi yok)
         usesCheques: false // Çek kullanılmıyor
     },
@@ -56,33 +63,33 @@ const SODSAN_INITIAL_DATA = {
         },
         {
             id: "MI_2",
-            subject: "Elektrik Faturası Son Ödeme Tarihi",
-            category: "Otomatik Fatura",
-            status: "Otomatik Talimatta (Gün Bekleniyor)",
-            currentNote: "Elektrik faturası otomatik ödeme talimatında. Ancak her ayın faturası tebliğ edildiğinde son gün kontrol edilmeli.",
-            actionPlan: "Fatura tebliğ edildiğinde son ödeme takvime girilecek.",
-            isFixed: false,
-            enteredValue: ""
+            subject: "Elektrik ve GES (UEDAŞ) Takvimi",
+            category: "Elektrik & GES",
+            status: "Tanımlandı & Takvimde",
+            currentNote: "Her ayın 15'i UEDAŞ faturalarının işlenmesi & avans alacak/borç kontrolü, 16'sı GES faturalarının UEDAŞ'a kesilmesi, 26'sı Elektrik faturası ödeme/mahsup günü, 7'si GES faturalarının ödeme kontrolü olarak takvime bağlandı.",
+            actionPlan: "Rutin görevler her ay otomatik oluşturulmaktadır.",
+            isFixed: true,
+            enteredValue: "7, 15, 16 ve 26. günler"
         },
         {
             id: "MI_3",
-            subject: "Su Faturası Son Ödeme Tarihi",
-            category: "Otomatik Fatura",
-            status: "Otomatik Talimatta (Gün Bekleniyor)",
-            currentNote: "Fabrika su aboneliği otomatik ödemede. İSKİ / OSB faturalama dönemi takip edilmeli.",
-            actionPlan: "Aylık tahakkuk tarihi girilerek talimat kontrol görevi tetiklenecek.",
-            isFixed: false,
-            enteredValue: ""
+            subject: "Su Faturaları Son Ödeme Tarihi (Merkez & Şube)",
+            category: "Otomatik Fatura / Su",
+            status: "Tanımlandı & Takvimde",
+            currentNote: "Her ayın 22'si SODSAN Merkez ve Şube su faturaları Ziraat Bankası otomatik ödemede. Hesap bakiyesi ve otomatik çekim kontrolü takvime bağlandı.",
+            actionPlan: "Rutin görevler her ay otomatik oluşturulmaktadır.",
+            isFixed: true,
+            enteredValue: "Her ayın 22'si (Ziraat Bankası)"
         },
         {
             id: "MI_4",
-            subject: "İnternet ve Sabit Telefon Faturası",
-            category: "Otomatik Fatura",
-            status: "Otomatik Talimatta (Gün Bekleniyor)",
-            currentNote: "Türk Telekom / Turkcell kurumsal internet ve hat bedelleri otomatik talimatta.",
-            actionPlan: "Fatura kesim ve son ödeme günleri kontrol edilecek.",
-            isFixed: false,
-            enteredValue: ""
+            subject: "Telefon ve GSM (Vodafone) Faturaları Son Ödeme Tarihi",
+            category: "Otomatik Fatura / İletişim",
+            status: "Tanımlandı & Takvimde",
+            currentNote: "Her ayın 16'sı SODSAN Telefon, her ayın 19'u Vodafone faturası Ziraat Bankası otomatik ödemede. Hesap bakiyesi ve otomatik çekim kontrolü takvime bağlandı.",
+            actionPlan: "Rutin görevler her ay otomatik oluşturulmaktadır.",
+            isFixed: true,
+            enteredValue: "16'sı Telefon, 19'u Vodafone (Ziraat Bankası)"
         },
         {
             id: "MI_5",

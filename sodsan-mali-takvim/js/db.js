@@ -4,7 +4,7 @@
  */
 
 const SODSAN_DB = (function() {
-    const DB_KEY = "sodsan_mali_takvim_db_v3";
+    const DB_KEY = "sodsan_mali_takvim_db_v5";
 
     function formatLocalISO(dateObj) {
         const y = dateObj.getFullYear();
@@ -38,6 +38,8 @@ const SODSAN_DB = (function() {
         try {
             localStorage.removeItem("sodsan_mali_takvim_db_v1");
             localStorage.removeItem("sodsan_mali_takvim_db_v2");
+            localStorage.removeItem("sodsan_mali_takvim_db_v3");
+            localStorage.removeItem("sodsan_mali_takvim_db_v4");
         } catch(e) {}
 
         const realToday = getRealToday();
@@ -116,7 +118,30 @@ const SODSAN_DB = (function() {
         for (let month = 1; month <= 12; month++) {
             const mStr = String(month).padStart(2, '0');
 
-            // 1) Her ayın 8'i: Mali Müşavir Ziyareti
+            // 1) Her ayın 7'si: GES Kesilen Faturaların Ödeme Kontrolü
+            const key7 = `ROUTINE_${year}_${mStr}_07_GES_KONTROL`;
+            const date7 = `${year}-${mStr}-07`;
+            const isPast7 = (date7 < realToday);
+            const isToday7 = (date7 === realToday);
+            if (!existingRoutineIds.has(key7)) {
+                state.tasks.push({
+                    id: "TSK_" + key7,
+                    routineKey: key7,
+                    date: date7,
+                    dueDate: date7,
+                    title: `GES Kesilen Faturaların Ödemesinin Kontrolü`,
+                    category: "GES",
+                    priority: "Yüksek",
+                    status: isPast7 ? "Tamamlandı" : (isToday7 ? "Devam ediyor" : "Bekliyor"),
+                    assignedTo: "Muhasebe / Finans",
+                    description: "UEDAŞ'a kesilen GES (Güneş Enerjisi Santrali) üretim fatura ödemelerinin banka hesabına geçip geçmediğinin kontrolü.",
+                    note: "Banka hesap hareketlerinden UEDAŞ üretim bedeli transferi teyit edilir.",
+                    completedAt: isPast7 ? `${date7} 15:00` : null,
+                    isDeleted: false
+                });
+            }
+
+            // 2) Her ayın 8'i: Mali Müşavir Ziyareti
             const key8 = `ROUTINE_${year}_${mStr}_08_MUSAVIR`;
             const date8 = `${year}-${mStr}-08`;
             const isPast8 = (date8 < realToday);
@@ -138,7 +163,7 @@ const SODSAN_DB = (function() {
                 });
             }
 
-            // 2) Her ayın 10'u: Maaş Ödemesi
+            // 3) Her ayın 10'u: Maaş Ödemesi
             const key10 = `ROUTINE_${year}_${mStr}_10_MAAS`;
             const date10 = `${year}-${mStr}-10`;
             const isPast10 = (date10 < realToday);
@@ -160,7 +185,96 @@ const SODSAN_DB = (function() {
                 });
             }
 
-            // 3) Her ayın 20'si: Kredi Kartı Ödemeleri + Banka Kontrolleri
+            // 4) Her ayın 15'i: UEDAŞ Elektrik Faturalarının İşlenmesi ve Avans Mahsup Kontrolü
+            const key15 = `ROUTINE_${year}_${mStr}_15_UEDAS_FATURA`;
+            const date15 = `${year}-${mStr}-15`;
+            const isPast15 = (date15 < realToday);
+            const isToday15 = (date15 === realToday);
+            if (!existingRoutineIds.has(key15)) {
+                state.tasks.push({
+                    id: "TSK_" + key15,
+                    routineKey: key15,
+                    date: date15,
+                    dueDate: date15,
+                    title: `UEDAŞ Elektrik Faturalarının İşlenmesi & Avans Mahsup Kontrolü`,
+                    category: "Elektrik",
+                    priority: "Yüksek",
+                    status: isPast15 ? "Tamamlandı" : (isToday15 ? "Devam ediyor" : "Bekliyor"),
+                    assignedTo: "Muhasebe",
+                    description: "UEDAŞ'tan gelen elektrik faturalarının muhasebe sistemine kaydedilmesi ve ödenen avans tutarına göre alacak / borç durumunun kontrol edilmesi.",
+                    note: "Ödenen avans tutarı ile gerçekleşen fatura karşılaştırılarak net bakiye çıkarılır.",
+                    completedAt: isPast15 ? `${date15} 16:30` : null,
+                    isDeleted: false
+                });
+            }
+
+            // 5) Her ayın 16'sı: GES Faturalarının UEDAŞ'a Kesilmesi
+            const key16 = `ROUTINE_${year}_${mStr}_16_GES_FATURA`;
+            const date16 = `${year}-${mStr}-16`;
+            const isPast16 = (date16 < realToday);
+            const isToday16 = (date16 === realToday);
+            if (!existingRoutineIds.has(key16)) {
+                state.tasks.push({
+                    id: "TSK_" + key16,
+                    routineKey: key16,
+                    date: date16,
+                    dueDate: date16,
+                    title: `GES Faturalarının UEDAŞ'a Kesilmesi`,
+                    category: "GES",
+                    priority: "Yüksek",
+                    status: isPast16 ? "Tamamlandı" : (isToday16 ? "Devam ediyor" : "Bekliyor"),
+                    assignedTo: "Muhasebe",
+                    description: "Güneş Enerjisi Santrali (GES) aylık elektrik üretim faturalarının UEDAŞ'a e-Fatura olarak kesilmesi ve resmi portaldan gönderilmesi.",
+                    note: "Üretim verileri ve endeks teyidiyle e-Fatura kesilir.",
+                    completedAt: isPast16 ? `${date16} 17:00` : null,
+                    isDeleted: false
+                });
+            }
+
+            // 6) Her ayın 16'sı: SODSAN Telefon Faturası Ziraat Otomatik Ödeme Kontrolü
+            const key16Tel = `ROUTINE_${year}_${mStr}_16_TELEFON_ZIRAAT`;
+            if (!existingRoutineIds.has(key16Tel)) {
+                state.tasks.push({
+                    id: "TSK_" + key16Tel,
+                    routineKey: key16Tel,
+                    date: date16,
+                    dueDate: date16,
+                    title: `SODSAN Telefon Faturası Ziraat Otomatik Ödeme Kontrolü`,
+                    category: "Fatura",
+                    priority: "Yüksek",
+                    status: isPast16 ? "Tamamlandı" : (isToday16 ? "Devam ediyor" : "Bekliyor"),
+                    assignedTo: "Muhasebe",
+                    description: "Ziraat Bankası otomatik talimat kontrolü: SODSAN telefon faturası için hesap bakiyesi kontrol edilir, otomatik çekim teyit edilir, gerçekleşmediyse manuel ödenir.",
+                    note: "Ziraat Bankası otomatik ödeme talimatı.",
+                    completedAt: isPast16 ? `${date16} 16:00` : null,
+                    isDeleted: false
+                });
+            }
+
+            // 7) Her ayın 19'u: Vodafone Faturası Ziraat Otomatik Ödeme Kontrolü
+            const key19Vod = `ROUTINE_${year}_${mStr}_19_VODAFONE_ZIRAAT`;
+            const date19 = `${year}-${mStr}-19`;
+            const isPast19 = (date19 < realToday);
+            const isToday19 = (date19 === realToday);
+            if (!existingRoutineIds.has(key19Vod)) {
+                state.tasks.push({
+                    id: "TSK_" + key19Vod,
+                    routineKey: key19Vod,
+                    date: date19,
+                    dueDate: date19,
+                    title: `Vodafone Faturası Ziraat Otomatik Ödeme Kontrolü`,
+                    category: "Fatura",
+                    priority: "Yüksek",
+                    status: isPast19 ? "Tamamlandı" : (isToday19 ? "Devam ediyor" : "Bekliyor"),
+                    assignedTo: "Muhasebe",
+                    description: "Ziraat Bankası otomatik talimat kontrolü: Vodafone kurumsal hat faturası için hesap bakiyesi kontrol edilir, otomatik çekim teyit edilir, gerçekleşmediyse manuel ödenir.",
+                    note: "Ziraat Bankası otomatik ödeme talimatı.",
+                    completedAt: isPast19 ? `${date19} 16:00` : null,
+                    isDeleted: false
+                });
+            }
+
+            // 8) Her ayın 20'si: Kredi Kartı Ödemeleri + Banka Kontrolleri
             const key20 = `ROUTINE_${year}_${mStr}_20_KK`;
             const date20 = `${year}-${mStr}-20`;
             const isPast20 = (date20 < realToday);
@@ -182,7 +296,7 @@ const SODSAN_DB = (function() {
                 });
             }
 
-            // 4) Her ayın 21'i: Mali Müşavir Ziyareti (Vergi/SGK/Bordro Kontrolü)
+            // 9) Her ayın 21'i: Mali Müşavir Ziyareti (Vergi/SGK/Bordro Kontrolü)
             const key21 = `ROUTINE_${year}_${mStr}_21_MUSAVIR`;
             const date21 = `${year}-${mStr}-21`;
             const isPast21 = (date21 < realToday);
@@ -205,7 +319,50 @@ const SODSAN_DB = (function() {
                 });
             }
 
-            // 5) Her ayın 25'i: Maaş Avansı
+            // 10) Her ayın 22'si: SODSAN Merkez Su Faturası Ziraat Otomatik Ödeme Kontrolü
+            const key22SuM = `ROUTINE_${year}_${mStr}_22_SU_MERKEZ_ZIRAAT`;
+            const date22 = `${year}-${mStr}-22`;
+            const isPast22 = (date22 < realToday);
+            const isToday22 = (date22 === realToday);
+            if (!existingRoutineIds.has(key22SuM)) {
+                state.tasks.push({
+                    id: "TSK_" + key22SuM,
+                    routineKey: key22SuM,
+                    date: date22,
+                    dueDate: date22,
+                    title: `SODSAN Merkez Su Faturası Ziraat Otomatik Ödeme Kontrolü`,
+                    category: "Fatura",
+                    priority: "Yüksek",
+                    status: isPast22 ? "Tamamlandı" : (isToday22 ? "Devam ediyor" : "Bekliyor"),
+                    assignedTo: "Muhasebe",
+                    description: "Ziraat Bankası otomatik talimat kontrolü: SODSAN Merkez su faturası için hesap bakiyesi kontrol edilir, otomatik çekim teyit edilir, gerçekleşmediyse manuel ödenir.",
+                    note: "Ziraat Bankası otomatik ödeme talimatı.",
+                    completedAt: isPast22 ? `${date22} 16:00` : null,
+                    isDeleted: false
+                });
+            }
+
+            // 11) Her ayın 22'si: SODSAN Şube Su Faturası Ziraat Otomatik Ödeme Kontrolü
+            const key22SuS = `ROUTINE_${year}_${mStr}_22_SU_SUBE_ZIRAAT`;
+            if (!existingRoutineIds.has(key22SuS)) {
+                state.tasks.push({
+                    id: "TSK_" + key22SuS,
+                    routineKey: key22SuS,
+                    date: date22,
+                    dueDate: date22,
+                    title: `SODSAN Şube Su Faturası Ziraat Otomatik Ödeme Kontrolü`,
+                    category: "Fatura",
+                    priority: "Yüksek",
+                    status: isPast22 ? "Tamamlandı" : (isToday22 ? "Devam ediyor" : "Bekliyor"),
+                    assignedTo: "Muhasebe",
+                    description: "Ziraat Bankası otomatik talimat kontrolü: SODSAN Şube su faturası için hesap bakiyesi kontrol edilir, otomatik çekim teyit edilir, gerçekleşmediyse manuel ödenir.",
+                    note: "Ziraat Bankası otomatik ödeme talimatı.",
+                    completedAt: isPast22 ? `${date22} 16:00` : null,
+                    isDeleted: false
+                });
+            }
+
+            // 8) Her ayın 25'i: Maaş Avansı
             const key25 = `ROUTINE_${year}_${mStr}_25_AVANS`;
             const date25 = `${year}-${mStr}-25`;
             const isPast25 = (date25 < realToday);
@@ -223,6 +380,29 @@ const SODSAN_DB = (function() {
                     description: "Avans talep eden 60 fabrika çalışanının avans listesinin hazırlanması ve bankadan transferi.",
                     note: "25'i hafta sonuna geliyorsa Cuma günü liste hazırlanır.",
                     completedAt: isPast25 ? `${date25} 14:00` : null,
+                    isDeleted: false
+                });
+            }
+
+            // 9) Her ayın 26'sı: Elektrik Faturası Ödeme Günü (Borçluysak Ödeme / Alacaklıysak Mahsup Kontrolü)
+            const key26 = `ROUTINE_${year}_${mStr}_26_ELEKTRIK_ODEME`;
+            const date26 = `${year}-${mStr}-26`;
+            const isPast26 = (date26 < realToday);
+            const isToday26 = (date26 === realToday);
+            if (!existingRoutineIds.has(key26)) {
+                state.tasks.push({
+                    id: "TSK_" + key26,
+                    routineKey: key26,
+                    date: date26,
+                    dueDate: date26,
+                    title: `Elektrik Faturası Ödeme Günü (Borçluysak Ödeme / Alacaklıysak Mahsup Kontrolü)`,
+                    category: "Elektrik",
+                    priority: "Acil",
+                    status: isPast26 ? "Tamamlandı" : (isToday26 ? "Devam ediyor" : "Bekliyor"),
+                    assignedTo: "Muhasebe / Finans",
+                    description: "Elektrik faturası ödeme günü: Borçluysak bankadan ödeme yapılması; alacaklıysak banka ve cari hesaptan bakiye ve mahsup kontrolünün yapılması.",
+                    note: "Borç/alacak durumuna göre banka talimatı verilir veya mahsup teyit edilir.",
+                    completedAt: isPast26 ? `${date26} 15:30` : null,
                     isDeleted: false
                 });
             }
