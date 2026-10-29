@@ -1243,7 +1243,7 @@ const App = window.App = {
             return `
                 <tr class="${isChecked ? 'row-selected' : ''}">
                     <td style="text-align:center;">
-                        <input type="checkbox" class="alici-row-check" value="${c.id}" ${isChecked ? 'checked' : ''} onchange="App.toggleRowSelectAlici('${c.id}', this.checked)">
+                        <input type="checkbox" class="alici-row-check" value="${c.id}" ${isChecked ? 'checked' : ''} onclick="App.toggleRowSelectAlici('${c.id}', this.checked, event)">
                     </td>
                     <td><code style="font-weight:600; color:#93c5fd;">${c.kod}</code></td>
                     <td>
@@ -1366,7 +1366,7 @@ const App = window.App = {
             return `
                 <tr class="${isChecked ? 'row-selected' : ''}">
                     <td style="text-align:center;">
-                        <input type="checkbox" class="satici-row-check" value="${c.id}" ${isChecked ? 'checked' : ''} onchange="App.toggleRowSelectSatici('${c.id}', this.checked)">
+                        <input type="checkbox" class="satici-row-check" value="${c.id}" ${isChecked ? 'checked' : ''} onclick="App.toggleRowSelectSatici('${c.id}', this.checked, event)">
                     </td>
                     <td><code style="font-weight:600; color:#fca5a5;">${c.kod}</code></td>
                     <td>
@@ -1400,15 +1400,72 @@ const App = window.App = {
         this.updateBulkBar("satici");
     },
 
-    toggleRowSelectAlici(cariId, checked) {
+    handleRowCheckClick(event, type, cariId) {
+        const isAlici = type === "alici";
+        const set = isAlici ? this.selectedAliciIds : this.selectedSaticiIds;
+        const lastIdProp = isAlici ? "_lastAliciCheckedId" : "_lastSaticiCheckedId";
+        const chkClass = isAlici ? ".alici-row-check" : ".satici-row-check";
+        const target = event.target;
+        const isChecked = target.checked;
+
+        if (event.shiftKey && this[lastIdProp]) {
+            const boxes = Array.from(document.querySelectorAll(chkClass));
+            const lastIndex = boxes.findIndex(b => b.value === this[lastIdProp]);
+            const currentIndex = boxes.findIndex(b => b.value === cariId);
+            if (lastIndex !== -1 && currentIndex !== -1) {
+                const start = Math.min(lastIndex, currentIndex);
+                const end = Math.max(lastIndex, currentIndex);
+                for (let i = start; i <= end; i++) {
+                    const b = boxes[i];
+                    b.checked = isChecked;
+                    if (isChecked) set.add(b.value);
+                    else set.delete(b.value);
+                    const tr = b.closest("tr");
+                    if (tr) tr.classList.toggle("row-selected", isChecked);
+                }
+                this[lastIdProp] = cariId;
+                this.updateBulkBar(type);
+                return;
+            }
+        }
+
+        this[lastIdProp] = cariId;
+        if (isChecked) set.add(cariId);
+        else set.delete(cariId);
+        const tr = target.closest("tr");
+        if (tr) tr.classList.toggle("row-selected", isChecked);
+        this.updateBulkBar(type);
+    },
+
+    toggleRowSelectAlici(cariId, checked, event) {
+        if (event) {
+            this.handleRowCheckClick(event, "alici", cariId);
+            return;
+        }
         if (checked) this.selectedAliciIds.add(cariId);
         else this.selectedAliciIds.delete(cariId);
+        this._lastAliciCheckedId = cariId;
+        const box = document.querySelector(`.alici-row-check[value="${cariId}"]`);
+        if (box) {
+            const tr = box.closest("tr");
+            if (tr) tr.classList.toggle("row-selected", checked);
+        }
         this.updateBulkBar("alici");
     },
 
-    toggleRowSelectSatici(cariId, checked) {
+    toggleRowSelectSatici(cariId, checked, event) {
+        if (event) {
+            this.handleRowCheckClick(event, "satici", cariId);
+            return;
+        }
         if (checked) this.selectedSaticiIds.add(cariId);
         else this.selectedSaticiIds.delete(cariId);
+        this._lastSaticiCheckedId = cariId;
+        const box = document.querySelector(`.satici-row-check[value="${cariId}"]`);
+        if (box) {
+            const tr = box.closest("tr");
+            if (tr) tr.classList.toggle("row-selected", checked);
+        }
         this.updateBulkBar("satici");
     },
 
@@ -1418,6 +1475,8 @@ const App = window.App = {
             b.checked = checked;
             if (checked) this.selectedAliciIds.add(b.value);
             else this.selectedAliciIds.delete(b.value);
+            const tr = b.closest("tr");
+            if (tr) tr.classList.toggle("row-selected", checked);
         });
         this.updateBulkBar("alici");
     },
@@ -1428,14 +1487,58 @@ const App = window.App = {
             b.checked = checked;
             if (checked) this.selectedSaticiIds.add(b.value);
             else this.selectedSaticiIds.delete(b.value);
+            const tr = b.closest("tr");
+            if (tr) tr.classList.toggle("row-selected", checked);
         });
         this.updateBulkBar("satici");
     },
 
     updateBulkBar(type) {
-        const set = type === "alici" ? this.selectedAliciIds : this.selectedSaticiIds;
+        const isAlici = type === "alici";
+        const set = isAlici ? this.selectedAliciIds : this.selectedSaticiIds;
         const cntEl = document.getElementById(type + "SelectedCount");
         if (cntEl) cntEl.textContent = set.size;
+
+        let sumNet = 0;
+        let sumBorc = 0;
+        let sumAlacak = 0;
+
+        if (this.computedCarilerMap) {
+            for (const id of set) {
+                const c = this.computedCarilerMap[id];
+                if (!c) continue;
+                sumBorc += (c.toplamBorc || 0);
+                sumAlacak += (c.toplamAlacak || 0);
+                if (isAlici) {
+                    sumNet += (c.netBakiye || 0);
+                } else {
+                    sumNet += Math.abs(c.netBakiye || 0);
+                }
+            }
+        }
+
+        const totalEl = document.getElementById(type + "SelectedTotalAmount");
+        if (totalEl) totalEl.textContent = this.formatMoney(sumNet);
+
+        const subEl = document.getElementById(type + "SelectedSubDetail");
+        if (subEl) {
+            if (isAlici) {
+                subEl.textContent = `(Satış: ${this.formatMoney(sumBorc)} | Tahsilat: ${this.formatMoney(sumAlacak)})`;
+            } else {
+                subEl.textContent = `(Alış: ${this.formatMoney(sumAlacak)} | Ödeme: ${this.formatMoney(sumBorc)})`;
+            }
+        }
+
+        const boxEl = document.getElementById(type + "SelectedTotalBox");
+        if (boxEl) {
+            if (set.size > 0) {
+                boxEl.style.opacity = "1";
+                boxEl.style.boxShadow = isAlici ? "0 0 10px rgba(56,189,248,0.25)" : "0 0 10px rgba(239,68,68,0.25)";
+            } else {
+                boxEl.style.opacity = "0.75";
+                boxEl.style.boxShadow = "none";
+            }
+        }
     },
 
     async onInlineCariVadeChange(cariId, optValue) {
@@ -1455,7 +1558,7 @@ const App = window.App = {
 
         await this.saveState();
         this.recalculateAndRenderAll();
-        this.showToast(`? "${c.unvan}" vade seçeneği kalıcı olarak kaydedildi: ${opt ? opt.label : optValue}`);
+        this.showToast(`✅ "${c.unvan}" vade seçeneği kalıcı olarak kaydedildi: ${opt ? opt.label : optValue}`);
     },
 
     async onBulkVadeDropdownChange(type, selVade) {
@@ -1512,15 +1615,19 @@ const App = window.App = {
 
         set.clear();
         this.updateBulkBar(type);
-        // Checkboxları da temizle
+        // Checkboxları ve satır vurgularını da temizle
         const chkClass = type === "alici" ? ".alici-row-check" : ".satici-row-check";
-        document.querySelectorAll(chkClass).forEach(b => { b.checked = false; });
+        document.querySelectorAll(chkClass).forEach(b => {
+            b.checked = false;
+            const tr = b.closest("tr");
+            if (tr) tr.classList.remove("row-selected");
+        });
         const allChk = document.getElementById(type === "alici" ? "selectAllAlicilar" : "selectAllSaticilar");
         if (allChk) allChk.checked = false;
 
         await this.saveState();
         this.recalculateAndRenderAll();
-        this.showToast(`? ${count} adet cariye '${opt ? opt.label : selVade}' kuralı uygulandı ve kalıcı kaydedildi.`);
+        this.showToast(`✅ ${count} adet cariye '${opt ? opt.label : selVade}' kuralı uygulandı ve kalıcı kaydedildi.`);
     },
 
     showToast(msg) {

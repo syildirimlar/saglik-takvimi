@@ -539,6 +539,14 @@ tr:hover td {
     background: rgba(255, 255, 255, 0.02);
 }
 
+tr.row-selected td {
+    background: rgba(56, 189, 248, 0.12) !important;
+}
+
+tr.row-selected:hover td {
+    background: rgba(56, 189, 248, 0.18) !important;
+}
+
 .num {
     text-align: right;
     font-variant-numeric: tabular-nums;

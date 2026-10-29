@@ -13,7 +13,7 @@
     <meta name="apple-mobile-web-app-title" content="SODSAN Finans">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="format-detection" content="telephone=no">
-    <link rel="stylesheet" href="css/style.css?v=20261028_5">
+    <link rel="stylesheet" href="css/style.css?v=20261029_1">
 </head>
 <body>
 
@@ -222,6 +222,11 @@
                         <select id="aliciBulkVade" class="cari-vade-select" style="max-width:320px;" onchange="App.onBulkVadeDropdownChange('alici', this.value)"></select>
                         <input type="text" id="aliciBulkGrup" placeholder="Grup Ata (Örn: A Grubu, Otomotiv...)" style="padding:4px 8px; font-size:11.5px; border-radius:4px; border:1px solid rgba(255,255,255,0.2); background:rgba(15,23,42,0.8); color:#f8fafc; min-width:180px;">
                         <button type="button" class="btn btn-success btn-sm" style="padding:4px 12px;" onclick="App.applyBulkAssign('alici')">💾 Seçilenlere Otomatik Uygula</button>
+                        <div id="aliciSelectedTotalBox" style="display:inline-flex; align-items:center; gap:6px; margin-left:4px; padding:4px 12px; border-radius:6px; background:rgba(56,189,248,0.14); border:1px solid #38bdf8; font-size:12px; color:#e0f2fe; transition:all 0.2s ease;">
+                            <span style="color:#7dd3fc; font-weight:600;">💰 Seçilen Net Alacak:</span>
+                            <span id="aliciSelectedTotalAmount" style="font-size:13.5px; font-weight:800; color:#38bdf8;">0,00 ₺</span>
+                            <span id="aliciSelectedSubDetail" style="font-size:11px; color:#94a3b8; font-weight:normal; margin-left:2px;">(Satış: 0,00 ₺ | Tahsilat: 0,00 ₺)</span>
+                        </div>
                     </div>
                     <div style="font-size:11px; color:var(--text-muted);">
                         Tablodaki açılır kutudan her müşteriyi tek tıkla da değiştirebilirsiniz.
@@ -303,6 +308,11 @@
                         <select id="saticiBulkVade" class="cari-vade-select" style="max-width:320px;" onchange="App.onBulkVadeDropdownChange('satici', this.value)"></select>
                         <input type="text" id="saticiBulkGrup" placeholder="Grup Ata (Örn: Hammadde, Sarf, Fason...)" style="padding:4px 8px; font-size:11.5px; border-radius:4px; border:1px solid rgba(255,255,255,0.2); background:rgba(15,23,42,0.8); color:#f8fafc; min-width:180px;">
                         <button type="button" class="btn btn-success btn-sm" style="padding:4px 12px;" onclick="App.applyBulkAssign('satici')">💾 Seçilenlere Otomatik Uygula</button>
+                        <div id="saticiSelectedTotalBox" style="display:inline-flex; align-items:center; gap:6px; margin-left:4px; padding:4px 12px; border-radius:6px; background:rgba(239,68,68,0.14); border:1px solid #ef4444; font-size:12px; color:#fee2e2; transition:all 0.2s ease;">
+                            <span style="color:#fca5a5; font-weight:600;">💸 Seçilen Net Borç:</span>
+                            <span id="saticiSelectedTotalAmount" style="font-size:13.5px; font-weight:800; color:#f87171;">0,00 ₺</span>
+                            <span id="saticiSelectedSubDetail" style="font-size:11px; color:#94a3b8; font-weight:normal; margin-left:2px;">(Alış: 0,00 ₺ | Ödeme: 0,00 ₺)</span>
+                        </div>
                     </div>
                     <div style="font-size:11px; color:var(--text-muted);">
                         Tablodaki açılır kutudan her tedarikçiyi tek tıkla da değiştirebilirsiniz.
@@ -1192,10 +1202,10 @@
     <script src="js/xlsx.full.min.js"></script>
     <script src="js/pdf.min.js"></script>
     <script src="js/pdf.worker.min.js"></script>
-    <script src="js/ubl_parser.js?v=20261028_5"></script>
-    <script src="js/excel_importer.js?v=20261028_5"></script>
-    <script src="js/cloud_bridge.js?v=20261028_5"></script>
-    <script src="js/app.js?v=20261028_5"></script>
+    <script src="js/ubl_parser.js?v=20261029_1"></script>
+    <script src="js/excel_importer.js?v=20261029_1"></script>
+    <script src="js/cloud_bridge.js?v=20261029_1"></script>
+    <script src="js/app.js?v=20261029_1"></script>
     <script>
         if ('serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.hostname === 'localhost')) {
             window.addEventListener('load', () => {
