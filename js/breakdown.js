@@ -1,5 +1,5 @@
 // SODSAN Fabrika Portalı - Makina Arıza ve Bakım Takip Modülü (breakdown.js)
-import { appState, playAlertSound, logSystemAction, registerMachine, updateMachine, deleteMachine, addExternalService, updateExternalService, deleteExternalService, isIdariIslerOrAdmin } from './data.js';
+import { appState, playAlertSound, logSystemAction, registerMachine, updateMachine, deleteMachine, addExternalService, updateExternalService, deleteExternalService, isAdmin } from './data.js';
 
 export class BreakdownModule {
   constructor() {
@@ -184,6 +184,10 @@ export class BreakdownModule {
 
     if (btnOpenAddExt) {
       btnOpenAddExt.addEventListener("click", () => {
+        if (!isAdmin()) {
+          alert("Yetki Hatası: Dış servis ve usta ekleme yetkisi yalnızca Sistem Yöneticisine (Admin) aittir!");
+          return;
+        }
         const modal = document.getElementById("modal-add-external-service");
         if (modal) modal.classList.add("show");
       });
@@ -270,6 +274,11 @@ export class BreakdownModule {
   }
 
   saveExternalService() {
+    if (!isAdmin()) {
+      alert("Yetki Hatası: Dış servis ve usta ekleme yetkisi yalnızca Sistem Yöneticisine (Admin) aittir!");
+      return;
+    }
+
     const compName = document.getElementById("ext-service-company").value.trim();
     const contact = document.getElementById("ext-service-contact").value.trim();
     const specialty = document.getElementById("ext-service-specialty").value.trim();
@@ -305,6 +314,11 @@ export class BreakdownModule {
   }
 
   openEditExternalServiceModal(serviceId) {
+    if (!isAdmin()) {
+      alert("Yetki Hatası: Dış servis ve usta bilgilerini düzenleme yetkisi yalnızca Sistem Yöneticisine (Admin) aittir!");
+      return;
+    }
+
     const service = (appState.state.externalServices || []).find(s => s.id === serviceId);
     if (!service) return;
 
@@ -320,6 +334,11 @@ export class BreakdownModule {
   }
 
   saveEditedExternalService() {
+    if (!isAdmin()) {
+      alert("Yetki Hatası: Dış servis ve usta bilgilerini düzenleme yetkisi yalnızca Sistem Yöneticisine (Admin) aittir!");
+      return;
+    }
+
     const id = document.getElementById("edit-ext-service-id").value;
     const compName = document.getElementById("edit-ext-service-company").value.trim();
     const contact = document.getElementById("edit-ext-service-contact").value.trim();
@@ -371,7 +390,15 @@ export class BreakdownModule {
       return;
     }
 
-    const canManage = isIdariIslerOrAdmin();
+    const canManage = isAdmin();
+    const btnOpenAddExt = document.getElementById("btn-open-add-external-service");
+    if (btnOpenAddExt) {
+      if (canManage) {
+        btnOpenAddExt.classList.remove("hidden");
+      } else {
+        btnOpenAddExt.classList.add("hidden");
+      }
+    }
 
     container.innerHTML = list.map(item => `
       <div class="bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between space-y-2.5 hover:border-blue-300 dark:hover:border-blue-600 transition">
@@ -394,10 +421,10 @@ export class BreakdownModule {
           </a>
           <div class="flex items-center gap-1">
             ${canManage ? `
-              <button data-edit-ext-service="${item.id}" class="bg-blue-50 hover:bg-blue-100 text-blue-700 p-1.5 rounded-lg transition text-xs font-bold flex items-center gap-1 cursor-pointer" title="Usta / Servis Bilgilerini Düzenle">
+              <button data-edit-ext-service="${item.id}" class="bg-blue-50 hover:bg-blue-100 text-blue-700 p-1.5 rounded-lg transition text-xs font-bold flex items-center gap-1 cursor-pointer" title="Usta / Servis Bilgilerini Düzenle (Yalnızca Admin)">
                 <span>✏️</span> <span class="hidden sm:inline">Düzenle</span>
               </button>
-              <button data-delete-ext-service="${item.id}" class="text-red-500 hover:text-red-700 p-1.5 rounded-lg hover:bg-red-50 transition text-xs font-bold cursor-pointer" title="Rehberden Sil">
+              <button data-delete-ext-service="${item.id}" class="text-red-500 hover:text-red-700 p-1.5 rounded-lg hover:bg-red-50 transition text-xs font-bold cursor-pointer" title="Rehberden Sil (Yalnızca Admin)">
                 🗑️
               </button>
             ` : ''}
@@ -415,6 +442,10 @@ export class BreakdownModule {
 
     container.querySelectorAll("[data-delete-ext-service]").forEach(btn => {
       btn.addEventListener("click", (e) => {
+        if (!isAdmin()) {
+          alert("Yetki Hatası: Dış servis ve usta silme yetkisi yalnızca Sistem Yöneticisine (Admin) aittir!");
+          return;
+        }
         const id = e.currentTarget.getAttribute("data-delete-ext-service");
         const target = (appState.state.externalServices || []).find(s => s.id === id);
         if (confirm(`"${target ? target.companyName : 'Bu servis'}" ekibini rehberden silmek istediğinize emin misiniz?`)) {
