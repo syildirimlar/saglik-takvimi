@@ -13,9 +13,54 @@
     <meta name="apple-mobile-web-app-title" content="SODSAN Finans">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="format-detection" content="telephone=no">
-    <link rel="stylesheet" href="css/style.css?v=20261029_1">
+    <link rel="stylesheet" href="css/style.css?v=20261029_2">
 </head>
 <body>
+
+    <!-- 🔐 GÜVENLİ GİRİŞ EKRANI (LOGIN OVERLAY) -->
+    <div id="loginOverlay" class="active">
+        <div class="login-card">
+            <div class="login-logo-box">
+                <div class="login-logo-icon">S</div>
+                <div class="login-title">SODSAN FİNANS & TAHSİLAT</div>
+                <div class="login-subtitle">🔐 Güvenli Kurumsal Giriş</div>
+            </div>
+
+            <form id="loginForm" onsubmit="App.handleLoginSubmit(event)">
+                <div class="login-input-group">
+                    <label for="loginUsername">Kullanıcı Adı</label>
+                    <div class="login-input-wrap">
+                        <input type="text" id="loginUsername" placeholder="Kullanıcı adınızı girin" autocomplete="username" required autofocus>
+                        <span class="login-input-icon">👤</span>
+                    </div>
+                </div>
+
+                <div class="login-input-group">
+                    <label for="loginPassword">Şifre</label>
+                    <div class="login-input-wrap">
+                        <input type="password" id="loginPassword" placeholder="Şifrenizi girin" autocomplete="current-password" required>
+                        <span class="login-input-icon" onclick="App.togglePasswordVisibility('loginPassword', this)" title="Şifreyi Göster / Gizle">👁️</span>
+                    </div>
+                </div>
+
+                <div class="login-remember-row">
+                    <label>
+                        <input type="checkbox" id="loginRememberMe" checked>
+                        <span>Beni bu cihazda hatırla</span>
+                    </label>
+                </div>
+
+                <button type="submit" class="btn-login-submit" id="btnLoginSubmit">🚀 Güvenli Giriş Yap</button>
+
+                <div class="login-error-box" id="loginErrorMsg"></div>
+
+                <div class="login-hint-box">
+                    💡 <strong>Varsayılan Yönetici:</strong> <code>admin</code> &nbsp;|&nbsp; <strong>Şifre:</strong> <code>sodsan2026</code>
+                    <div style="font-size:11px; margin-top:4px; opacity:0.8;">Giriş yaptıktan sonra şifrenizi dilediğiniz zaman değiştirebilirsiniz.</div>
+                </div>
+            </form>
+        </div>
+    </div>
 
     <!-- ÜST BAR -->
     <header class="app-header">
@@ -40,6 +85,14 @@
             <button class="btn btn-outline btn-sm" onclick="CloudBridge.openRemoteShareModal()" title="İnternet ve Telefon Bağlantı Linkini Gör / Kopyala" style="border-color:#38bdf8; color:#38bdf8;">🌐 İnternet / Mobil</button>
             <button class="btn btn-outline btn-sm" onclick="App.openQuickTransactionModal('TAHSILAT')">+ İşlem Gir</button>
             <button class="btn btn-outline btn-sm" onclick="App.switchTab('zirve')">⚙️ Ayarlar</button>
+
+            <!-- KULLANICI BİLGİ ROZETİ VE ÇIKIŞ -->
+            <div id="userHeaderBadge" style="display:none; align-items:center; gap:8px; padding:3px 10px; border-radius:6px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.15); font-size:12px;">
+                <span id="userHeaderName" style="color:#f8fafc; font-weight:600;">👤 Admin</span>
+                <span id="userHeaderRole" class="badge-role-admin">Yönetici</span>
+                <button type="button" class="btn btn-outline btn-sm" onclick="App.openChangePasswordModal()" title="Kendi Şifremi Değiştir" style="padding:2px 7px; font-size:11px; margin-left:2px;">🔑</button>
+                <button type="button" class="btn btn-outline btn-sm" onclick="App.logout()" title="Oturumu Kapat" style="padding:2px 8px; font-size:11px; border-color:#f87171; color:#f87171;">🚪 Çıkış</button>
+            </div>
         </div>
     </header>
 
@@ -767,6 +820,34 @@
                         <button class="btn btn-outline" onclick="CloudBridge.resetToDefaultBin()" title="Varsayılan Eşitleme Kodunu (ccddcda) Geri Yükle">🔄 Varsayılan Koda Dön</button>
                     </div>
                 </div>
+
+                <!-- KULLANICI YÖNETİMİ & HESAP AÇMA (SADECE ADMİN) -->
+                <div class="card" id="adminUserManagementCard" style="grid-column: 1 / -1; margin-top:16px;">
+                    <div class="card-header">
+                        <div class="card-title">👥 3. Sistem Kullanıcıları & Yetki Yönetimi (Sistem Yöneticisi)</div>
+                        <button class="btn btn-primary btn-sm" onclick="App.openAddUserModal()">+ Yeni Kullanıcı Aç</button>
+                    </div>
+                    <p style="font-size:12.5px; color:var(--text-muted); margin-bottom:14px;">
+                        Buradan firmanızdaki personellere kullanıcı hesabı açabilir, yetki rollerini belirleyebilir, şifrelerini güncelleyebilir veya erişimlerini durdurabilirsiniz.
+                    </p>
+
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Kullanıcı Adı</th>
+                                    <th>Ad Soyad</th>
+                                    <th>Yetki Rolü</th>
+                                    <th>Durum</th>
+                                    <th>Kayıt Tarihi</th>
+                                    <th>Son Giriş</th>
+                                    <th style="text-align:right;">İşlemler</th>
+                                </tr>
+                            </thead>
+                            <tbody id="usersTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </section>
 
@@ -1194,6 +1275,88 @@
         </div>
     </div>
 
+    <!-- MODAL: KULLANICI EKLE / DÜZENLE -->
+    <div class="modal-backdrop" id="userModal">
+        <div class="modal-box" style="max-width:540px;">
+            <div class="modal-header">
+                <div>
+                    <h3 id="userModalTitle">Yeni Kullanıcı Tanımla</h3>
+                    <div style="font-size:11.5px; color:var(--text-muted);">Sisteme erişecek personel için kullanıcı adı ve yetki belirleyin</div>
+                </div>
+                <button class="modal-close" onclick="App.closeModal('userModal')">✕</button>
+            </div>
+            <div class="modal-body" style="padding:16px;">
+                <input type="hidden" id="umUserId">
+                <div class="form-group" style="margin-bottom:12px;">
+                    <label>Kullanıcı Adı (Girişte kullanılacak)</label>
+                    <input type="text" id="umUsername" placeholder="Örn: ahmet, mehmet, muhasebe..." style="width:100%;">
+                </div>
+                <div class="form-group" style="margin-bottom:12px;">
+                    <label>Ad Soyad / Personel İsmi</label>
+                    <input type="text" id="umFullName" placeholder="Örn: Ahmet Yılmaz" style="width:100%;">
+                </div>
+                <div class="form-group" style="margin-bottom:12px;">
+                    <label id="umPasswordLabel">Giriş Şifresi</label>
+                    <div style="position:relative;">
+                        <input type="password" id="umPassword" placeholder="En az 4 karakter" style="width:100%; padding-right:36px;">
+                        <span class="login-input-icon" onclick="App.togglePasswordVisibility('umPassword', this)">👁️</span>
+                    </div>
+                    <div id="umPasswordHelp" style="font-size:11px; color:var(--text-muted); margin-top:3px; display:none;">Kullanıcıyı düzenlerken şifreyi değiştirmek istemiyorsanız boş bırakabilirsiniz.</div>
+                </div>
+                <div class="form-group" style="margin-bottom:12px;">
+                    <label>Yetki Rolü</label>
+                    <select id="umRole" style="width:100%;">
+                        <option value="ADMIN">👑 Yönetici (Admin) - Tüm Yetkiler, Kullanıcı Açma, Ekstre Yükleme, Ayarlar</option>
+                        <option value="USER" selected>💼 Finans & Operasyon - Carileri Görme, Vade/Not Güncelleme, Tahsilat Girme</option>
+                        <option value="VIEWER">👁️ Görüntüleyici (Okuma) - Sadece Rapor ve Bakiyeleri İnceleme (Değişiklik Yapamaz)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Hesap Durumu</label>
+                    <select id="umIsActive" style="width:100%;">
+                        <option value="true">🟢 Aktif (Giriş Yapabilir)</option>
+                        <option value="false">🔴 Pasif (Girişi Engelli)</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline" onclick="App.closeModal('userModal')">Vazgeç</button>
+                <button type="button" class="btn btn-primary" onclick="App.saveUserForm()">💾 Kullanıcıyı Kaydet</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: KENDİ ŞİFREMİ DEĞİŞTİR -->
+    <div class="modal-backdrop" id="changePasswordModal">
+        <div class="modal-box" style="max-width:440px;">
+            <div class="modal-header">
+                <div>
+                    <h3>Şifremi Değiştir</h3>
+                    <div style="font-size:11.5px; color:var(--text-muted);">Giriş şifrenizi güvenli bir şekilde güncelleyin</div>
+                </div>
+                <button class="modal-close" onclick="App.closeModal('changePasswordModal')">✕</button>
+            </div>
+            <div class="modal-body" style="padding:16px;">
+                <div class="form-group" style="margin-bottom:12px;">
+                    <label>Mevcut Şifreniz</label>
+                    <input type="password" id="cpOldPassword" placeholder="Şu anki şifreniz" style="width:100%;">
+                </div>
+                <div class="form-group" style="margin-bottom:12px;">
+                    <label>Yeni Şifre</label>
+                    <input type="password" id="cpNewPassword" placeholder="En az 4 karakter" style="width:100%;">
+                </div>
+                <div class="form-group" style="margin-bottom:8px;">
+                    <label>Yeni Şifre (Tekrar)</label>
+                    <input type="password" id="cpConfirmPassword" placeholder="Yeni şifrenizi tekrar yazın" style="width:100%;">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline" onclick="App.closeModal('changePasswordModal')">Vazgeç</button>
+                <button type="button" class="btn btn-primary" onclick="App.saveMyPasswordChange()">💾 Şifremi Güncelle</button>
+            </div>
+        </div>
+    </div>
+
     <!-- BİLDİRİM TOAST KUTUSU -->
     <div id="appToast" style="display:none; position:fixed; bottom:24px; right:24px; background:#10b981; color:#fff; padding:12px 20px; border-radius:8px; font-weight:600; font-size:13px; z-index:999999; box-shadow:0 6px 20px rgba(0,0,0,0.45); border:1px solid rgba(255,255,255,0.2); transition:opacity 0.3s;"></div>
 
@@ -1202,10 +1365,10 @@
     <script src="js/xlsx.full.min.js"></script>
     <script src="js/pdf.min.js"></script>
     <script src="js/pdf.worker.min.js"></script>
-    <script src="js/ubl_parser.js?v=20261029_1"></script>
-    <script src="js/excel_importer.js?v=20261029_1"></script>
-    <script src="js/cloud_bridge.js?v=20261029_1"></script>
-    <script src="js/app.js?v=20261029_1"></script>
+    <script src="js/ubl_parser.js?v=20261029_2"></script>
+    <script src="js/excel_importer.js?v=20261029_2"></script>
+    <script src="js/cloud_bridge.js?v=20261029_2"></script>
+    <script src="js/app.js?v=20261029_2"></script>
     <script>
         if ('serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.hostname === 'localhost')) {
             window.addEventListener('load', () => {

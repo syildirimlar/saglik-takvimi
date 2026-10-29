@@ -62,7 +62,7 @@ window.CloudBridge = {
         }
 
         this.renderCloudPanel();
-        this.checkPinLockOnStartup();
+        // Modern role-based auth wall in App handles security
 
         // Her 2 dakikada bir buluttan güncellemeleri çek
         setInterval(() => {

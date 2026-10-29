@@ -20,8 +20,12 @@ const App = window.App = {
         hareketler: [],
         faturalar: [],
         ceksenetler: [],
-        cariConfigs: {}
+        cariConfigs: {},
+        users: []
     },
+
+    currentUser: null,
+    DEFAULT_ADMIN_HASH: "70ebaac9d877946585c7f284ff42bfc94dfad24d7d1efff2e94967869965669a",
 
     activeEkstreCariId: null,
     computedCarilerMap: {},
@@ -57,6 +61,7 @@ const App = window.App = {
     async init() {
         this.setupDragAndDrop();
         await this.loadState();
+        this.ensureUsersExist();
         this.syncCariConfigs();
         this.applySettingsToUi();
         this.populateBulkVadeSelects();
@@ -64,6 +69,7 @@ const App = window.App = {
         if (window.CloudBridge) {
             await window.CloudBridge.init();
         }
+        this.checkSession();
     },
 
     normalizeKod(kod) {
@@ -884,6 +890,13 @@ const App = window.App = {
         document.querySelectorAll(".tab-panel").forEach(panel => {
             panel.classList.toggle("active", panel.id === "tab-" + tabName);
         });
+        if (tabName === "zirve") {
+            const adminCard = document.getElementById("adminUserManagementCard");
+            if (adminCard) {
+                adminCard.style.display = (this.currentUser && this.currentUser.role === "ADMIN") ? "block" : "none";
+            }
+            this.renderUsersTable();
+        }
     },
 
     filterCarilerByRole(role) {
@@ -3064,6 +3077,497 @@ const App = window.App = {
         } catch (e) {
             alert("Geçersiz yedek dosyası.");
         }
+    },
+
+    // ================= 🔐 GÜVENLİK, GİRİŞ & KULLANICI YÖNETİMİ =================
+    async hashPassword(password) {
+        const salt = "sodsan_salt_2026_";
+        const text = salt + String(password);
+        try {
+            if (window.crypto && window.crypto.subtle) {
+                const msgUint8 = new TextEncoder().encode(text);
+                const hashBuffer = await window.crypto.subtle.digest("SHA-256", msgUint8);
+                const hashArray = Array.from(new Uint8Array(hashBuffer));
+                return hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
+            }
+        } catch (e) {}
+        let hash = 0;
+        for (let i = 0; i < text.length; i++) {
+            const char = text.charCodeAt(i);
+            hash = ((hash << 5) - hash) + char;
+            hash = hash & hash;
+        }
+        return "fb_" + Math.abs(hash).toString(16);
+    },
+
+    ensureUsersExist() {
+        if (!this.state.users || !Array.isArray(this.state.users) || this.state.users.length === 0) {
+            this.state.users = [
+                {
+                    id: "usr_admin",
+                    username: "admin",
+                    fullName: "Sistem Yöneticisi (Admin)",
+                    passwordHash: this.DEFAULT_ADMIN_HASH,
+                    role: "ADMIN",
+                    isActive: true,
+                    createdAt: "2026-10-29T10:00:00.000Z",
+                    lastLogin: null
+                }
+            ];
+        } else {
+            const hasAdmin = this.state.users.some(u => u.role === "ADMIN" && u.isActive);
+            if (!hasAdmin) {
+                const admin = this.state.users.find(u => u.username === "admin");
+                if (admin) {
+                    admin.role = "ADMIN";
+                    admin.isActive = true;
+                } else {
+                    this.state.users.unshift({
+                        id: "usr_admin",
+                        username: "admin",
+                        fullName: "Sistem Yöneticisi (Admin)",
+                        passwordHash: this.DEFAULT_ADMIN_HASH,
+                        role: "ADMIN",
+                        isActive: true,
+                        createdAt: new Date().toISOString(),
+                        lastLogin: null
+                    });
+                }
+            }
+        }
+    },
+
+    checkSession() {
+        let session = null;
+        try {
+            const rawSession = sessionStorage.getItem("sodsan_auth_session") || localStorage.getItem("sodsan_auth_session");
+            if (rawSession) {
+                session = JSON.parse(rawSession);
+            }
+        } catch (e) {}
+
+        if (session && session.username) {
+            this.ensureUsersExist();
+            const user = this.state.users.find(u => u.username.toLowerCase() === session.username.toLowerCase());
+            if (user && user.isActive) {
+                this.currentUser = user;
+                this.onLoginSuccess(user, false);
+                return true;
+            }
+        }
+
+        this.currentUser = null;
+        this.showLoginOverlay();
+        return false;
+    },
+
+    showLoginOverlay() {
+        const overlay = document.getElementById("loginOverlay");
+        if (overlay) overlay.classList.add("active");
+        const badge = document.getElementById("userHeaderBadge");
+        if (badge) badge.style.display = "none";
+        const err = document.getElementById("loginErrorMsg");
+        if (err) err.style.display = "none";
+        const uInput = document.getElementById("loginUsername");
+        if (uInput) {
+            uInput.value = "";
+            setTimeout(() => uInput.focus(), 150);
+        }
+        const pInput = document.getElementById("loginPassword");
+        if (pInput) pInput.value = "";
+    },
+
+    hideLoginOverlay() {
+        const overlay = document.getElementById("loginOverlay");
+        if (overlay) overlay.classList.remove("active");
+    },
+
+    async handleLoginSubmit(event) {
+        if (event) event.preventDefault();
+        const uEl = document.getElementById("loginUsername");
+        const pEl = document.getElementById("loginPassword");
+        const remEl = document.getElementById("loginRememberMe");
+        const errEl = document.getElementById("loginErrorMsg");
+        const btn = document.getElementById("btnLoginSubmit");
+
+        const username = (uEl ? uEl.value : "").trim().toLowerCase();
+        const password = (pEl ? pEl.value : "").trim();
+        const rememberMe = remEl ? remEl.checked : true;
+
+        if (!username || !password) {
+            if (errEl) {
+                errEl.textContent = "Lütfen kullanıcı adı ve şifrenizi giriniz.";
+                errEl.style.display = "block";
+            }
+            return;
+        }
+
+        if (btn) btn.textContent = "Kontrol ediliyor...";
+
+        this.ensureUsersExist();
+        const user = this.state.users.find(u => u.username.toLowerCase() === username);
+
+        if (!user) {
+            if (btn) btn.textContent = "🚀 Güvenli Giriş Yap";
+            if (errEl) {
+                errEl.textContent = "Kullanıcı adı veya şifre hatalı!";
+                errEl.style.display = "block";
+            }
+            return;
+        }
+
+        if (!user.isActive) {
+            if (btn) btn.textContent = "🚀 Güvenli Giriş Yap";
+            if (errEl) {
+                errEl.textContent = "Bu kullanıcı hesabı yönetici tarafından pasife alınmıştır.";
+                errEl.style.display = "block";
+            }
+            return;
+        }
+
+        const inputHash = await this.hashPassword(password);
+        if (user.passwordHash !== inputHash) {
+            if (btn) btn.textContent = "🚀 Güvenli Giriş Yap";
+            if (errEl) {
+                errEl.textContent = "Kullanıcı adı veya şifre hatalı!";
+                errEl.style.display = "block";
+            }
+            return;
+        }
+
+        if (btn) btn.textContent = "🚀 Güvenli Giriş Yap";
+        user.lastLogin = new Date().toISOString();
+        this.currentUser = user;
+
+        const sessionData = {
+            id: user.id,
+            username: user.username,
+            fullName: user.fullName,
+            role: user.role,
+            loginTime: Date.now()
+        };
+
+        try {
+            sessionStorage.setItem("sodsan_auth_session", JSON.stringify(sessionData));
+            if (rememberMe) {
+                localStorage.setItem("sodsan_auth_session", JSON.stringify(sessionData));
+            } else {
+                localStorage.removeItem("sodsan_auth_session");
+            }
+        } catch (e) {}
+
+        await this.saveStateLocallyOnly();
+        this.onLoginSuccess(user, true);
+    },
+
+    onLoginSuccess(user, showGreeting = true) {
+        this.hideLoginOverlay();
+
+        const badge = document.getElementById("userHeaderBadge");
+        const nameEl = document.getElementById("userHeaderName");
+        const roleEl = document.getElementById("userHeaderRole");
+
+        if (badge) badge.style.display = "inline-flex";
+        if (nameEl) nameEl.textContent = `👤 ${user.fullName || user.username}`;
+        if (roleEl) {
+            if (user.role === "ADMIN") {
+                roleEl.className = "badge-role-admin";
+                roleEl.textContent = "👑 Yönetici";
+            } else if (user.role === "VIEWER") {
+                roleEl.className = "badge-role-viewer";
+                roleEl.textContent = "👁️ İzleyici";
+            } else {
+                roleEl.className = "badge-role-user";
+                roleEl.textContent = "💼 Finans";
+            }
+        }
+
+        const adminCard = document.getElementById("adminUserManagementCard");
+        if (adminCard) {
+            adminCard.style.display = (user.role === "ADMIN") ? "block" : "none";
+        }
+
+        this.renderUsersTable();
+
+        if (showGreeting) {
+            const roleTitle = user.role === "ADMIN" ? "Yönetici" : (user.role === "VIEWER" ? "İzleyici" : "Kullanıcı");
+            this.showToast(`👋 Hoş geldiniz, ${user.fullName || user.username} (${roleTitle})`);
+        }
+    },
+
+    logout() {
+        if (!confirm("Oturumu kapatmak istediğinizden emin misiniz?")) return;
+        try {
+            sessionStorage.removeItem("sodsan_auth_session");
+            localStorage.removeItem("sodsan_auth_session");
+        } catch (e) {}
+        this.currentUser = null;
+        this.showLoginOverlay();
+        this.showToast("🚪 Oturum güvenle kapatıldı.");
+    },
+
+    togglePasswordVisibility(inputId, iconEl) {
+        const inp = document.getElementById(inputId);
+        if (!inp) return;
+        if (inp.type === "password") {
+            inp.type = "text";
+            if (iconEl) iconEl.textContent = "🔒";
+        } else {
+            inp.type = "password";
+            if (iconEl) iconEl.textContent = "👁️";
+        }
+    },
+
+    renderUsersTable() {
+        const tbody = document.getElementById("usersTableBody");
+        if (!tbody) return;
+
+        this.ensureUsersExist();
+        const users = this.state.users || [];
+
+        tbody.innerHTML = users.map(u => {
+            const isMe = this.currentUser && this.currentUser.id === u.id;
+            const roleBadge = u.role === "ADMIN"
+                ? `<span class="badge-role-admin">👑 Yönetici</span>`
+                : (u.role === "VIEWER" ? `<span class="badge-role-viewer">👁️ Görüntüleyici</span>` : `<span class="badge-role-user">💼 Finans / Standart</span>`);
+
+            const statusBadge = u.isActive
+                ? `<span class="badge badge-alacak">🟢 Aktif</span>`
+                : `<span class="badge badge-borc">🔴 Pasif</span>`;
+
+            const createdDate = u.createdAt ? this.formatDisplayDate(u.createdAt.slice(0, 10)) : "-";
+            const lastLoginDate = u.lastLogin ? new Date(u.lastLogin).toLocaleString("tr-TR") : "<span style='color:var(--text-muted);'>Hiç girmedi</span>";
+
+            return `
+                <tr>
+                    <td><code style="font-weight:700; color:#93c5fd;">${u.username}</code> ${isMe ? '<span style="font-size:10px; color:#10b981; font-weight:700;">(Siz)</span>' : ''}</td>
+                    <td><strong>${u.fullName || u.username}</strong></td>
+                    <td>${roleBadge}</td>
+                    <td>${statusBadge}</td>
+                    <td><small style="color:var(--text-muted);">${createdDate}</small></td>
+                    <td><small>${lastLoginDate}</small></td>
+                    <td style="text-align:right; white-space:nowrap;">
+                        <button class="btn btn-outline btn-sm" onclick="App.openEditUserModal('${u.id}')" title="Kullanıcıyı ve Yetkilerini Düzenle">✏️ Düzenle</button>
+                        ${!isMe ? `
+                            <button class="btn btn-outline btn-sm" onclick="App.toggleUserActive('${u.id}')" title="${u.isActive ? 'Girişi Durdur' : 'Aktifleştir'}">${u.isActive ? '🔒 Pasife Al' : '🔓 Aktif Et'}</button>
+                            <button class="btn btn-danger btn-sm" onclick="App.deleteUser('${u.id}')" title="Kullanıcıyı Tamamen Sil">🗑️ Sil</button>
+                        ` : ''}
+                    </td>
+                </tr>
+            `;
+        }).join("");
+    },
+
+    openAddUserModal() {
+        if (!this.currentUser || this.currentUser.role !== "ADMIN") {
+            alert("Bu işlem için Sistem Yöneticisi yetkisi gereklidir.");
+            return;
+        }
+        document.getElementById("userModalTitle").textContent = "Yeni Kullanıcı Tanımla";
+        document.getElementById("umUserId").value = "";
+        document.getElementById("umUsername").value = "";
+        document.getElementById("umUsername").readOnly = false;
+        document.getElementById("umFullName").value = "";
+        document.getElementById("umPassword").value = "";
+        document.getElementById("umPassword").placeholder = "En az 4 karakter";
+        document.getElementById("umPasswordLabel").textContent = "Giriş Şifresi";
+        document.getElementById("umPasswordHelp").style.display = "none";
+        document.getElementById("umRole").value = "USER";
+        document.getElementById("umIsActive").value = "true";
+        document.getElementById("userModal")?.classList.add("active");
+        setTimeout(() => document.getElementById("umUsername")?.focus(), 150);
+    },
+
+    openEditUserModal(userId) {
+        if (!this.currentUser || this.currentUser.role !== "ADMIN") {
+            alert("Bu işlem için Sistem Yöneticisi yetkisi gereklidir.");
+            return;
+        }
+        const user = (this.state.users || []).find(u => u.id === userId);
+        if (!user) return;
+
+        document.getElementById("userModalTitle").textContent = `Kullanıcı Düzenle: ${user.username}`;
+        document.getElementById("umUserId").value = user.id;
+        document.getElementById("umUsername").value = user.username;
+        document.getElementById("umUsername").readOnly = true;
+        document.getElementById("umFullName").value = user.fullName || "";
+        document.getElementById("umPassword").value = "";
+        document.getElementById("umPassword").placeholder = "Değiştirmek istemiyorsanız boş bırakın";
+        document.getElementById("umPasswordLabel").textContent = "Yeni Şifre (İsteğe Bağlı)";
+        document.getElementById("umPasswordHelp").style.display = "block";
+        document.getElementById("umRole").value = user.role || "USER";
+        document.getElementById("umIsActive").value = user.isActive ? "true" : "false";
+        document.getElementById("userModal")?.classList.add("active");
+    },
+
+    async saveUserForm() {
+        if (!this.currentUser || this.currentUser.role !== "ADMIN") {
+            alert("Bu işlem için Sistem Yöneticisi yetkisi gereklidir.");
+            return;
+        }
+
+        const id = document.getElementById("umUserId").value;
+        const username = document.getElementById("umUsername").value.trim().toLowerCase();
+        const fullName = document.getElementById("umFullName").value.trim();
+        const password = document.getElementById("umPassword").value.trim();
+        const role = document.getElementById("umRole").value;
+        const isActive = document.getElementById("umIsActive").value === "true";
+
+        if (!username) {
+            alert("Lütfen bir kullanıcı adı belirleyin.");
+            return;
+        }
+
+        if (username.length < 3) {
+            alert("Kullanıcı adı en az 3 karakter olmalıdır.");
+            return;
+        }
+
+        if (!fullName) {
+            alert("Lütfen personelin adını ve soyadını yazınız.");
+            return;
+        }
+
+        this.ensureUsersExist();
+
+        if (!id) {
+            const exists = this.state.users.some(u => u.username.toLowerCase() === username);
+            if (exists) {
+                alert(`'${username}' kullanıcı adı zaten kullanımda. Lütfen farklı bir kullanıcı adı seçin.`);
+                return;
+            }
+
+            if (!password || password.length < 4) {
+                alert("Yeni kullanıcı için en az 4 karakterli bir şifre girmelisiniz.");
+                return;
+            }
+
+            const passwordHash = await this.hashPassword(password);
+            const newUser = {
+                id: "usr_" + Date.now() + "_" + Math.floor(Math.random() * 1000),
+                username: username,
+                fullName: fullName,
+                passwordHash: passwordHash,
+                role: role,
+                isActive: isActive,
+                createdAt: new Date().toISOString(),
+                lastLogin: null
+            };
+
+            this.state.users.push(newUser);
+            this.closeModal("userModal");
+            await this.saveState();
+            this.renderUsersTable();
+            this.showToast(`✅ '${username}' kullanıcısı başarıyla oluşturuldu ve buluta eşitlendi.`);
+        } else {
+            const user = this.state.users.find(u => u.id === id);
+            if (!user) return;
+
+            user.fullName = fullName;
+            user.role = role;
+            user.isActive = isActive;
+
+            if (password) {
+                if (password.length < 4) {
+                    alert("Şifre en az 4 karakter olmalıdır.");
+                    return;
+                }
+                user.passwordHash = await this.hashPassword(password);
+            }
+
+            this.closeModal("userModal");
+            await this.saveState();
+            this.renderUsersTable();
+            this.showToast(`✅ '${user.username}' kullanıcı bilgileri güncellendi.`);
+        }
+    },
+
+    async toggleUserActive(userId) {
+        if (!this.currentUser || this.currentUser.role !== "ADMIN") {
+            alert("Bu işlem için yetkiniz yok.");
+            return;
+        }
+        const user = (this.state.users || []).find(u => u.id === userId);
+        if (!user) return;
+
+        if (this.currentUser.id === user.id) {
+            alert("Kendi hesabınızı pasife alamazsınız.");
+            return;
+        }
+
+        user.isActive = !user.isActive;
+        await this.saveState();
+        this.renderUsersTable();
+        this.showToast(`✅ '${user.username}' hesabı ${user.isActive ? 'aktifleştirildi' : 'pasife alındı'}.`);
+    },
+
+    async deleteUser(userId) {
+        if (!this.currentUser || this.currentUser.role !== "ADMIN") {
+            alert("Bu işlem için yetkiniz yok.");
+            return;
+        }
+        const user = (this.state.users || []).find(u => u.id === userId);
+        if (!user) return;
+
+        if (this.currentUser.id === user.id) {
+            alert("Giriş yapmış olduğunuz kendi yönetici hesabınızı silemezsiniz.");
+            return;
+        }
+
+        if (!confirm(`'${user.fullName || user.username}' kullanıcısını kalıcı olarak silmek istediğinizden emin misiniz?`)) return;
+
+        this.state.users = this.state.users.filter(u => u.id !== userId);
+        await this.saveState();
+        this.renderUsersTable();
+        this.showToast(`🗑️ '${user.username}' hesabı silindi.`);
+    },
+
+    openChangePasswordModal() {
+        if (!this.currentUser) return;
+        document.getElementById("cpOldPassword").value = "";
+        document.getElementById("cpNewPassword").value = "";
+        document.getElementById("cpConfirmPassword").value = "";
+        document.getElementById("changePasswordModal")?.classList.add("active");
+        setTimeout(() => document.getElementById("cpOldPassword")?.focus(), 150);
+    },
+
+    async saveMyPasswordChange() {
+        if (!this.currentUser) return;
+        const oldP = document.getElementById("cpOldPassword").value.trim();
+        const newP = document.getElementById("cpNewPassword").value.trim();
+        const confirmP = document.getElementById("cpConfirmPassword").value.trim();
+
+        if (!oldP || !newP || !confirmP) {
+            alert("Lütfen tüm alanları doldurunuz.");
+            return;
+        }
+
+        const oldHash = await this.hashPassword(oldP);
+        if (oldHash !== this.currentUser.passwordHash) {
+            alert("Mevcut şifreniz hatalı!");
+            return;
+        }
+
+        if (newP.length < 4) {
+            alert("Yeni şifre en az 4 karakter olmalıdır.");
+            return;
+        }
+
+        if (newP !== confirmP) {
+            alert("Yeni şifreler birbiriyle uyuşmuyor!");
+            return;
+        }
+
+        const newHash = await this.hashPassword(newP);
+        const userInState = (this.state.users || []).find(u => u.id === this.currentUser.id);
+        if (userInState) {
+            userInState.passwordHash = newHash;
+        }
+        this.currentUser.passwordHash = newHash;
+
+        this.closeModal("changePasswordModal");
+        await this.saveState();
+        this.showToast("✅ Şifreniz başarıyla güncellendi.");
     },
 
     loadDemoData(confirmReset = false) {
