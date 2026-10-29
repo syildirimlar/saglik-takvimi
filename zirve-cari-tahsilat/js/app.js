@@ -31,8 +31,21 @@ const App = window.App = {
     computedCarilerMap: {},
     selectedAliciIds: new Set(),
     selectedSaticiIds: new Set(),
+    selectedAgingIds: new Set(),
+    selectedCashflowIds: new Set(),
+    selectedCarilerIds: new Set(),
+    selectedHatirlaticiIds: new Set(),
+    selectedHareketlerIds: new Set(),
+    selectedFaturalarIds: new Set(),
+
     aliciSort: { column: "netBakiye", order: "desc" },
     saticiSort: { column: "netBorc", order: "desc" },
+    agingSort: { column: "netBakiye", order: "desc" },
+    cashflowSort: { column: "tarih", order: "asc" },
+    carilerSort: { column: "netBakiye", order: "desc" },
+    hatirlaticiSort: { column: "bakiye", order: "desc" },
+    hareketlerSort: { column: "tarih", order: "desc" },
+    faturalarSort: { column: "tarih", order: "desc" },
 
     vadeOptions: [
         { value: "CEK_10", label: "Ayın 10'u Çek", days: 0, rule: "TAKIP_EDEN_10" },
@@ -1085,6 +1098,164 @@ const App = window.App = {
 
         return list.slice().sort((a, b) => {
             let va, vb;
+
+            if (type === "aging") {
+                switch (column) {
+                    case "unvan":
+                        return dir * (a.unvan || "").localeCompare(b.unvan || "", "tr");
+                    case "yon":
+                        return dir * (a.bakiyeYonu || "").localeCompare(b.bakiyeYonu || "", "tr");
+                    case "overdue60Plus":
+                        return dir * ((a.aging?.overdue60Plus || 0) - (b.aging?.overdue60Plus || 0));
+                    case "overdue31_60":
+                        return dir * ((a.aging?.overdue31_60 || 0) - (b.aging?.overdue31_60 || 0));
+                    case "overdue1_30":
+                        return dir * ((a.aging?.overdue1_30 || 0) - (b.aging?.overdue1_30 || 0));
+                    case "upcoming0_30":
+                        return dir * ((a.aging?.upcoming0_30 || 0) - (b.aging?.upcoming0_30 || 0));
+                    case "upcoming31Plus":
+                        return dir * ((a.aging?.upcoming31Plus || 0) - (b.aging?.upcoming31Plus || 0));
+                    case "netBakiye":
+                        return dir * (Math.abs(a.netBakiye || 0) - Math.abs(b.netBakiye || 0));
+                    default:
+                        return 0;
+                }
+            }
+
+            if (type === "cashflow") {
+                switch (column) {
+                    case "tarih":
+                        return dir * (a.tarih || "").localeCompare(b.tarih || "");
+                    case "gunDiff":
+                        return dir * ((a.gunDiff || 0) - (b.gunDiff || 0));
+                    case "tur":
+                        return dir * (a.turLabel || "").localeCompare(b.turLabel || "", "tr");
+                    case "cari":
+                        return dir * (a.cariUnvan || "").localeCompare(b.cariUnvan || "", "tr");
+                    case "aciklama":
+                        return dir * (a.aciklama || "").localeCompare(b.aciklama || "", "tr");
+                    case "tahsilat": {
+                        const amtA = a.yon === "GIRIS" ? (a.tutar || 0) : 0;
+                        const amtB = b.yon === "GIRIS" ? (b.tutar || 0) : 0;
+                        return dir * (amtA - amtB);
+                    }
+                    case "odeme": {
+                        const amtA = a.yon === "CIKIS" ? (a.tutar || 0) : 0;
+                        const amtB = b.yon === "CIKIS" ? (b.tutar || 0) : 0;
+                        return dir * (amtA - amtB);
+                    }
+                    default:
+                        return 0;
+                }
+            }
+
+            if (type === "cariler") {
+                switch (column) {
+                    case "kod":
+                        return dir * (a.kod || "").localeCompare(b.kod || "", "tr", { numeric: true });
+                    case "unvan":
+                        return dir * (a.unvan || "").localeCompare(b.unvan || "", "tr");
+                    case "odeme":
+                        va = (a.vadeGunu !== undefined ? a.vadeGunu : 30);
+                        vb = (b.vadeGunu !== undefined ? b.vadeGunu : 30);
+                        if (va !== vb) return dir * (va - vb);
+                        return dir * ((a.odemeSekli || "").localeCompare(b.odemeSekli || "", "tr"));
+                    case "toplamBorc":
+                        return dir * ((a.toplamBorc || 0) - (b.toplamBorc || 0));
+                    case "toplamAlacak":
+                        return dir * ((a.toplamAlacak || 0) - (b.toplamAlacak || 0));
+                    case "netBakiye":
+                        return dir * (Math.abs(a.netBakiye || 0) - Math.abs(b.netBakiye || 0));
+                    case "yon":
+                        return dir * (a.bakiyeYonu || "").localeCompare(b.bakiyeYonu || "", "tr");
+                    case "vade":
+                        va = a.enEskiAcikVade || "9999-99-99";
+                        vb = b.enEskiAcikVade || "9999-99-99";
+                        return dir * va.localeCompare(vb);
+                    default:
+                        return 0;
+                }
+            }
+
+            if (type === "hatirlatici") {
+                switch (column) {
+                    case "cari":
+                        return dir * (a.cari?.unvan || "").localeCompare(b.cari?.unvan || "", "tr");
+                    case "yon":
+                        return dir * (a.role || "").localeCompare(b.role || "", "tr");
+                    case "odeme":
+                        return dir * ((a.vadeGunu || 30) - (b.vadeGunu || 30));
+                    case "bakiye":
+                        return dir * (a.absBakiye - b.absBakiye);
+                    case "vade":
+                        return dir * (a.effectiveDate || "").localeCompare(b.effectiveDate || "");
+                    case "gecikme":
+                        return dir * (a.daysDiff - b.daysDiff);
+                    default:
+                        return 0;
+                }
+            }
+
+            if (type === "hareketler") {
+                switch (column) {
+                    case "tarih":
+                        return dir * (a.tarih || "").localeCompare(b.tarih || "");
+                    case "vadeTarihi": {
+                        const cA = this.computedCarilerMap[a.cariId] || {};
+                        const cB = this.computedCarilerMap[b.cariId] || {};
+                        const vA = this.getEffectiveVadeTarihi(a.tarih, cA) || a.tarih || "";
+                        const vB = this.getEffectiveVadeTarihi(b.tarih, cB) || b.tarih || "";
+                        return dir * vA.localeCompare(vB);
+                    }
+                    case "evrakNo":
+                        return dir * (a.evrakNo || "").localeCompare(b.evrakNo || "", "tr", { numeric: true });
+                    case "cari": {
+                        const cA = this.computedCarilerMap[a.cariId] || { unvan: a.cariUnvan || a.cariKod || "" };
+                        const cB = this.computedCarilerMap[b.cariId] || { unvan: b.cariUnvan || b.cariKod || "" };
+                        return dir * (cA.unvan || "").localeCompare(cB.unvan || "", "tr");
+                    }
+                    case "islemTuru":
+                        return dir * (a.islemTuru || "").localeCompare(b.islemTuru || "", "tr");
+                    case "aciklama":
+                        return dir * (a.aciklama || "").localeCompare(b.aciklama || "", "tr");
+                    case "borc":
+                        return dir * ((a.borc || 0) - (b.borc || 0));
+                    case "alacak":
+                        return dir * ((a.alacak || 0) - (b.alacak || 0));
+                    default:
+                        return 0;
+                }
+            }
+
+            if (type === "faturalar") {
+                switch (column) {
+                    case "tarih":
+                        return dir * (a.tarih || "").localeCompare(b.tarih || "");
+                    case "vadeTarihi":
+                        return dir * (a.effVade || a.tarih || "").localeCompare(b.effVade || b.tarih || "");
+                    case "faturaNo":
+                        return dir * (a.faturaNo || "").localeCompare(b.faturaNo || "", "tr", { numeric: true });
+                    case "yon":
+                        return dir * (a.yon || "").localeCompare(b.yon || "", "tr");
+                    case "cariUnvan":
+                        return dir * (a.cariUnvan || "").localeCompare(b.cariUnvan || "", "tr");
+                    case "tutar": {
+                        const amtA = a.tlTutar || a.genelToplam || 0;
+                        const amtB = b.tlTutar || b.genelToplam || 0;
+                        return dir * (amtA - amtB);
+                    }
+                    case "kapanan":
+                        return dir * ((a.fifo?.kapanan || 0) - (b.fifo?.kapanan || 0));
+                    case "kalan":
+                        return dir * ((a.fifo?.kalan || 0) - (b.fifo?.kalan || 0));
+                    case "durum":
+                        return dir * (a.fifo?.durum || "").localeCompare(b.fifo?.durum || "", "tr");
+                    default:
+                        return 0;
+                }
+            }
+
+            // Varsayılan: alici / satici
             switch (column) {
                 case "kod":
                     va = a.kod || "";
@@ -1130,30 +1301,55 @@ const App = window.App = {
     },
 
     toggleSort(tableType, column) {
-        const sortProp = tableType === "alici" ? "aliciSort" : "saticiSort";
+        const sortProp = tableType + "Sort";
+        if (!this[sortProp]) {
+            this[sortProp] = { column, order: "asc" };
+        }
         if (this[sortProp].column === column) {
             this[sortProp].order = this[sortProp].order === "asc" ? "desc" : "asc";
         } else {
             this[sortProp].column = column;
-            const isNumeric = ["toplamBorc", "toplamAlacak", "netBakiye", "netBorc"].includes(column);
-            this[sortProp].order = isNumeric ? "desc" : "asc";
+            const isNumeric = [
+                "toplamBorc", "toplamAlacak", "netBakiye", "netBorc",
+                "overdue60Plus", "overdue31_60", "overdue1_30", "upcoming0_30", "upcoming31Plus",
+                "tahsilat", "odeme", "bakiye", "borc", "alacak", "tutar", "kapanan", "kalan"
+            ].includes(column);
+            const isDescByDefault = isNumeric || ["tarih"].includes(column);
+            this[sortProp].order = isDescByDefault ? "desc" : "asc";
         }
 
-        if (tableType === "alici") {
-            this.renderAlicilar();
-        } else {
-            this.renderSaticilar();
+        switch (tableType) {
+            case "alici":
+                this.renderAlicilar();
+                break;
+            case "satici":
+                this.renderSaticilar();
+                break;
+            case "aging":
+            case "cashflow":
+                this.renderYaslandirmaAndCalendar();
+                break;
+            case "cariler":
+                this.renderCariler();
+                break;
+            case "hatirlatici":
+                this.renderHatirlatici();
+                break;
+            case "hareketler":
+                this.renderHareketler();
+                break;
+            case "faturalar":
+                this.renderFaturalar();
+                break;
         }
     },
 
     updateSortHeaderIcons(tableType) {
-        const sort = tableType === "alici" ? this.aliciSort : this.saticiSort;
-        const prefix = tableType === "alici" ? "aliciSort_" : "saticiSort_";
-        const columns = ["kod", "unvan", "grup", "odeme", "toplamBorc", "toplamAlacak", (tableType === "alici" ? "netBakiye" : "netBorc"), "vade"];
-
-        columns.forEach(col => {
-            const el = document.getElementById(prefix + col);
-            if (!el) return;
+        const sort = this[tableType + "Sort"];
+        if (!sort) return;
+        const spans = document.querySelectorAll(`[id^="${tableType}Sort_"]`);
+        spans.forEach(el => {
+            const col = el.id.substring((tableType + "Sort_").length);
             if (sort.column === col) {
                 el.textContent = sort.order === "asc" ? " ▲" : " ▼";
                 el.style.color = "#38bdf8";
@@ -1413,97 +1609,215 @@ const App = window.App = {
         this.updateBulkBar("satici");
     },
 
-    handleRowCheckClick(event, type, cariId) {
-        const isAlici = type === "alici";
-        const set = isAlici ? this.selectedAliciIds : this.selectedSaticiIds;
-        const lastIdProp = isAlici ? "_lastAliciCheckedId" : "_lastSaticiCheckedId";
-        const chkClass = isAlici ? ".alici-row-check" : ".satici-row-check";
-        const target = event.target;
-        const isChecked = target.checked;
+    getSelectionSet(type) {
+        switch (type) {
+            case "alici": return this.selectedAliciIds;
+            case "satici": return this.selectedSaticiIds;
+            case "aging": return this.selectedAgingIds;
+            case "cashflow": return this.selectedCashflowIds;
+            case "cariler": return this.selectedCarilerIds;
+            case "hatirlatici": return this.selectedHatirlaticiIds;
+            case "hareketler": return this.selectedHareketlerIds;
+            case "faturalar": return this.selectedFaturalarIds;
+            default: return null;
+        }
+    },
 
-        if (event.shiftKey && this[lastIdProp]) {
+    toggleRowSelect(type, id, checked, event) {
+        const set = this.getSelectionSet(type);
+        if (!set) return;
+
+        const lastIdProp = `_last_${type}_checked_id`;
+        const chkClass = `.${type}-row-check`;
+
+        if (event && event.shiftKey && this[lastIdProp]) {
             const boxes = Array.from(document.querySelectorAll(chkClass));
             const lastIndex = boxes.findIndex(b => b.value === this[lastIdProp]);
-            const currentIndex = boxes.findIndex(b => b.value === cariId);
+            const currentIndex = boxes.findIndex(b => b.value === id);
             if (lastIndex !== -1 && currentIndex !== -1) {
                 const start = Math.min(lastIndex, currentIndex);
                 const end = Math.max(lastIndex, currentIndex);
                 for (let i = start; i <= end; i++) {
                     const b = boxes[i];
-                    b.checked = isChecked;
-                    if (isChecked) set.add(b.value);
+                    b.checked = checked;
+                    if (checked) set.add(b.value);
                     else set.delete(b.value);
                     const tr = b.closest("tr");
-                    if (tr) tr.classList.toggle("row-selected", isChecked);
+                    if (tr) tr.classList.toggle("row-selected", checked);
                 }
-                this[lastIdProp] = cariId;
-                this.updateBulkBar(type);
+                this[lastIdProp] = id;
+                this.updateSelectedSummary(type);
                 return;
             }
         }
 
-        this[lastIdProp] = cariId;
-        if (isChecked) set.add(cariId);
-        else set.delete(cariId);
-        const tr = target.closest("tr");
-        if (tr) tr.classList.toggle("row-selected", isChecked);
-        this.updateBulkBar(type);
+        this[lastIdProp] = id;
+        if (checked) set.add(id);
+        else set.delete(id);
+
+        const target = (event && event.target) || document.querySelector(`${chkClass}[value="${id}"]`);
+        if (target) {
+            const tr = target.closest("tr");
+            if (tr) tr.classList.toggle("row-selected", checked);
+        }
+        this.updateSelectedSummary(type);
     },
 
     toggleRowSelectAlici(cariId, checked, event) {
-        if (event) {
-            this.handleRowCheckClick(event, "alici", cariId);
-            return;
-        }
-        if (checked) this.selectedAliciIds.add(cariId);
-        else this.selectedAliciIds.delete(cariId);
-        this._lastAliciCheckedId = cariId;
-        const box = document.querySelector(`.alici-row-check[value="${cariId}"]`);
-        if (box) {
-            const tr = box.closest("tr");
-            if (tr) tr.classList.toggle("row-selected", checked);
-        }
-        this.updateBulkBar("alici");
+        this.toggleRowSelect("alici", cariId, checked, event);
     },
 
     toggleRowSelectSatici(cariId, checked, event) {
-        if (event) {
-            this.handleRowCheckClick(event, "satici", cariId);
-            return;
-        }
-        if (checked) this.selectedSaticiIds.add(cariId);
-        else this.selectedSaticiIds.delete(cariId);
-        this._lastSaticiCheckedId = cariId;
-        const box = document.querySelector(`.satici-row-check[value="${cariId}"]`);
-        if (box) {
-            const tr = box.closest("tr");
+        this.toggleRowSelect("satici", cariId, checked, event);
+    },
+
+    toggleSelectAll(type, checked) {
+        const set = this.getSelectionSet(type);
+        if (!set) return;
+
+        const boxes = document.querySelectorAll(`.${type}-row-check`);
+        boxes.forEach(b => {
+            b.checked = checked;
+            if (checked) set.add(b.value);
+            else set.delete(b.value);
+            const tr = b.closest("tr");
             if (tr) tr.classList.toggle("row-selected", checked);
-        }
-        this.updateBulkBar("satici");
+        });
+        this.updateSelectedSummary(type);
     },
 
     toggleSelectAllAlicilar(checked) {
-        const boxes = document.querySelectorAll(".alici-row-check");
-        boxes.forEach(b => {
-            b.checked = checked;
-            if (checked) this.selectedAliciIds.add(b.value);
-            else this.selectedAliciIds.delete(b.value);
-            const tr = b.closest("tr");
-            if (tr) tr.classList.toggle("row-selected", checked);
-        });
-        this.updateBulkBar("alici");
+        this.toggleSelectAll("alici", checked);
     },
 
     toggleSelectAllSaticilar(checked) {
-        const boxes = document.querySelectorAll(".satici-row-check");
+        this.toggleSelectAll("satici", checked);
+    },
+
+    clearSelection(type) {
+        const set = this.getSelectionSet(type);
+        if (set) set.clear();
+
+        const capitalized = type.charAt(0).toUpperCase() + type.slice(1);
+        const selectAllBox = document.getElementById("selectAll" + capitalized) ||
+                             document.getElementById("selectAll" + capitalized + "lar") ||
+                             document.getElementById("selectAll" + capitalized + "ler");
+        if (selectAllBox) selectAllBox.checked = false;
+
+        const boxes = document.querySelectorAll(`.${type}-row-check`);
         boxes.forEach(b => {
-            b.checked = checked;
-            if (checked) this.selectedSaticiIds.add(b.value);
-            else this.selectedSaticiIds.delete(b.value);
+            b.checked = false;
             const tr = b.closest("tr");
-            if (tr) tr.classList.toggle("row-selected", checked);
+            if (tr) tr.classList.remove("row-selected");
         });
-        this.updateBulkBar("satici");
+
+        this.updateSelectedSummary(type);
+    },
+
+    updateSelectedSummary(type) {
+        if (type === "alici" || type === "satici") {
+            this.updateBulkBar(type);
+            return;
+        }
+
+        const set = this.getSelectionSet(type);
+        if (!set) return;
+
+        const barEl = document.getElementById(type + "SelectedSummaryBar");
+        const countEl = document.getElementById(type + "SelectedCount");
+        const totalsEl = document.getElementById(type + "SelectedTotals");
+
+        if (countEl) countEl.textContent = set.size;
+
+        if (set.size === 0) {
+            if (barEl) barEl.classList.remove("active");
+            if (totalsEl) totalsEl.innerHTML = "";
+            return;
+        }
+
+        if (barEl) barEl.classList.add("active");
+
+        let summaryHtml = "";
+
+        if (type === "aging") {
+            let sumNet = 0;
+            let sumOverdue = 0;
+            let sumUpcoming = 0;
+            for (const id of set) {
+                const c = this.computedCarilerMap[id];
+                if (!c) continue;
+                sumNet += Math.abs(c.netBakiye || 0);
+                if (c.aging) {
+                    sumOverdue += (c.aging.overdue60Plus || 0) + (c.aging.overdue31_60 || 0) + (c.aging.overdue1_30 || 0);
+                    sumUpcoming += (c.aging.upcoming0_30 || 0) + (c.aging.upcoming31Plus || 0);
+                }
+            }
+            summaryHtml = `Toplam Bakiye: <strong class="num text-alacak" style="font-size:13px;">${this.formatMoney(sumNet)}</strong> | Vadesi Geçen: <strong class="num text-borc" style="font-size:13px;">${this.formatMoney(sumOverdue)}</strong> | Gelecek Vade: <strong class="num" style="font-size:13px;">${this.formatMoney(sumUpcoming)}</strong>`;
+        } else if (type === "cashflow") {
+            const calItems = this._lastCashflowItems || this.buildCashflowItems();
+            let sumTahsilat = 0;
+            let sumOdeme = 0;
+            for (const item of calItems) {
+                if (set.has(item.id)) {
+                    if (item.yon === "GIRIS") sumTahsilat += (item.tutar || 0);
+                    else sumOdeme += (item.tutar || 0);
+                }
+            }
+            const netFark = sumTahsilat - sumOdeme;
+            summaryHtml = `Tahsilat (+): <strong class="num text-alacak" style="font-size:13px;">${this.formatMoney(sumTahsilat)}</strong> | Ödeme (-): <strong class="num text-borc" style="font-size:13px;">${this.formatMoney(sumOdeme)}</strong> | Net Fark: <strong class="num ${netFark >= 0 ? 'text-alacak' : 'text-borc'}" style="font-size:13px;">${this.formatMoney(netFark)}</strong>`;
+        } else if (type === "cariler") {
+            let sumBorc = 0;
+            let sumAlacak = 0;
+            let sumNetAlacak = 0;
+            let sumNetBorc = 0;
+            for (const id of set) {
+                const c = this.computedCarilerMap[id];
+                if (!c) continue;
+                sumBorc += (c.toplamBorc || 0);
+                sumAlacak += (c.toplamAlacak || 0);
+                if (c.netBakiye > 0) sumNetAlacak += c.netBakiye;
+                else sumNetBorc += Math.abs(c.netBakiye || 0);
+            }
+            summaryHtml = `Toplam Satış/Borç: <strong class="num">${this.formatMoney(sumBorc)}</strong> | Toplam Tahsilat/Alacak: <strong class="num">${this.formatMoney(sumAlacak)}</strong> | Net Alacağımız: <strong class="num text-alacak" style="font-size:13px;">${this.formatMoney(sumNetAlacak)}</strong> | Net Borcumuz: <strong class="num text-borc" style="font-size:13px;">${this.formatMoney(sumNetBorc)}</strong>`;
+        } else if (type === "hatirlatici") {
+            let sumAlacak = 0;
+            let sumBorc = 0;
+            for (const id of set) {
+                const c = this.computedCarilerMap[id];
+                if (!c) continue;
+                const b = Math.abs(c.netBakiye || 0);
+                if (c.bakiyeYonu === "ALACAKLIYIZ") sumAlacak += b;
+                else sumBorc += b;
+            }
+            summaryHtml = `Müşteri Alacağı: <strong class="num text-alacak" style="font-size:13px;">${this.formatMoney(sumAlacak)}</strong> | Tedarikçi Borcu: <strong class="num text-borc" style="font-size:13px;">${this.formatMoney(sumBorc)}</strong> | Toplam Bakiye: <strong class="num" style="font-size:13px;">${this.formatMoney(sumAlacak + sumBorc)}</strong>`;
+        } else if (type === "hareketler") {
+            let sumBorc = 0;
+            let sumAlacak = 0;
+            for (const h of this.state.hareketler) {
+                if (set.has(h.id)) {
+                    sumBorc += (h.borc || 0);
+                    sumAlacak += (h.alacak || 0);
+                }
+            }
+            const diff = sumBorc - sumAlacak;
+            summaryHtml = `Borç (B): <strong class="num text-alacak" style="font-size:13px;">${this.formatMoney(sumBorc)}</strong> | Alacak (A): <strong class="num text-borc" style="font-size:13px;">${this.formatMoney(sumAlacak)}</strong> | Hareket Farkı: <strong class="num" style="font-size:13px;">${this.formatMoney(diff)}</strong>`;
+        } else if (type === "faturalar") {
+            let sumTutar = 0;
+            let sumKapanan = 0;
+            let sumKalan = 0;
+            const enriched = this._lastEnrichedFaturalar || [];
+            for (const f of enriched) {
+                const fid = f.id || f.faturaNo;
+                if (set.has(fid)) {
+                    sumTutar += (f.tlTutar || f.genelToplam || 0);
+                    sumKapanan += (f.fifo?.kapanan || 0);
+                    sumKalan += (f.fifo?.kalan || 0);
+                }
+            }
+            summaryHtml = `Fatura Tutarı: <strong class="num" style="font-size:13px;">${this.formatMoney(sumTutar)}</strong> | Cari Mahsup: <strong class="num" style="font-size:13px;">${this.formatMoney(sumKapanan)}</strong> | Kalan Açık: <strong class="num text-alacak" style="font-size:13px;">${this.formatMoney(sumKalan)}</strong>`;
+        }
+
+        if (totalsEl) totalsEl.innerHTML = summaryHtml;
     },
 
     updateBulkBar(type) {
@@ -1717,9 +2031,11 @@ const App = window.App = {
             list = list.filter(c => (c.doviz || "TRY") === dovizFilter);
         }
 
-        list.sort((a, b) => Math.abs(b.netBakiye) - Math.abs(a.netBakiye));
+        list = this.sortList(list, this.carilerSort, "cariler");
+        this.updateSortHeaderIcons("cariler");
 
         document.getElementById("carilerTableBody").innerHTML = list.map(c => {
+            const isChecked = this.selectedCarilerIds.has(c.id);
             const absBakiye = Math.abs(c.netBakiye);
             let yonBadge = `<span class="badge badge-neutral">Kapalı</span>`;
             if (c.bakiyeYonu === "ALACAKLIYIZ") {
@@ -1761,7 +2077,10 @@ const App = window.App = {
             const notHtml = c.ozelNot ? `<div style="font-size:11.5px; color:var(--text-muted); margin-top:2px;">${c.ozelNot}</div>` : "";
 
             return `
-                <tr>
+                <tr class="${isChecked ? 'row-selected' : ''}">
+                    <td style="text-align:center;">
+                        <input type="checkbox" class="cariler-row-check" value="${c.id}" ${isChecked ? 'checked' : ''} onclick="App.toggleRowSelect('cariler', '${c.id}', this.checked, event)">
+                    </td>
                     <td><code>${c.kod}</code></td>
                     <td>
                         <strong><a href="javascript:void(0)" onclick="App.openCariEkstre('${c.id}')" style="color:#60a5fa; text-decoration:none;">${c.unvan}</a></strong>
@@ -1788,7 +2107,9 @@ const App = window.App = {
                     </td>
                 </tr>
             `;
-        }).join("") || `<tr><td colspan="10" style="text-align:center; padding:24px; color:var(--text-muted);">Henüz cari hesap verisi yüklenmedi. Zirve'den aldığınız Excel veya PDF dosyasını yükleyin.</td></tr>`;
+        }).join("") || `<tr><td colspan="11" style="text-align:center; padding:24px; color:var(--text-muted);">Henüz cari hesap verisi yüklenmedi. Zirve'den aldığınız Excel veya PDF dosyasını yükleyin.</td></tr>`;
+
+        this.updateSelectedSummary("cariler");
     },
 
     // ================= CARİ EKSTRE MODAL =================
@@ -2162,7 +2483,8 @@ const App = window.App = {
             });
         }
 
-        items.sort((a, b) => b.daysDiff - a.daysDiff);
+        items = this.sortList(items, this.hatirlaticiSort, "hatirlatici");
+        this.updateSortHeaderIcons("hatirlatici");
 
         const kpisEl = document.getElementById("hatirlaticiKpis");
         if (kpisEl) {
@@ -2203,6 +2525,7 @@ const App = window.App = {
 
         tbody.innerHTML = items.map(it => {
             const c = it.cari;
+            const isChecked = this.selectedHatirlaticiIds.has(c.id);
             const rolBadge = it.isAlacak
                 ? `<span class="badge badge-alacak">Müşteri (Alacak)</span>`
                 : `<span class="badge badge-borc">Tedarikçi (Borç)</span>`;
@@ -2234,7 +2557,10 @@ const App = window.App = {
             const yetkiliMetni = c.yetkiliKisi ? `<div style="font-size:11px; color:#94a3b8;">Yetkili: ${c.yetkiliKisi}</div>` : '';
 
             return `
-                <tr>
+                <tr class="${isChecked ? 'row-selected' : ''}">
+                    <td style="text-align:center;">
+                        <input type="checkbox" class="hatirlatici-row-check" value="${c.id}" ${isChecked ? 'checked' : ''} onclick="App.toggleRowSelect('hatirlatici', '${c.id}', this.checked, event)">
+                    </td>
                     <td>
                         <strong><a href="javascript:void(0)" onclick="App.openCariEkstre('${c.id}')" style="color:#60a5fa; text-decoration:none;">${c.unvan}</a></strong>
                         <div style="font-size:11.5px; color:var(--text-muted);">
@@ -2268,7 +2594,9 @@ const App = window.App = {
                     </td>
                 </tr>
             `;
-        }).join("") || `<tr><td colspan="8" style="text-align:center; padding:24px; color:var(--text-muted);">Seçilen filtrelere uygun vadesi yaklaşan veya geciken cari bulunmuyor.</td></tr>`;
+        }).join("") || `<tr><td colspan="9" style="text-align:center; padding:24px; color:var(--text-muted);">Seçilen filtrelere uygun vadesi yaklaşan veya geciken cari bulunmuyor.</td></tr>`;
+
+        this.updateSelectedSummary("hatirlatici");
     },
 
     exportHatirlaticiCsv() {
@@ -2329,14 +2657,19 @@ const App = window.App = {
         if (dStart) list = list.filter(h => (h.tarih || "") >= dStart);
         if (dEnd) list = list.filter(h => (h.tarih || "") <= dEnd);
 
-        list.sort((a, b) => (b.tarih || "").localeCompare(a.tarih || ""));
+        list = this.sortList(list, this.hareketlerSort, "hareketler");
+        this.updateSortHeaderIcons("hareketler");
 
         document.getElementById("hareketlerTableBody").innerHTML = list.map(h => {
+            const isChecked = this.selectedHareketlerIds.has(h.id);
             const c = this.computedCarilerMap[h.cariId] || { unvan: h.cariUnvan || h.cariKod };
             const effVade = this.getEffectiveVadeTarihi(h.tarih, c);
             const vadeInfo = this.getVadeDurumu(effVade);
             return `
-                <tr>
+                <tr class="${isChecked ? 'row-selected' : ''}">
+                    <td style="text-align:center;">
+                        <input type="checkbox" class="hareketler-row-check" value="${h.id}" ${isChecked ? 'checked' : ''} onclick="App.toggleRowSelect('hareketler', '${h.id}', this.checked, event)">
+                    </td>
                     <td class="cell-date">${this.formatDisplayDate(h.tarih)}</td>
                     <td class="cell-date">
                         <div style="font-weight:600;">${this.formatDisplayDate(effVade)}</div>
@@ -2354,7 +2687,9 @@ const App = window.App = {
                     </td>
                 </tr>
             `;
-        }).join("") || `<tr><td colspan="10" style="text-align:center; padding:20px; color:var(--text-muted);">Hareket bulunamadı.</td></tr>`;
+        }).join("") || `<tr><td colspan="11" style="text-align:center; padding:20px; color:var(--text-muted);">Hareket bulunamadı.</td></tr>`;
+
+        this.updateSelectedSummary("hareketler");
     },
 
     clearHareketFilters() {
@@ -2416,9 +2751,13 @@ const App = window.App = {
             return true;
         });
 
-        filtered.sort((a, b) => (b.tarih || "").localeCompare(a.tarih || ""));
+        this._lastEnrichedFaturalar = filtered;
+        filtered = this.sortList(filtered, this.faturalarSort, "faturalar");
+        this.updateSortHeaderIcons("faturalar");
 
         document.getElementById("faturalarTableBody").innerHTML = filtered.map(f => {
+            const fid = f.id || f.faturaNo;
+            const isChecked = this.selectedFaturalarIds.has(fid);
             let durumBadge = `<span class="badge badge-alacak">Kapandı</span>`;
             if (f.fifo.durum === "KISMI") {
                 durumBadge = `<span class="badge badge-warn">Kısmi Açık (${f.gecikme > 0 ? f.gecikme + 'g gecikti' : 'Vadeli'})</span>`;
@@ -2429,7 +2768,10 @@ const App = window.App = {
             }
 
             return `
-                <tr>
+                <tr class="${isChecked ? 'row-selected' : ''}">
+                    <td style="text-align:center;">
+                        <input type="checkbox" class="faturalar-row-check" value="${fid}" ${isChecked ? 'checked' : ''} onclick="App.toggleRowSelect('faturalar', '${fid}', this.checked, event)">
+                    </td>
                     <td class="cell-date">${this.formatDisplayDate(f.tarih)}</td>
                     <td class="cell-date">
                         <div style="font-weight:600;">${this.formatDisplayDate(f.effVade || f.tarih)}</div>
@@ -2453,7 +2795,9 @@ const App = window.App = {
                     </td>
                 </tr>
             `;
-        }).join("") || `<tr><td colspan="10" style="text-align:center; padding:24px; color:var(--text-muted);">Henüz fatura kaydı bulunmuyor. Zirve'den fatura veya ekstre dosyası yükleyin.</td></tr>`;
+        }).join("") || `<tr><td colspan="11" style="text-align:center; padding:24px; color:var(--text-muted);">Henüz fatura kaydı bulunmuyor. Zirve'den fatura veya ekstre dosyası yükleyin.</td></tr>`;
+
+        this.updateSelectedSummary("faturalar");
     },
 
     // ================= 5. YAŞLANDIRMA & NAKİT AKIŞI TAKVİMİ =================
@@ -2483,10 +2827,17 @@ const App = window.App = {
         document.getElementById("alacakAgingBoxes").innerHTML = renderBuckets(sumAlacak, "text-alacak");
         document.getElementById("borcAgingBoxes").innerHTML = renderBuckets(sumBorc, "text-borc");
 
-        document.getElementById("agingMatrixBody").innerHTML = cariler
-            .sort((a, b) => Math.abs(b.netBakiye) - Math.abs(a.netBakiye))
-            .map(c => `
-                <tr>
+        const sortedAgingCariler = this.sortList(cariler, this.agingSort, "aging");
+        this.updateSortHeaderIcons("aging");
+
+        document.getElementById("agingMatrixBody").innerHTML = sortedAgingCariler
+            .map(c => {
+                const isChecked = this.selectedAgingIds.has(c.id);
+                return `
+                <tr class="${isChecked ? 'row-selected' : ''}">
+                    <td style="text-align:center;">
+                        <input type="checkbox" class="aging-row-check" value="${c.id}" ${isChecked ? 'checked' : ''} onclick="App.toggleRowSelect('aging', '${c.id}', this.checked, event)">
+                    </td>
                     <td><strong><a href="javascript:void(0)" onclick="App.openCariEkstre('${c.id}')" style="color:#60a5fa; text-decoration:none;">${c.unvan}</a></strong></td>
                     <td><span class="badge ${c.bakiyeYonu === 'ALACAKLIYIZ' ? 'badge-alacak' : 'badge-borc'}">${c.bakiyeYonu === 'ALACAKLIYIZ' ? 'Alacağımız' : 'Borcumuz'}</span></td>
                     <td class="num">${this.formatMoney(c.aging.overdue60Plus)}</td>
@@ -2496,12 +2847,24 @@ const App = window.App = {
                     <td class="num">${this.formatMoney(c.aging.upcoming31Plus)}</td>
                     <td class="num ${c.bakiyeYonu === 'ALACAKLIYIZ' ? 'text-alacak' : 'text-borc'}"><strong>${this.formatMoney(Math.abs(c.netBakiye))}</strong></td>
                 </tr>
-            `).join("") || `<tr><td colspan="8" style="text-align:center; padding:24px; color:var(--text-muted);">Henüz açık bakiyeli cari hesap bulunmuyor. Zirve'den rapor yükleyin.</td></tr>`;
+            `;
+            }).join("") || `<tr><td colspan="9" style="text-align:center; padding:24px; color:var(--text-muted);">Henüz açık bakiyeli cari hesap bulunmuyor. Zirve'den rapor yükleyin.</td></tr>`;
+
+        this.updateSelectedSummary("aging");
 
         // Nakit Akışı Takvimi
         const calItems = this.buildCashflowItems();
-        document.getElementById("cashflowCalendarBody").innerHTML = calItems.map(item => `
-            <tr>
+        this._lastCashflowItems = calItems;
+        const sortedCalItems = this.sortList(calItems, this.cashflowSort, "cashflow");
+        this.updateSortHeaderIcons("cashflow");
+
+        document.getElementById("cashflowCalendarBody").innerHTML = sortedCalItems.map(item => {
+            const isChecked = this.selectedCashflowIds.has(item.id);
+            return `
+            <tr class="${isChecked ? 'row-selected' : ''}">
+                <td style="text-align:center;">
+                    <input type="checkbox" class="cashflow-row-check" value="${item.id}" ${isChecked ? 'checked' : ''} onclick="App.toggleRowSelect('cashflow', '${item.id}', this.checked, event)">
+                </td>
                 <td><strong>${item.tarih}</strong></td>
                 <td>
                     ${item.gunDiff > 0
@@ -2519,7 +2882,10 @@ const App = window.App = {
                     <button class="btn btn-outline btn-sm" onclick="App.openCariEkstre('${item.cariId}')">Cariye Git</button>
                 </td>
             </tr>
-        `).join("") || `<tr><td colspan="8" style="text-align:center; padding:24px; color:var(--text-muted);">Takvimde kayıtlı açık işlem bulunmuyor.</td></tr>`;
+        `;
+        }).join("") || `<tr><td colspan="9" style="text-align:center; padding:24px; color:var(--text-muted);">Takvimde kayıtlı açık işlem bulunmuyor.</td></tr>`;
+
+        this.updateSelectedSummary("cashflow");
     },
 
     buildCashflowItems() {
@@ -2531,7 +2897,9 @@ const App = window.App = {
 
             // 1. Eğer cari için özel Ödeme Sözü Tarihi girilmişse onu öncelikli göster
             if (c.odemeSozuTarihi) {
+                const sozId = `cf_soz_${c.id}_${c.odemeSozuTarihi}_${c.odemeSozuTutar || ''}`.replace(/[^a-zA-Z0-9_]/g, '_');
                 items.push({
+                    id: sozId,
                     tarih: c.odemeSozuTarihi,
                     gunDiff: this.daysDiffFromToday(c.odemeSozuTarihi),
                     yon: c.bakiyeYonu === "ALACAKLIYIZ" ? "GIRIS" : "CIKIS",
@@ -2544,8 +2912,12 @@ const App = window.App = {
             }
 
             // 2. Carinin FIFO sonrası kalan açık kalemleri
+            let akIdx = 0;
             for (const ak of c.acikKalemler) {
+                akIdx++;
+                const fifoId = `cf_fifo_${c.id}_${ak.evrakNo || akIdx}_${ak.vade}`.replace(/[^a-zA-Z0-9_]/g, '_');
                 items.push({
+                    id: fifoId,
                     tarih: ak.vade,
                     gunDiff: ak.gecikme,
                     yon: c.bakiyeYonu === "ALACAKLIYIZ" ? "GIRIS" : "CIKIS",
@@ -2561,7 +2933,9 @@ const App = window.App = {
         // 3. Portföydeki çek/senetler
         for (const cs of this.state.ceksenetler) {
             if (cs.durum === "PORTFOYDE" || cs.durum === "ODENECEK") {
+                const csId = `cf_cs_${cs.id || cs.evrakNo || Math.random()}`.replace(/[^a-zA-Z0-9_]/g, '_');
                 items.push({
+                    id: csId,
                     tarih: cs.vadeTarihi,
                     gunDiff: this.daysDiffFromToday(cs.vadeTarihi),
                     yon: cs.yon === "ALINAN" ? "GIRIS" : "CIKIS",
@@ -2574,7 +2948,7 @@ const App = window.App = {
             }
         }
 
-        items.sort((a, b) => (a.tarih || "").localeCompare(a.tarih || ""));
+        items.sort((a, b) => (a.tarih || "").localeCompare(b.tarih || ""));
         return items;
     },
 

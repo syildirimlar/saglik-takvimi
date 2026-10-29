@@ -13,7 +13,7 @@
     <meta name="apple-mobile-web-app-title" content="SODSAN Finans">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="format-detection" content="telephone=no">
-    <link rel="stylesheet" href="css/style.css?v=20261029_3">
+    <link rel="stylesheet" href="css/style.css?v=20261029_4">
 </head>
 <body>
 
@@ -459,18 +459,30 @@
                     </select>
                 </div>
 
+                <!-- SEÇİLENLERİ TOPLAMA BARI -->
+                <div class="table-selected-summary-bar" id="carilerSelectedSummaryBar">
+                    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                        <span style="font-weight:700; color:#38bdf8;">⚡ Seçilen (<span id="carilerSelectedCount">0</span>) Cari:</span>
+                        <span id="carilerSelectedTotals"></span>
+                    </div>
+                    <button type="button" class="btn btn-outline btn-sm" onclick="App.clearSelection('cariler')">✕ Seçimi Temizle</button>
+                </div>
+
                 <div class="table-wrap">
                     <table>
                         <thead>
                             <tr>
-                                <th>Cari Kod</th>
-                                <th>Cari Ünvan / VKN</th>
-                                <th>Ödeme Şekli & Vade</th>
-                                <th class="num">Toplam Borç (B)</th>
-                                <th class="num">Toplam Alacak (A)</th>
-                                <th class="num">Net Cari Bakiye</th>
-                                <th>Bakiye Yönü</th>
-                                <th>Vade & Gecikme</th>
+                                <th style="width:36px; text-align:center;">
+                                    <input type="checkbox" id="selectAllCariler" onchange="App.toggleSelectAll('cariler', this.checked)" title="Tümünü Seç / Kaldır">
+                                </th>
+                                <th class="sortable-th" onclick="App.toggleSort('cariler', 'kod')">Cari Kod <span id="carilerSort_kod">↕</span></th>
+                                <th class="sortable-th" onclick="App.toggleSort('cariler', 'unvan')">Cari Ünvan / VKN <span id="carilerSort_unvan">↕</span></th>
+                                <th class="sortable-th" onclick="App.toggleSort('cariler', 'odeme')">Ödeme Şekli & Vade <span id="carilerSort_odeme">↕</span></th>
+                                <th class="num sortable-th" onclick="App.toggleSort('cariler', 'toplamBorc')">Toplam Borç (B) <span id="carilerSort_toplamBorc">↕</span></th>
+                                <th class="num sortable-th" onclick="App.toggleSort('cariler', 'toplamAlacak')">Toplam Alacak (A) <span id="carilerSort_toplamAlacak">↕</span></th>
+                                <th class="num sortable-th" onclick="App.toggleSort('cariler', 'netBakiye')">Net Cari Bakiye <span id="carilerSort_netBakiye">▼</span></th>
+                                <th class="sortable-th" onclick="App.toggleSort('cariler', 'yon')">Bakiye Yönü <span id="carilerSort_yon">↕</span></th>
+                                <th class="sortable-th" onclick="App.toggleSort('cariler', 'vade')">Vade & Gecikme <span id="carilerSort_vade">↕</span></th>
                                 <th>Ödeme Sözü & Not</th>
                                 <th>İşlemler</th>
                             </tr>
@@ -521,16 +533,28 @@
                     </select>
                 </div>
 
+                <!-- SEÇİLENLERİ TOPLAMA BARI -->
+                <div class="table-selected-summary-bar" id="hatirlaticiSelectedSummaryBar">
+                    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                        <span style="font-weight:700; color:#38bdf8;">⚡ Seçilen (<span id="hatirlaticiSelectedCount">0</span>) Cari:</span>
+                        <span id="hatirlaticiSelectedTotals"></span>
+                    </div>
+                    <button type="button" class="btn btn-outline btn-sm" onclick="App.clearSelection('hatirlatici')">✕ Seçimi Temizle</button>
+                </div>
+
                 <div class="table-wrap">
                     <table>
                         <thead>
                             <tr>
-                                <th>Cari Bilgisi</th>
-                                <th>Yön / Rol</th>
-                                <th>Anlaşmalı Ödeme Şekli</th>
-                                <th class="num">Açık Bakiye (₺)</th>
-                                <th>Vade / Söz Tarihi</th>
-                                <th>Kalan / Gecikme Durumu</th>
+                                <th style="width:36px; text-align:center;">
+                                    <input type="checkbox" id="selectAllHatirlatici" onchange="App.toggleSelectAll('hatirlatici', this.checked)" title="Tümünü Seç / Kaldır">
+                                </th>
+                                <th class="sortable-th" onclick="App.toggleSort('hatirlatici', 'cari')">Cari Bilgisi <span id="hatirlaticiSort_cari">↕</span></th>
+                                <th class="sortable-th" onclick="App.toggleSort('hatirlatici', 'yon')">Yön / Rol <span id="hatirlaticiSort_yon">↕</span></th>
+                                <th class="sortable-th" onclick="App.toggleSort('hatirlatici', 'odeme')">Anlaşmalı Ödeme Şekli <span id="hatirlaticiSort_odeme">↕</span></th>
+                                <th class="num sortable-th" onclick="App.toggleSort('hatirlatici', 'bakiye')">Açık Bakiye (₺) <span id="hatirlaticiSort_bakiye">▼</span></th>
+                                <th class="sortable-th" onclick="App.toggleSort('hatirlatici', 'vade')">Vade / Söz Tarihi <span id="hatirlaticiSort_vade">↕</span></th>
+                                <th class="sortable-th" onclick="App.toggleSort('hatirlatici', 'gecikme')">Kalan / Gecikme Durumu <span id="hatirlaticiSort_gecikme">↕</span></th>
                                 <th>Hatırlatma & Takip Notu</th>
                                 <th>İşlemler</th>
                             </tr>
@@ -569,18 +593,30 @@
                     <button class="btn btn-outline btn-sm" onclick="App.clearHareketFilters()">Filtreyi Temizle</button>
                 </div>
 
+                <!-- SEÇİLENLERİ TOPLAMA BARI -->
+                <div class="table-selected-summary-bar" id="hareketlerSelectedSummaryBar">
+                    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                        <span style="font-weight:700; color:#38bdf8;">⚡ Seçilen (<span id="hareketlerSelectedCount">0</span>) Hareket:</span>
+                        <span id="hareketlerSelectedTotals"></span>
+                    </div>
+                    <button type="button" class="btn btn-outline btn-sm" onclick="App.clearSelection('hareketler')">✕ Seçimi Temizle</button>
+                </div>
+
                 <div class="table-wrap">
                     <table>
                         <thead>
                             <tr>
-                                <th class="cell-date">Fatura Tarihi</th>
-                                <th class="cell-date">Vade Tarihi</th>
-                                <th class="cell-code">Evrak No</th>
-                                <th>Cari Hesap</th>
-                                <th>İşlem Türü</th>
-                                <th>Açıklama</th>
-                                <th class="num">Borç (B)</th>
-                                <th class="num">Alacak (A)</th>
+                                <th style="width:36px; text-align:center;">
+                                    <input type="checkbox" id="selectAllHareketler" onchange="App.toggleSelectAll('hareketler', this.checked)" title="Tümünü Seç / Kaldır">
+                                </th>
+                                <th class="cell-date sortable-th" onclick="App.toggleSort('hareketler', 'tarih')">Fatura Tarihi <span id="hareketlerSort_tarih">▼</span></th>
+                                <th class="cell-date sortable-th" onclick="App.toggleSort('hareketler', 'vadeTarihi')">Vade Tarihi <span id="hareketlerSort_vadeTarihi">↕</span></th>
+                                <th class="cell-code sortable-th" onclick="App.toggleSort('hareketler', 'evrakNo')">Evrak No <span id="hareketlerSort_evrakNo">↕</span></th>
+                                <th class="sortable-th" onclick="App.toggleSort('hareketler', 'cari')">Cari Hesap <span id="hareketlerSort_cari">↕</span></th>
+                                <th class="sortable-th" onclick="App.toggleSort('hareketler', 'islemTuru')">İşlem Türü <span id="hareketlerSort_islemTuru">↕</span></th>
+                                <th class="sortable-th" onclick="App.toggleSort('hareketler', 'aciklama')">Açıklama <span id="hareketlerSort_aciklama">↕</span></th>
+                                <th class="num sortable-th" onclick="App.toggleSort('hareketler', 'borc')">Borç (B) <span id="hareketlerSort_borc">↕</span></th>
+                                <th class="num sortable-th" onclick="App.toggleSort('hareketler', 'alacak')">Alacak (A) <span id="hareketlerSort_alacak">↕</span></th>
                                 <th>Kaynak</th>
                                 <th>İşlem</th>
                             </tr>
@@ -625,19 +661,31 @@
                     </select>
                 </div>
 
+                <!-- SEÇİLENLERİ TOPLAMA BARI -->
+                <div class="table-selected-summary-bar" id="faturalarSelectedSummaryBar">
+                    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                        <span style="font-weight:700; color:#38bdf8;">⚡ Seçilen (<span id="faturalarSelectedCount">0</span>) Fatura:</span>
+                        <span id="faturalarSelectedTotals"></span>
+                    </div>
+                    <button type="button" class="btn btn-outline btn-sm" onclick="App.clearSelection('faturalar')">✕ Seçimi Temizle</button>
+                </div>
+
                 <div class="table-wrap">
                     <table>
                         <thead>
                             <tr>
-                                <th class="cell-date">Fatura Tarihi</th>
-                                <th class="cell-date">Vade Tarihi</th>
-                                <th class="cell-code">Fatura No</th>
-                                <th>Yön</th>
-                                <th>Cari Ünvan</th>
-                                <th class="num">Fatura Tutarı</th>
-                                <th class="num">Cari Mahsup</th>
-                                <th class="num">Kalan Açık Tutar</th>
-                                <th>Durum (FIFO Cari)</th>
+                                <th style="width:36px; text-align:center;">
+                                    <input type="checkbox" id="selectAllFaturalar" onchange="App.toggleSelectAll('faturalar', this.checked)" title="Tümünü Seç / Kaldır">
+                                </th>
+                                <th class="cell-date sortable-th" onclick="App.toggleSort('faturalar', 'tarih')">Fatura Tarihi <span id="faturalarSort_tarih">▼</span></th>
+                                <th class="cell-date sortable-th" onclick="App.toggleSort('faturalar', 'vadeTarihi')">Vade Tarihi <span id="faturalarSort_vadeTarihi">↕</span></th>
+                                <th class="cell-code sortable-th" onclick="App.toggleSort('faturalar', 'faturaNo')">Fatura No <span id="faturalarSort_faturaNo">↕</span></th>
+                                <th class="sortable-th" onclick="App.toggleSort('faturalar', 'yon')">Yön <span id="faturalarSort_yon">↕</span></th>
+                                <th class="sortable-th" onclick="App.toggleSort('faturalar', 'cariUnvan')">Cari Ünvan <span id="faturalarSort_cariUnvan">↕</span></th>
+                                <th class="num sortable-th" onclick="App.toggleSort('faturalar', 'tutar')">Fatura Tutarı <span id="faturalarSort_tutar">↕</span></th>
+                                <th class="num sortable-th" onclick="App.toggleSort('faturalar', 'kapanan')">Cari Mahsup <span id="faturalarSort_kapanan">↕</span></th>
+                                <th class="num sortable-th" onclick="App.toggleSort('faturalar', 'kalan')">Kalan Açık Tutar <span id="faturalarSort_kalan">↕</span></th>
+                                <th class="sortable-th" onclick="App.toggleSort('faturalar', 'durum')">Durum (FIFO Cari) <span id="faturalarSort_durum">↕</span></th>
                                 <th>İşlem</th>
                             </tr>
                         </thead>
@@ -663,18 +711,30 @@
                 <h4 style="margin-bottom:8px; font-size:13px; color:#f87171;">Ödenecek Cari Borç Yaşlandırması</h4>
                 <div class="aging-grid" id="borcAgingBoxes"></div>
 
+                <!-- SEÇİLENLERİ TOPLAMA BARI -->
+                <div class="table-selected-summary-bar" id="agingSelectedSummaryBar">
+                    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                        <span style="font-weight:700; color:#38bdf8;">⚡ Seçilen (<span id="agingSelectedCount">0</span>) Cari:</span>
+                        <span id="agingSelectedTotals"></span>
+                    </div>
+                    <button type="button" class="btn btn-outline btn-sm" onclick="App.clearSelection('aging')">✕ Seçimi Temizle</button>
+                </div>
+
                 <div class="table-wrap" style="margin-top:16px;">
                     <table>
                         <thead>
                             <tr>
-                                <th>Cari Ünvan</th>
-                                <th>Yön</th>
-                                <th class="num">Vadesi Geçmiş 60+ Gün</th>
-                                <th class="num">Vadesi Geçmiş 31-60 Gün</th>
-                                <th class="num">Vadesi Geçmiş 1-30 Gün</th>
-                                <th class="num">Vadesi Gelmemiş (0-30 Gün)</th>
-                                <th class="num">Vadesi Gelmemiş (31+ Gün)</th>
-                                <th class="num">Toplam Net Bakiye</th>
+                                <th style="width:36px; text-align:center;">
+                                    <input type="checkbox" id="selectAllAging" onchange="App.toggleSelectAll('aging', this.checked)" title="Tümünü Seç / Kaldır">
+                                </th>
+                                <th class="sortable-th" onclick="App.toggleSort('aging', 'unvan')">Cari Ünvan <span id="agingSort_unvan">↕</span></th>
+                                <th class="sortable-th" onclick="App.toggleSort('aging', 'yon')">Yön <span id="agingSort_yon">↕</span></th>
+                                <th class="num sortable-th" onclick="App.toggleSort('aging', 'overdue60Plus')">Vadesi Geçmiş 60+ Gün <span id="agingSort_overdue60Plus">↕</span></th>
+                                <th class="num sortable-th" onclick="App.toggleSort('aging', 'overdue31_60')">Vadesi Geçmiş 31-60 Gün <span id="agingSort_overdue31_60">↕</span></th>
+                                <th class="num sortable-th" onclick="App.toggleSort('aging', 'overdue1_30')">Vadesi Geçmiş 1-30 Gün <span id="agingSort_overdue1_30">↕</span></th>
+                                <th class="num sortable-th" onclick="App.toggleSort('aging', 'upcoming0_30')">Vadesi Gelmemiş (0-30 Gün) <span id="agingSort_upcoming0_30">↕</span></th>
+                                <th class="num sortable-th" onclick="App.toggleSort('aging', 'upcoming31Plus')">Vadesi Gelmemiş (31+ Gün) <span id="agingSort_upcoming31Plus">↕</span></th>
+                                <th class="num sortable-th" onclick="App.toggleSort('aging', 'netBakiye')">Toplam Net Bakiye <span id="agingSort_netBakiye">▼</span></th>
                             </tr>
                         </thead>
                         <tbody id="agingMatrixBody"></tbody>
@@ -686,17 +746,30 @@
                 <div class="card-header">
                     <div class="card-title">Nakit Akışı & Ödeme Takvimi</div>
                 </div>
+
+                <!-- SEÇİLENLERİ TOPLAMA BARI -->
+                <div class="table-selected-summary-bar" id="cashflowSelectedSummaryBar">
+                    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                        <span style="font-weight:700; color:#38bdf8;">⚡ Seçilen (<span id="cashflowSelectedCount">0</span>) İşlem:</span>
+                        <span id="cashflowSelectedTotals"></span>
+                    </div>
+                    <button type="button" class="btn btn-outline btn-sm" onclick="App.clearSelection('cashflow')">✕ Seçimi Temizle</button>
+                </div>
+
                 <div class="table-wrap">
                     <table>
                         <thead>
                             <tr>
-                                <th>Vade / Planlanan Tarih</th>
-                                <th>Gün Durumu</th>
-                                <th>Kaynak</th>
-                                <th>Cari Hesap</th>
-                                <th>Açıklama / Evrak</th>
-                                <th class="num">Beklenen Tahsilat (+)</th>
-                                <th class="num">Yapılacak Ödeme (-)</th>
+                                <th style="width:36px; text-align:center;">
+                                    <input type="checkbox" id="selectAllCashflow" onchange="App.toggleSelectAll('cashflow', this.checked)" title="Tümünü Seç / Kaldır">
+                                </th>
+                                <th class="sortable-th" onclick="App.toggleSort('cashflow', 'tarih')">Vade / Planlanan Tarih <span id="cashflowSort_tarih">▲</span></th>
+                                <th class="sortable-th" onclick="App.toggleSort('cashflow', 'gunDiff')">Gün Durumu <span id="cashflowSort_gunDiff">↕</span></th>
+                                <th class="sortable-th" onclick="App.toggleSort('cashflow', 'tur')">Kaynak <span id="cashflowSort_tur">↕</span></th>
+                                <th class="sortable-th" onclick="App.toggleSort('cashflow', 'cari')">Cari Hesap <span id="cashflowSort_cari">↕</span></th>
+                                <th class="sortable-th" onclick="App.toggleSort('cashflow', 'aciklama')">Açıklama / Evrak <span id="cashflowSort_aciklama">↕</span></th>
+                                <th class="num sortable-th" onclick="App.toggleSort('cashflow', 'tahsilat')">Beklenen Tahsilat (+) <span id="cashflowSort_tahsilat">↕</span></th>
+                                <th class="num sortable-th" onclick="App.toggleSort('cashflow', 'odeme')">Yapılacak Ödeme (-) <span id="cashflowSort_odeme">↕</span></th>
                                 <th>İşlem</th>
                             </tr>
                         </thead>
@@ -1367,7 +1440,7 @@
     <script src="js/ubl_parser.js?v=20261029_3"></script>
     <script src="js/excel_importer.js?v=20261029_3"></script>
     <script src="js/cloud_bridge.js?v=20261029_3"></script>
-    <script src="js/app.js?v=20261029_3"></script>
+    <script src="js/app.js?v=20261029_4"></script>
     <script>
         if ('serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.hostname === 'localhost')) {
             window.addEventListener('load', () => {
