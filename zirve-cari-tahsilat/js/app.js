@@ -859,16 +859,16 @@ const App = window.App = {
         const elF = document.getElementById("cntFaturalar"); if (elF) elF.textContent = this.state.faturalar.length;
         const elCS = document.getElementById("cntCekSenet"); if (elCS) elCS.textContent = this.state.ceksenetler.length;
 
-        this.renderActiveReportBar();
-        this.renderDashboard();
-        this.renderAlicilar();
-        this.renderSaticilar();
-        this.renderCariler();
-        this.renderHatirlatici();
-        this.renderHareketler();
-        this.renderFaturalar();
-        this.renderYaslandirmaAndCalendar();
-        this.renderCekSenet();
+        try { this.renderActiveReportBar(); } catch(e) { console.error("renderActiveReportBar error:", e); }
+        try { this.renderDashboard(); } catch(e) { console.error("renderDashboard error:", e); }
+        try { this.renderAlicilar(); } catch(e) { console.error("renderAlicilar error:", e); }
+        try { this.renderSaticilar(); } catch(e) { console.error("renderSaticilar error:", e); }
+        try { this.renderCariler(); } catch(e) { console.error("renderCariler error:", e); }
+        try { this.renderHatirlatici(); } catch(e) { console.error("renderHatirlatici error:", e); }
+        try { this.renderHareketler(); } catch(e) { console.error("renderHareketler error:", e); }
+        try { this.renderFaturalar(); } catch(e) { console.error("renderFaturalar error:", e); }
+        try { this.renderYaslandirmaAndCalendar(); } catch(e) { console.error("renderYaslandirmaAndCalendar error:", e); }
+        try { this.renderCekSenet(); } catch(e) { console.error("renderCekSenet error:", e); }
     },
 
     renderActiveReportBar() {
@@ -903,7 +903,26 @@ const App = window.App = {
         document.querySelectorAll(".tab-panel").forEach(panel => {
             panel.classList.toggle("active", panel.id === "tab-" + tabName);
         });
-        if (tabName === "zirve") {
+
+        if (tabName === "yaslandirma") {
+            this.renderYaslandirmaAndCalendar();
+        } else if (tabName === "alici") {
+            this.renderAlicilar();
+        } else if (tabName === "satici") {
+            this.renderSaticilar();
+        } else if (tabName === "cariler") {
+            this.renderCariler();
+        } else if (tabName === "hatirlatici") {
+            this.renderHatirlatici();
+        } else if (tabName === "hareketler") {
+            this.renderHareketler();
+        } else if (tabName === "faturalar") {
+            this.renderFaturalar();
+        } else if (tabName === "ceksenet") {
+            this.renderCekSenet();
+        } else if (tabName === "dashboard") {
+            this.renderDashboard();
+        } else if (tabName === "zirve") {
             const adminCard = document.getElementById("adminUserManagementCard");
             if (adminCard) {
                 adminCard.style.display = (this.currentUser && this.currentUser.role === "ADMIN") ? "block" : "none";
@@ -2744,7 +2763,7 @@ const App = window.App = {
             return { ...f, effVade, fifo, gecikme, vadeInfo };
         });
 
-        const filtered = enriched.filter(f => {
+        let filtered = enriched.filter(f => {
             if (durumFilter === "ACIK") return f.fifo.durum !== "KAPALI";
             if (durumFilter === "GECIKMIS") return f.fifo.durum !== "KAPALI" && f.gecikme > 0;
             if (durumFilter === "KAPALI") return f.fifo.durum === "KAPALI";
