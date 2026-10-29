@@ -192,7 +192,6 @@ export class CalendarModule {
       weekCell.title = `${weekNum}. Hafta (${startFmt} - ${endFmt})${isCurrent ? ' • Bu Hafta' : ''}`;
 
       weekCell.innerHTML = `
-        <span class="week-tag">HF</span>
         <span class="week-number">${weekNum}</span>
       `;
 
@@ -239,10 +238,28 @@ export class CalendarModule {
       p.date && p.date.startsWith(dateKey)
     );
 
+    // O güne denk gelen haftalık üretim planları
+    const TURKISH_DAYS = ["Pazar", "Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi"];
+    const dayNameTr = TURKISH_DAYS[date.getDay()];
+    const prodPlans = (appState.state.productionPlans || []).filter(p => {
+      const inWeek = (p.weekStart && p.weekEnd && dateKey >= p.weekStart && dateKey <= p.weekEnd);
+      if (!inWeek) return false;
+      return p.day === dayNameTr || p.day === "Hafta Boyu";
+    });
+
     const badgesContainer = document.createElement("div");
     badgesContainer.className = "flex flex-row flex-wrap sm:flex-col sm:flex-nowrap gap-0.5 sm:gap-1 mt-0.5 min-w-0";
 
     // KÜÇÜK SİMGELER HALİNDE TAKVİM HÜCRESİNDE GÖSTER
+    // 0. Üretim Programı & Kalıp Baskıları
+    prodPlans.forEach(p => {
+      const badge = document.createElement("div");
+      badge.className = "calendar-badge text-[9px] font-bold py-0.5 px-1 rounded truncate flex items-center gap-0.5 bg-indigo-50 text-indigo-900 border border-indigo-200 dark:bg-indigo-950/60 dark:text-indigo-200 dark:border-indigo-800";
+      badge.title = `Üretim: ${p.machineName} • ${p.moldName} (${p.status})`;
+      badge.innerHTML = `<span>⚙️</span> <span class="cal-badge-text truncate">${p.machineName}: ${p.moldName}</span>`;
+      badgesContainer.appendChild(badge);
+    });
+
     // 1. Sevkiyatlar, Bakımlar & Eğitimler
     events.forEach(ev => {
       const isMaint = ev.type === "MAKINABAKIM";
@@ -339,7 +356,16 @@ export class CalendarModule {
       p.date && p.date.startsWith(dateKey)
     );
 
-    const totalCount = events.length + leaves.length + overtimes.length + breakdowns.length + products.length;
+    // O güne denk gelen haftalık üretim planları
+    const TURKISH_DAYS = ["Pazar", "Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi"];
+    const dayNameTr = TURKISH_DAYS[date.getDay()];
+    const prodPlans = (appState.state.productionPlans || []).filter(p => {
+      const inWeek = (p.weekStart && p.weekEnd && dateKey >= p.weekStart && dateKey <= p.weekEnd);
+      if (!inWeek) return false;
+      return p.day === dayNameTr || p.day === "Hafta Boyu";
+    });
+
+    const totalCount = events.length + leaves.length + overtimes.length + breakdowns.length + products.length + prodPlans.length;
 
     if (totalCount === 0) {
       listEl.innerHTML = `
@@ -358,6 +384,27 @@ export class CalendarModule {
     listEl.innerHTML = `
       <p class="text-xs text-slate-500 font-medium mb-1">Bu tarihte <b>${totalCount}</b> kayıtlı olay ve hareket bulunuyor. Ayrıntıları görmek için olay kartına tıklayınız:</p>
       
+      <!-- Haftalık Kalıp Baskı & Üretim Programı -->
+      ${prodPlans.map(p => `
+        <div class="rounded-xl border border-indigo-200 dark:border-indigo-800 bg-indigo-50/60 dark:bg-indigo-950/30 p-3.5 shadow-sm space-y-1.5">
+          <div class="flex items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+              <span class="text-xl">⚙️</span>
+              <div>
+                <h4 class="font-extrabold text-indigo-950 dark:text-indigo-200 text-sm">Üretim: ${p.machineName} &bull; ${p.moldName}</h4>
+                <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-indigo-100 text-indigo-800 dark:bg-indigo-900/60 dark:text-indigo-300 uppercase">
+                  ${p.status} &bull; ${p.day}
+                </span>
+              </div>
+            </div>
+          </div>
+          <div class="pt-1.5 border-t border-indigo-100 dark:border-indigo-900/60 text-xs space-y-0.5 text-slate-700 dark:text-slate-300">
+            <p><b>Parça:</b> ${p.productName} &bull; <b>Hedef:</b> ${Number(p.targetQuantity).toLocaleString('tr-TR')} ${p.unit} &bull; <b>Basılan:</b> ${Number(p.producedQuantity || 0).toLocaleString('tr-TR')} ${p.unit}</p>
+            <p class="text-[11px] text-slate-500 dark:text-slate-400">Sorumlu Usta: <b>${p.operatorName || 'Atanmadı'}</b> &bull; Hammadde: <b>${p.rawMaterial || '-'}</b></p>
+          </div>
+        </div>
+      `).join("")}
+
       <!-- Takvim Etkinlikleri (Sevkiyat, Bakım & Eğitim) -->
       ${events.map(ev => {
         const isMaint = ev.type === "MAKINABAKIM";
@@ -583,10 +630,19 @@ export class CalendarModule {
       b.reportedTime && b.reportedTime.startsWith(dateKey)
     );
 
-    if (events.length === 0 && leaves.length === 0 && overtimes.length === 0 && breakdowns.length === 0) {
+    // O güne denk gelen haftalık üretim planları
+    const TURKISH_DAYS = ["Pazar", "Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi"];
+    const dayNameTr = TURKISH_DAYS[this.selectedDate.getDay()];
+    const prodPlans = (appState.state.productionPlans || []).filter(p => {
+      const inWeek = (p.weekStart && p.weekEnd && dateKey >= p.weekStart && dateKey <= p.weekEnd);
+      if (!inWeek) return false;
+      return p.day === dayNameTr || p.day === "Hafta Boyu";
+    });
+
+    if (events.length === 0 && leaves.length === 0 && overtimes.length === 0 && breakdowns.length === 0 && prodPlans.length === 0) {
       container.innerHTML = `
         <div class="text-center py-6 text-slate-400 text-sm">
-          <p>Bu güne ait planlanmış bakım, sevkiyat veya arıza bulunmuyor.</p>
+          <p>Bu güne ait planlanmış bakım, sevkiyat, arıza veya üretim bulunmuyor.</p>
           <button id="btn-quick-add-event" class="mt-2 text-blue-600 font-bold text-xs hover:underline">
             + Yeni Plan / Bakım Ekle
           </button>
@@ -600,6 +656,24 @@ export class CalendarModule {
     const canEdit = this.isUserManager();
 
     let html = `<div class="space-y-2.5">`;
+
+    // Üretim Planları
+    prodPlans.forEach(p => {
+      html += `
+        <div class="p-3 rounded-xl border border-indigo-200 bg-indigo-50/50 text-sm">
+          <div class="flex items-center gap-1.5">
+            <span class="text-base">⚙️</span>
+            <span class="font-bold text-indigo-950">${p.machineName}</span>
+            <span class="text-xs px-2 py-0.5 rounded-full bg-indigo-200 text-indigo-800 font-medium">${p.status}</span>
+          </div>
+          <p class="text-xs text-slate-700 mt-1">${p.moldName} &bull; ${p.productName}</p>
+          <div class="text-[11px] text-slate-500 mt-1 flex justify-between">
+            <span>Usta: <b>${p.operatorName || '-'}</b></span>
+            <span><b>${Number(p.producedQuantity || 0).toLocaleString('tr-TR')} / ${Number(p.targetQuantity).toLocaleString('tr-TR')} Adet</b></span>
+          </div>
+        </div>
+      `;
+    });
 
     // Etkinlikler
     events.forEach(ev => {
