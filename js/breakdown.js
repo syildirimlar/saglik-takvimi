@@ -1,5 +1,5 @@
 // SODSAN Fabrika Portalı - Makina Arıza ve Bakım Takip Modülü (breakdown.js)
-import { appState, playAlertSound, logSystemAction, registerMachine, updateMachine, deleteMachine, addExternalService, deleteExternalService } from './data.js';
+import { appState, playAlertSound, logSystemAction, registerMachine, updateMachine, deleteMachine, addExternalService, updateExternalService, deleteExternalService, isIdariIslerOrAdmin } from './data.js';
 
 export class BreakdownModule {
   constructor() {
@@ -196,6 +196,14 @@ export class BreakdownModule {
       });
     }
 
+    const formEditExt = document.getElementById("form-edit-external-service");
+    if (formEditExt) {
+      formEditExt.addEventListener("submit", (e) => {
+        e.preventDefault();
+        this.saveEditedExternalService();
+      });
+    }
+
     if (btnOpenReport) {
       btnOpenReport.addEventListener("click", () => this.openReportModal());
     }
@@ -296,6 +304,59 @@ export class BreakdownModule {
     this.renderExternalServices();
   }
 
+  openEditExternalServiceModal(serviceId) {
+    const service = (appState.state.externalServices || []).find(s => s.id === serviceId);
+    if (!service) return;
+
+    document.getElementById("edit-ext-service-id").value = service.id;
+    document.getElementById("edit-ext-service-company").value = service.companyName || "";
+    document.getElementById("edit-ext-service-contact").value = service.contactPerson || "";
+    document.getElementById("edit-ext-service-specialty").value = service.specialty || "";
+    document.getElementById("edit-ext-service-phone").value = service.phone || "";
+    document.getElementById("edit-ext-service-notes").value = service.notes || "";
+
+    const modal = document.getElementById("modal-edit-external-service");
+    if (modal) modal.classList.add("show");
+  }
+
+  saveEditedExternalService() {
+    const id = document.getElementById("edit-ext-service-id").value;
+    const compName = document.getElementById("edit-ext-service-company").value.trim();
+    const contact = document.getElementById("edit-ext-service-contact").value.trim();
+    const specialty = document.getElementById("edit-ext-service-specialty").value.trim();
+    const phone = document.getElementById("edit-ext-service-phone").value.trim();
+    const notes = document.getElementById("edit-ext-service-notes").value.trim();
+
+    if (!compName || !phone) {
+      alert("Lütfen firma adı ve telefon numarasını giriniz.");
+      return;
+    }
+
+    const updated = updateExternalService(id, {
+      companyName: compName,
+      contactPerson: contact,
+      specialty,
+      phone,
+      notes
+    });
+
+    if (updated) {
+      const uName = appState.state.currentUser ? appState.state.currentUser.name : "Yetkili";
+      logSystemAction(
+        "DIŞ_SERVİS_GÜNCELLE",
+        `${uName}, "${compName}" (${specialty}) dış servis / usta bilgilerini güncelledi.`,
+        { id, company: compName, phone, specialty }
+      );
+
+      playAlertSound("call");
+
+      document.getElementById("form-edit-external-service").reset();
+      document.getElementById("modal-edit-external-service").classList.remove("show");
+
+      this.renderExternalServices();
+    }
+  }
+
   renderExternalServices() {
     const container = document.getElementById("external-services-list");
     if (!container) return;
@@ -310,31 +371,47 @@ export class BreakdownModule {
       return;
     }
 
+    const canManage = isIdariIslerOrAdmin();
+
     container.innerHTML = list.map(item => `
-      <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between space-y-2.5 hover:border-blue-300 transition">
+      <div class="bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between space-y-2.5 hover:border-blue-300 dark:hover:border-blue-600 transition">
         <div>
           <div class="flex items-start justify-between gap-2">
             <div>
-              <h4 class="font-extrabold text-slate-900 text-sm">${item.companyName}</h4>
-              ${item.contactPerson ? `<p class="text-xs text-slate-600 font-medium mt-0.5">👤 Yetkili: <b>${item.contactPerson}</b></p>` : ''}
+              <h4 class="font-extrabold text-slate-900 dark:text-white text-sm">${item.companyName}</h4>
+              ${item.contactPerson ? `<p class="text-xs text-slate-600 dark:text-slate-300 font-medium mt-0.5">👤 Yetkili / Usta: <b>${item.contactPerson}</b></p>` : ''}
             </div>
-            <span class="text-[10px] bg-blue-50 text-blue-700 font-bold px-2 py-0.5 rounded border border-blue-200 whitespace-nowrap">
+            <span class="text-[10px] bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 font-bold px-2 py-0.5 rounded border border-blue-200 dark:border-blue-800 whitespace-nowrap">
               ${item.specialty || 'Servis'}
             </span>
           </div>
-          ${item.notes ? `<p class="text-[11px] text-slate-500 mt-2 bg-slate-50 p-2 rounded border border-slate-100">${item.notes}</p>` : ''}
+          ${item.notes ? `<p class="text-[11px] text-slate-500 dark:text-slate-400 mt-2 bg-slate-50 dark:bg-slate-800/60 p-2 rounded border border-slate-100 dark:border-slate-800">${item.notes}</p>` : ''}
         </div>
 
-        <div class="pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
-          <a href="tel:${item.phone.replace(/[^0-9+]/g, '')}" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-1.5 px-3 rounded-lg shadow-sm transition flex items-center gap-1.5">
+        <div class="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2">
+          <a href="tel:${item.phone.replace(/[^0-9+]/g, '')}" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-1.5 px-3 rounded-lg shadow-sm transition flex items-center gap-1.5 cursor-pointer">
             <span>📞</span> <span>${item.phone}</span>
           </a>
-          <button data-delete-ext-service="${item.id}" class="text-red-500 hover:text-red-700 p-1.5 rounded hover:bg-red-50 transition text-xs font-bold" title="Rehberden Sil">
-            🗑️
-          </button>
+          <div class="flex items-center gap-1">
+            ${canManage ? `
+              <button data-edit-ext-service="${item.id}" class="bg-blue-50 hover:bg-blue-100 text-blue-700 p-1.5 rounded-lg transition text-xs font-bold flex items-center gap-1 cursor-pointer" title="Usta / Servis Bilgilerini Düzenle">
+                <span>✏️</span> <span class="hidden sm:inline">Düzenle</span>
+              </button>
+              <button data-delete-ext-service="${item.id}" class="text-red-500 hover:text-red-700 p-1.5 rounded-lg hover:bg-red-50 transition text-xs font-bold cursor-pointer" title="Rehberden Sil">
+                🗑️
+              </button>
+            ` : ''}
+          </div>
         </div>
       </div>
     `).join("");
+
+    container.querySelectorAll("[data-edit-ext-service]").forEach(btn => {
+      btn.addEventListener("click", (e) => {
+        const id = e.currentTarget.getAttribute("data-edit-ext-service");
+        this.openEditExternalServiceModal(id);
+      });
+    });
 
     container.querySelectorAll("[data-delete-ext-service]").forEach(btn => {
       btn.addEventListener("click", (e) => {
