@@ -104,8 +104,8 @@ export class ForkliftModule {
         if (modal) {
           const cfg = appState.state.telegramConfig || {};
           document.getElementById("telegram-token").value = cfg.botToken || "";
-          document.getElementById("telegram-chat-id").value = cfg.chatId || "";
-          document.getElementById("telegram-enabled").checked = !!cfg.enabled;
+          document.getElementById("telegram-chat-id").value = cfg.chatId || "-1004438133842";
+          document.getElementById("telegram-enabled").checked = cfg.enabled !== false;
 
           const elNew = document.getElementById("tg-notify-forklift-new");
           if (elNew) elNew.checked = cfg.notifyForkliftNew !== false;
@@ -789,6 +789,9 @@ export class ForkliftModule {
     }
 
     if (!config || !config.enabled || !config.botToken || !config.chatId) {
+      if (!config?.botToken && window.cloudSync && typeof window.cloudSync.showToast === "function") {
+        window.cloudSync.showToast("⚠️ Telegram Bot Token girilmemiş. Bildirim iletilemedi.");
+      }
       return;
     }
 
@@ -880,7 +883,7 @@ export class ForkliftModule {
       const resData = await res.json().catch(() => null);
 
       if (!res.ok || (resData && !resData.ok)) {
-        await fetch(url, {
+        const retryRes = await fetch(url, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -888,6 +891,14 @@ export class ForkliftModule {
             text: plainText
           })
         });
+        const retryData = await retryRes.json().catch(() => null);
+        if (!retryRes.ok || (retryData && !retryData.ok)) {
+          const errDesc = retryData?.description || resData?.description || (res.status === 401 ? "Token geçersiz/iptal edilmiş (401)" : `Hata ${res.status}`);
+          console.warn("Telegram mesajı iletilemedi:", errDesc);
+          if (window.cloudSync && typeof window.cloudSync.showToast === "function") {
+            window.cloudSync.showToast(`⚠️ Telegram Botu: ${errDesc}`);
+          }
+        }
       }
     } catch (e) {
       console.warn("Telegram mesajı gönderilemedi:", e);
