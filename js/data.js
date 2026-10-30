@@ -358,6 +358,18 @@ export const DEFAULT_OVERTIME_REQUESTS = [];
 // Makina Arıza Bildirimleri
 export const DEFAULT_BREAKDOWNS = [];
 
+// Tanımlı Standart Makine Arıza Türleri
+export const DEFAULT_FAULT_TYPES = [
+  { id: "ft_mekanik", name: "Mekanik / Sıkışma / Rulman / Kasnak", icon: "⚙️", isCustom: false },
+  { id: "ft_elektrik", name: "Elektrik / Sigorta / Motor / Şalter", icon: "⚡", isCustom: false },
+  { id: "ft_hidrolik", name: "Hidrolik / Pnömatik / Basınç / Kaçak", icon: "💧", isCustom: false },
+  { id: "ft_bicak", name: "Bıçak / Tel Kopması / Kalıp", icon: "🔪", isCustom: false },
+  { id: "ft_otomasyon", name: "Otomasyon / Sensör / PLC / Ekran", icon: "💻", isCustom: false },
+  { id: "ft_isitici", name: "Isıtıcı / Rezistans / Termokupl", icon: "🔥", isCustom: false },
+  { id: "ft_yaglama", name: "Yağlama / Filtre / Soğutma Suyu", icon: "🛢️", isCustom: false },
+  { id: "ft_bilinmiyor", name: "Bilinmiyor / Ses, Koku veya Duman", icon: "❓", isCustom: false }
+];
+
 // Forklift Çağrıları (Gerçek Kayıtlar)
 export const DEFAULT_FORKLIFT_REQUESTS = [
   {
@@ -841,6 +853,17 @@ export class StateManager {
         parsed.companies = [...DEFAULT_COMPANIES];
       }
 
+      // Arıza Türleri
+      if (!Array.isArray(parsed.faultTypes) || parsed.faultTypes.length === 0) {
+        parsed.faultTypes = JSON.parse(JSON.stringify(DEFAULT_FAULT_TYPES));
+      } else {
+        DEFAULT_FAULT_TYPES.forEach(defFt => {
+          if (!parsed.faultTypes.some(ft => (typeof ft === "object" ? ft.id === defFt.id || ft.name.toLowerCase() === defFt.name.toLowerCase() : ft === defFt.name))) {
+            parsed.faultTypes.push(defFt);
+          }
+        });
+      }
+
       // Dış Servisler
       if (!Array.isArray(parsed.externalServices) || parsed.externalServices.length === 0) {
         parsed.externalServices = [...DEFAULT_EXTERNAL_SERVICES];
@@ -949,6 +972,7 @@ export class StateManager {
         productionPlans: JSON.parse(JSON.stringify(DEFAULT_PRODUCTION_PLANS)),
         calendarEvents: [],
         companies: [...DEFAULT_COMPANIES],
+        faultTypes: JSON.parse(JSON.stringify(DEFAULT_FAULT_TYPES)),
         machines: JSON.parse(JSON.stringify(DEFAULT_MACHINES)),
         externalServices: [...DEFAULT_EXTERNAL_SERVICES],
         shuttleRoutes: [],
@@ -1135,6 +1159,59 @@ export class StateManager {
     this.saveState();
   }
 
+  // Makine Arıza Türleri Yönetimi
+  registerFaultType(data) {
+    let name = "";
+    let icon = "⚠️";
+    if (typeof data === "string") {
+      name = data.trim();
+    } else if (typeof data === "object" && data !== null) {
+      name = (data.name || "").trim();
+      icon = (data.icon || "⚠️").trim();
+    }
+
+    if (!name) return null;
+
+    if (!Array.isArray(this.state.faultTypes)) {
+      this.state.faultTypes = JSON.parse(JSON.stringify(DEFAULT_FAULT_TYPES));
+    }
+
+    const existing = this.state.faultTypes.find(ft => {
+      const ftName = typeof ft === "string" ? ft : ft.name;
+      return ftName.toLowerCase() === name.toLowerCase();
+    });
+
+    if (existing) {
+      return typeof existing === "object" ? existing : { id: "ft_" + Date.now(), name: existing, icon };
+    }
+
+    const newFt = {
+      id: "ft_" + Date.now() + "_" + Math.floor(Math.random() * 1000),
+      name: name,
+      icon: icon || "⚠️",
+      isCustom: true,
+      createdAt: new Date().toISOString()
+    };
+
+    this.state.faultTypes.push(newFt);
+    this.saveState();
+    return newFt;
+  }
+
+  deleteFaultType(id) {
+    if (!Array.isArray(this.state.faultTypes)) return false;
+    const initialLen = this.state.faultTypes.length;
+    this.state.faultTypes = this.state.faultTypes.filter(ft => {
+      if (typeof ft === "string") return ft !== id;
+      return ft.id !== id && ft.name !== id;
+    });
+    if (this.state.faultTypes.length !== initialLen) {
+      this.saveState();
+      return true;
+    }
+    return false;
+  }
+
   // Haftalık Üretim & Kalıp Baskı Metotları
   addProductionPlan(plan) {
     if (!Array.isArray(this.state.productionPlans)) {
@@ -1280,6 +1357,9 @@ export class StateManager {
       const parsed = JSON.parse(jsonString);
       if (parsed.departments && parsed.users) {
         this.state = parsed;
+        if (!Array.isArray(this.state.faultTypes) || this.state.faultTypes.length === 0) {
+          this.state.faultTypes = JSON.parse(JSON.stringify(DEFAULT_FAULT_TYPES));
+        }
         this.saveState(skipCloudNotify);
         return true;
       }
@@ -1573,4 +1653,12 @@ export function updateExternalService(id, updatedData) {
 
 export function deleteExternalService(id) {
   return appState.deleteExternalService(id);
+}
+
+export function registerFaultType(data) {
+  return appState.registerFaultType(data);
+}
+
+export function deleteFaultType(id) {
+  return appState.deleteFaultType(id);
 }
