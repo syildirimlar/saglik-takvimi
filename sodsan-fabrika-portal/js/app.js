@@ -1106,36 +1106,44 @@ class App {
 
   initPwa() {
     let deferredPrompt = null;
-    const installBtns = document.querySelectorAll("#btn-pwa-install-login");
+    const getInstallBtns = () => document.querySelectorAll("#btn-pwa-install-login, .btn-pwa-install-action, #btn-pwa-install-sidebar");
+
+    const isStandalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+    if (isStandalone) {
+      getInstallBtns().forEach(btn => btn.classList.add("hidden"));
+    }
 
     window.addEventListener("beforeinstallprompt", (e) => {
       e.preventDefault();
       deferredPrompt = e;
-      installBtns.forEach(btn => {
+      getInstallBtns().forEach(btn => {
         btn.classList.remove("hidden");
       });
     });
 
-    installBtns.forEach(btn => {
-      btn.addEventListener("click", async () => {
-        if (deferredPrompt) {
-          deferredPrompt.prompt();
-          const { outcome } = await deferredPrompt.userChoice;
-          console.log(`PWA yükleme sonucu: ${outcome}`);
-          deferredPrompt = null;
+    document.addEventListener("click", async (e) => {
+      const btn = e.target.closest("#btn-pwa-install-login, .btn-pwa-install-action, #btn-pwa-install-sidebar");
+      if (!btn) return;
+      e.preventDefault();
+
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        console.log(`PWA yükleme sonucu: ${outcome}`);
+        deferredPrompt = null;
+      } else {
+        const isIos = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+        if (isIos) {
+          alert("📱 iPhone / iPad İçin Kurulum Adımları:\n\n1. Safari tarayıcınızın altındaki 'Paylaş (Share) ⎋' butonuna dokunun.\n2. Açılan menüyü aşağı kaydırıp 'Ana Ekrana Ekle' seçeneğine basın.\n3. Sağ üstteki 'Ekle' butonuna dokunun.\n\nSODSAN Portalı ana ekranınıza logo ikonuyla uygulama olarak gelecektir!");
         } else {
-          const isIos = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-          if (isIos) {
-            alert("📱 iPhone / iPad'e Yüklemek İçin:\n\n1. Safari tarayıcınızın altındaki 'Paylaş (Share) ⎋' butonuna dokunun.\n2. Aşağı kaydırıp 'Ana Ekrana Ekle' (Add to Home Screen) seçeneğine basın.");
-          } else {
-            alert("📱 Telefonunuza Yüklemek İçin:\n\nTarayıcınızın sağ üstündeki üç nokta (⋮) menüsüne dokunup 'Uygulamayı Yükle' veya 'Ana Ekrana Ekle' seçeneğine basabilirsiniz.");
-          }
+          alert("📱 Android Telefon İçin Kurulum Adımları:\n\n1. Chrome tarayıcınızın sağ üstündeki üç nokta (⋮) menüsüne dokunun.\n2. 'Uygulamayı Yükle' veya 'Ana Ekrana Ekle' seçeneğine basın.\n3. 'Yükle' butonuna basarak onaylayın.\n\nSODSAN Portalı ana ekranınıza tıpkı bir uygulama gibi yüklenecektir!");
         }
-      });
+      }
     });
 
     window.addEventListener("appinstalled", () => {
       console.log("SODSAN Fabrika Portalı cihaz ana ekranına başarıyla kuruldu.");
+      getInstallBtns().forEach(btn => btn.classList.add("hidden"));
     });
   }
 }
