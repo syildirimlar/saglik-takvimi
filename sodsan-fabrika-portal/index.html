@@ -292,7 +292,7 @@
               </div>
             </div>
           </div>
-          <span class="text-xs text-slate-400">⇄</span>
+          <span id="switch-user-icon" class="text-xs text-slate-400">⇄</span>
         </div>
 
         <!-- Alt Aksiyonlar: PWA Uygulama İndir, Tema Değiştir & Güvenli Çıkış -->
@@ -4251,7 +4251,7 @@
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js?v=55').catch(err => {
+        navigator.serviceWorker.register('sw.js?v=58').catch(err => {
           console.log('SW registration failed:', err);
         });
       });
@@ -4259,6 +4259,6 @@
   </script>
 
   <!-- ES Modül Girişi -->
-  <script type="module" src="js/app.js?v=7.1"></script>
+  <script type="module" src="js/app.js?v=8.0"></script>
 </body>
 </html>

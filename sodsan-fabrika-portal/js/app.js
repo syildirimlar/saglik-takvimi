@@ -1,17 +1,17 @@
 // SODSAN Fabrika Portalı - Ana Uygulama Yöneticisi (app.js)
-import { appState, ROLES, getRoleInfo, logSystemAction, isAdmin, isIdariIslerOrAdmin, isViewer, isUserVisibleToCurrentSession } from './data.js';
-import { CalendarModule } from './calendar.js';
-import { ProductsModule } from './products.js';
-import { SuppliesModule } from './supplies.js';
-import { LeaveModule } from './leave.js';
-import { OvertimeModule } from './overtime.js';
-import { ForkliftModule } from './forklift.js';
-import { BreakdownModule } from './breakdown.js';
-import { ProductionModule } from './production.js';
-import { AdminModule } from './admin.js';
-import { CateringShuttleModule, getUserShuttleBanners } from './catering_shuttle.js';
-import { DocumentsModule } from './documents.js';
-import { cloudSync } from './cloud_sync.js';
+import { appState, ROLES, getRoleInfo, logSystemAction, isAdmin, isIdariIslerOrAdmin, isViewer, isUserVisibleToCurrentSession } from './data.js?v=8.0';
+import { CalendarModule } from './calendar.js?v=8.0';
+import { ProductsModule } from './products.js?v=8.0';
+import { SuppliesModule } from './supplies.js?v=8.0';
+import { LeaveModule } from './leave.js?v=8.0';
+import { OvertimeModule } from './overtime.js?v=8.0';
+import { ForkliftModule } from './forklift.js?v=8.0';
+import { BreakdownModule } from './breakdown.js?v=8.0';
+import { ProductionModule } from './production.js?v=8.0';
+import { AdminModule } from './admin.js?v=8.0';
+import { CateringShuttleModule, getUserShuttleBanners } from './catering_shuttle.js?v=8.0';
+import { DocumentsModule } from './documents.js?v=8.0';
+import { cloudSync } from './cloud_sync.js?v=8.0';
 
 class App {
   constructor() {
@@ -273,6 +273,21 @@ class App {
     const dep = appState.state.departments.find(d => d.id === user.departmentId);
     if (deptEl) {
       deptEl.textContent = dep ? `${dep.icon} ${dep.name}` : "";
+    }
+
+    // Kullanıcı Değiştirme Yetkisi: SADECE ADMIN! Admin harici kullanıcılar diğer hesaplara geçemez
+    const btnSwitchUser = document.getElementById("btn-switch-user");
+    const switchIcon = document.getElementById("switch-user-icon");
+    if (btnSwitchUser) {
+      if (isAdmin()) {
+        btnSwitchUser.style.cursor = "pointer";
+        btnSwitchUser.title = "Kullanıcı veya Rol Değiştir (Sadece Yönetici)";
+        if (switchIcon) switchIcon.style.display = "inline-block";
+      } else {
+        btnSwitchUser.style.cursor = "default";
+        btnSwitchUser.title = "Aktif Kullanıcı Profili: " + user.name;
+        if (switchIcon) switchIcon.style.display = "none";
+      }
     }
 
     // Yetki bazlı sekmeleri gizle/göster (Masaüstü ve Mobil)
@@ -934,13 +949,17 @@ class App {
       });
     });
 
-    // 6. Kullanıcı Değiştirme Menüsü
+    // 6. Kullanıcı Değiştirme Menüsü (SADECE VE YALNIZCA ADMIN KULLANABİLİR)
     const btnSwitchUser = document.getElementById("btn-switch-user");
     const modalSwitch = document.getElementById("modal-switch-user");
     const userListContainer = document.getElementById("quick-user-list");
 
     if (btnSwitchUser && modalSwitch && userListContainer) {
       btnSwitchUser.addEventListener("click", () => {
+        if (!isAdmin()) {
+          // Admin dışındaki kullanıcılar diğer hesaplara geçiş yapamaz
+          return;
+        }
         this.closeMobileSidebar();
         // Kural: İzleyici rolündeki kullanıcılar yalnızca ADMIN tarafından görülebilir!
         const visibleUsers = (appState.state.users || []).filter(u => isAdmin() || !isViewer(u));
@@ -965,6 +984,11 @@ class App {
 
         userListContainer.querySelectorAll("[data-select-user-id]").forEach(btn => {
           btn.addEventListener("click", (e) => {
+            if (!isAdmin()) {
+              alert("Yetkisiz işlem: Diğer kullanıcıların hesabına geçiş yetkisi yalnızca Sistem Yöneticisine (Admin) aittir.");
+              modalSwitch.classList.remove("show");
+              return;
+            }
             const uid = e.currentTarget.getAttribute("data-select-user-id");
             const targetUser = appState.state.users.find(u => u.id === uid);
             if (targetUser) {
