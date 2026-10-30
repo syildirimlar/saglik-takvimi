@@ -321,7 +321,9 @@ export const DEFAULT_USERS = [
   { id: "u_1792690211697", username: "mustafakara", name: "Mustafa Kara", role: "PERSONEL", departmentId: "dep_1792617873852", phone: "", pin: "1234" },
   { id: "u_1792696635019", username: "rasit", name: "Raşit", role: "USTA", departmentId: "dep_1792617860390", phone: "", pin: "1234" },
   { id: "u_1792699612413", username: "kaan", name: "Kağan", role: "IK", departmentId: "dep_ik", phone: "", pin: "1234" },
-  { id: "u_1792699659049", username: "buke", name: "Büke", role: "IK", departmentId: "dep_ik", phone: "", pin: "1234" }
+  { id: "u_1792699659049", username: "buke", name: "Büke", role: "IK", departmentId: "dep_ik", phone: "", pin: "1234" },
+  { id: "u_1793335108706", username: "taner", name: "Taner", role: "IZLEYICI", departmentId: "dep_yonetim", phone: "", pin: "1234" },
+  { id: "u_1793341866461", username: "öner", name: "oner", role: "IK", departmentId: "dep_ik", phone: "", pin: "1234" }
 ];
 
 // Başlangıç Gerçek Fabrika Personel Listesi (İzin Bakiye Takibi - Admin hariç!)
@@ -337,11 +339,30 @@ export const DEFAULT_EMPLOYEES = [
   { id: "u_1792690211697", userId: "u_1792690211697", name: "Mustafa Kara", role: "PERSONEL", departmentId: "dep_1792617873852", totalLeave: 14, usedLeave: 0, remainingLeave: 14, hireDate: "2024-01-01" },
   { id: "u_1792696635019", userId: "u_1792696635019", name: "Raşit", role: "USTA", departmentId: "dep_1792617860390", totalLeave: 14, usedLeave: 0, remainingLeave: 14, hireDate: "2024-01-01" },
   { id: "u_1792699612413", userId: "u_1792699612413", name: "Kağan", role: "IK", departmentId: "dep_ik", totalLeave: 14, usedLeave: 0, remainingLeave: 14, hireDate: "2024-01-01" },
-  { id: "u_1792699659049", userId: "u_1792699659049", name: "Büke", role: "IK", departmentId: "dep_ik", totalLeave: 14, usedLeave: 0, remainingLeave: 14, hireDate: "2024-01-01" }
+  { id: "u_1792699659049", userId: "u_1792699659049", name: "Büke", role: "IK", departmentId: "dep_ik", totalLeave: 14, usedLeave: 0, remainingLeave: 14, hireDate: "2024-01-01" },
+  { id: "u_1793335108706", userId: "u_1793335108706", name: "Taner", role: "IZLEYICI", departmentId: "dep_yonetim", totalLeave: 14, usedLeave: 0, remainingLeave: 14, hireDate: "2024-01-01" },
+  { id: "u_1793341866461", userId: "u_1793341866461", name: "oner", role: "IK", departmentId: "dep_ik", totalLeave: 14, usedLeave: 0, remainingLeave: 14, hireDate: "2024-01-01" }
 ];
 
 // Gelen-Giden Ürün Hareketleri (Gerçek Kayıtlar)
 export const DEFAULT_PRODUCTS = [
+  {
+    id: "p_1793342651053",
+    date: "2026-10-30T06:44:11.053Z",
+    type: "GELEN",
+    departmentId: "dep_ik",
+    productName: "Pp hammadde",
+    amount: 3,
+    unit: "Ton",
+    unitDetail: "",
+    company: "Burpol",
+    supplier: "Burpol",
+    invoiceNo: "",
+    createdBy: "oner",
+    createdById: "u_1793341866461",
+    createdByUsername: "öner",
+    note: ""
+  },
   {
     id: "p_1792689128132",
     date: "2026-10-22T17:12:08.132Z",
@@ -546,8 +567,31 @@ export const DEFAULT_MACHINES = [
 // Haftalık Üretim Programı & Kalıp Baskı Planları (Kesinlikle Sahte Veri Yoktur, Kullanıcı Kendisi Ekler)
 export const DEFAULT_PRODUCTION_PLANS = [];
 
-// Forklift Parkuru (Kesinlikle Sahte Veri Yoktur, Kullanıcı Kendisi Ekler)
-export const DEFAULT_FORKLIFTS = [];
+// Forklift Parkuru (Fabrikaya Kayıtlı Gerçek Forkliftler)
+export const DEFAULT_FORKLIFTS = [
+  {
+    id: "fk_1793299917469",
+    code: "HUAYA",
+    brand: "HUAYA",
+    capacity: "1.5 Ton",
+    fuelType: "Elektrikli",
+    operatorName: "",
+    status: "Aktif",
+    notes: "",
+    createdAt: "2026-10-29T18:51:57.469Z"
+  },
+  {
+    id: "fk_1793299936531",
+    code: "TAILIFT",
+    brand: "TAILIFT",
+    capacity: "3.0 Ton",
+    fuelType: "Dizel",
+    operatorName: "",
+    status: "Aktif",
+    notes: "",
+    createdAt: "2026-10-29T18:52:16.531Z"
+  }
+];
 
 // Varsayılan Telegram Bot Yapılandırması
 export const DEFAULT_TELEGRAM_CONFIG = {
@@ -1013,6 +1057,12 @@ export class StateManager {
       // Ürün Hareketleri
       if (!Array.isArray(parsed.products) || parsed.products.length === 0) {
         parsed.products = JSON.parse(JSON.stringify(DEFAULT_PRODUCTS));
+      } else {
+        DEFAULT_PRODUCTS.forEach(defProd => {
+          if (!parsed.products.some(p => p.id === defProd.id)) {
+            parsed.products.push(defProd);
+          }
+        });
       }
 
       // Forklift Talepleri
@@ -1091,9 +1141,15 @@ export class StateManager {
         };
       }
 
-      // Forklift Parkuru (Kesinlikle sahte veri yoktur, kullanıcı ekler)
-      if (!Array.isArray(parsed.forklifts)) {
-        parsed.forklifts = [];
+      // Forklift Parkuru (DEFAULT_FORKLIFTS ile birleştir)
+      if (!Array.isArray(parsed.forklifts) || parsed.forklifts.length === 0) {
+        parsed.forklifts = JSON.parse(JSON.stringify(DEFAULT_FORKLIFTS));
+      } else {
+        DEFAULT_FORKLIFTS.forEach(defFk => {
+          if (!parsed.forklifts.some(f => f.id === defFk.id || (f.code && defFk.code && f.code.trim().toUpperCase() === defFk.code.trim().toUpperCase()))) {
+            parsed.forklifts.push(defFk);
+          }
+        });
       }
 
       // Yemek Şirketi & Menü Yapılandırması (Kayra Yemek Entegrasyonu)
@@ -1694,6 +1750,10 @@ export class StateManager {
           ...parsed,
           departments: Array.isArray(parsed.departments) && parsed.departments.length > 0 ? parsed.departments : (local.departments || DEFAULT_DEPARTMENTS),
           users: Array.from(userMap.values()),
+          employees: mergeById(local.employees, parsed.employees),
+          products: mergeById(local.products, parsed.products),
+          forklifts: mergeById(local.forklifts, parsed.forklifts),
+          forkliftRequests: mergeById(local.forkliftRequests, parsed.forkliftRequests),
           externalServices: mergedExtServices,
           breakdowns: Array.from(breakdownMap.values()),
           shuttleRoutes: Array.from(shuttleMap.values()),
@@ -1706,6 +1766,8 @@ export class StateManager {
           leaveRequests: mergeById(local.leaveRequests, parsed.leaveRequests),
           overtimeRequests: mergeById(local.overtimeRequests, parsed.overtimeRequests),
           supplies: mergeById(local.supplies, parsed.supplies),
+          corporateDocuments: mergeById(local.corporateDocuments, parsed.corporateDocuments),
+          signedDocuments: mergeById(local.signedDocuments, parsed.signedDocuments),
           activityLogs: mergeById(local.activityLogs, parsed.activityLogs).sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0)).slice(0, 10000)
         };
 

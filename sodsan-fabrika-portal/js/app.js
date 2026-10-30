@@ -1,17 +1,17 @@
 // SODSAN Fabrika Portalı - Ana Uygulama Yöneticisi (app.js)
-import { appState, ROLES, getRoleInfo, logSystemAction, isAdmin, isIdariIslerOrAdmin, isViewer, isUserVisibleToCurrentSession } from './data.js?v=8.2';
-import { CalendarModule } from './calendar.js?v=8.2';
-import { ProductsModule } from './products.js?v=8.2';
-import { SuppliesModule } from './supplies.js?v=8.2';
-import { LeaveModule } from './leave.js?v=8.2';
-import { OvertimeModule } from './overtime.js?v=8.2';
-import { ForkliftModule } from './forklift.js?v=8.2';
-import { BreakdownModule } from './breakdown.js?v=8.2';
-import { ProductionModule } from './production.js?v=8.2';
-import { AdminModule } from './admin.js?v=8.2';
-import { CateringShuttleModule, getUserShuttleBanners } from './catering_shuttle.js?v=8.2';
-import { DocumentsModule } from './documents.js?v=8.2';
-import { cloudSync } from './cloud_sync.js?v=8.2';
+import { appState, ROLES, getRoleInfo, logSystemAction, isAdmin, isIdariIslerOrAdmin, isViewer, isUserVisibleToCurrentSession } from './data.js?v=8.3';
+import { CalendarModule } from './calendar.js?v=8.3';
+import { ProductsModule } from './products.js?v=8.3';
+import { SuppliesModule } from './supplies.js?v=8.3';
+import { LeaveModule } from './leave.js?v=8.3';
+import { OvertimeModule } from './overtime.js?v=8.3';
+import { ForkliftModule } from './forklift.js?v=8.3';
+import { BreakdownModule } from './breakdown.js?v=8.3';
+import { ProductionModule } from './production.js?v=8.3';
+import { AdminModule } from './admin.js?v=8.3';
+import { CateringShuttleModule, getUserShuttleBanners } from './catering_shuttle.js?v=8.3';
+import { DocumentsModule } from './documents.js?v=8.3';
+import { cloudSync } from './cloud_sync.js?v=8.3';
 
 class App {
   constructor() {
