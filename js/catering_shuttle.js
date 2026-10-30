@@ -694,7 +694,28 @@ export class CateringShuttleModule {
       return;
     }
 
-    container.innerHTML = list.map(route => {
+    // Oturum açan kullanıcının bindiği servisi her zaman en üste taşı
+    const sortedList = [...list].sort((a, b) => {
+      const aIsMine = currentUser && (
+        (a.passengerEmployeeIds || []).includes(currentUser.id) ||
+        (a.passengerEmployeeIds || []).some(empId => {
+          const emp = allEmps.find(e => e.id === empId || e.userId === empId);
+          return emp && (emp.userId === currentUser.id || (emp.name && emp.name.toLowerCase() === currentUser.name.toLowerCase()));
+        })
+      );
+      const bIsMine = currentUser && (
+        (b.passengerEmployeeIds || []).includes(currentUser.id) ||
+        (b.passengerEmployeeIds || []).some(empId => {
+          const emp = allEmps.find(e => e.id === empId || e.userId === empId);
+          return emp && (emp.userId === currentUser.id || (emp.name && emp.name.toLowerCase() === currentUser.name.toLowerCase()));
+        })
+      );
+      if (aIsMine && !bIsMine) return -1;
+      if (!aIsMine && bIsMine) return 1;
+      return 0;
+    });
+
+    container.innerHTML = sortedList.map(route => {
       // Oturum açan kullanıcının bu serviste olup olmadığını kontrol et
       const isMyShuttle = currentUser && (
         (route.passengerEmployeeIds || []).includes(currentUser.id) ||
@@ -1156,34 +1177,56 @@ export class CateringShuttleModule {
       const arventoId = route.arventoVehicleId ? route.arventoVehicleId.trim() : (route.plateNumber || "");
       const arventoPortalUrl = hasCustomUrl ? route.arventoUrl.trim() : "https://takip.arvento.com/";
 
-      container.innerHTML = `
-        <div class="w-16 h-16 rounded-2xl bg-indigo-100 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-3xl mb-1 shadow-inner">
-          🛰️
-        </div>
-        <div>
-          <h4 class="text-sm font-black text-slate-800 dark:text-white">Arvento Araç Takip Sistemi</h4>
-          <p class="text-xs text-slate-500 dark:text-slate-400 max-w-sm mt-1">
-            ${hasCustomUrl 
-              ? 'Bu araca özel Arvento canlı takip linki tanımlıdır. Doğrudan harita üzerinden anlık takip edebilirsiniz.' 
-              : `Bu servis (${route.plateNumber}) için Arvento kurumsal takip ekranından aracın konumunu anında görüntüleyebilirsiniz.`}
-          </p>
-        </div>
+      if (hasCustomUrl) {
+        container.innerHTML = `
+          <!-- Canlı Harita İframe Önizleme -->
+          <div class="w-full rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900 shadow-inner relative">
+            <iframe src="${arventoPortalUrl}" class="w-full h-72 sm:h-80 border-0 rounded-2xl" loading="lazy" allow="geolocation" title="Arvento Canlı Servis Haritası"></iframe>
+          </div>
 
-        <div class="flex items-center flex-wrap gap-2 justify-center pt-2">
-          <a href="${arventoPortalUrl}" target="_blank" rel="noopener noreferrer" class="bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white font-black text-xs py-2.5 px-5 rounded-xl shadow-md transition flex items-center gap-2 cursor-pointer active:scale-95">
-            <span>🗺️</span> <span>Arvento Takip Ekranını Aç</span> <span>↗</span>
-          </a>
-          ${isManagerOrHr() ? `
-            <button type="button" onclick="window.portalApp.cateringShuttle.openEditShuttleModal('${route.id}')" class="bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 font-bold text-xs py-2 px-3 rounded-xl transition flex items-center gap-1 cursor-pointer">
-              <span>⚙️</span> <span>Takip Linkini Düzenle</span>
-            </button>
-          ` : ""}
-        </div>
+          <div class="flex items-center flex-wrap gap-2 justify-center pt-1">
+            <a href="${arventoPortalUrl}" target="_blank" rel="noopener noreferrer" class="bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white font-black text-xs py-2 px-4 rounded-xl shadow-md transition flex items-center gap-1.5 cursor-pointer active:scale-95">
+              <span>🗺️</span> <span>Haritayı Yeni Sekmede / Tam Ekran Aç</span> <span>↗</span>
+            </a>
+            ${isManagerOrHr() ? `
+              <button type="button" onclick="window.portalApp.cateringShuttle.openEditShuttleModal('${route.id}')" class="bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 font-bold text-xs py-2 px-3 rounded-xl transition flex items-center gap-1 cursor-pointer">
+                <span>⚙️</span> <span>Ayarları Düzenle</span>
+              </button>
+            ` : ""}
+          </div>
 
-        <div class="mt-2 text-[10px] text-slate-400 font-mono">
-          Araç Takip ID / Plaka: <b>${arventoId}</b> • Son Sorgu: ${new Date().toLocaleTimeString("tr-TR")}
-        </div>
-      `;
+          <div class="text-[10px] text-slate-400 font-mono text-center">
+            Plaka / Cihaz No: <b>${arventoId}</b> • Son Sorgu: ${new Date().toLocaleTimeString("tr-TR")}
+          </div>
+        `;
+      } else {
+        container.innerHTML = `
+          <div class="w-16 h-16 rounded-2xl bg-indigo-100 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-3xl mb-1 shadow-inner">
+            🛰️
+          </div>
+          <div>
+            <h4 class="text-sm font-black text-slate-800 dark:text-white">Arvento Araç Takip Sistemi</h4>
+            <p class="text-xs text-slate-500 dark:text-slate-400 max-w-sm mt-1">
+              Bu servis aracı (${route.plateNumber}) için henüz doğrudan bir canlı harita linki tanımlanmamış. Arvento giriş ekranına giderek araç konumunu sorgulayabilirsiniz.
+            </p>
+          </div>
+
+          <div class="flex items-center flex-wrap gap-2 justify-center pt-2">
+            <a href="${arventoPortalUrl}" target="_blank" rel="noopener noreferrer" class="bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white font-black text-xs py-2.5 px-5 rounded-xl shadow-md transition flex items-center gap-2 cursor-pointer active:scale-95">
+              <span>🗺️</span> <span>Arvento Takip Ekranını Aç</span> <span>↗</span>
+            </a>
+            ${isManagerOrHr() ? `
+              <button type="button" onclick="window.portalApp.cateringShuttle.openEditShuttleModal('${route.id}')" class="bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 font-bold text-xs py-2 px-3 rounded-xl transition flex items-center gap-1 cursor-pointer">
+                <span>⚙️</span> <span>Takip Linki Ekle</span>
+              </button>
+            ` : ""}
+          </div>
+
+          <div class="mt-2 text-[10px] text-slate-400 font-mono">
+            Araç Takip ID / Plaka: <b>${arventoId}</b> • Son Sorgu: ${new Date().toLocaleTimeString("tr-TR")}
+          </div>
+        `;
+      }
     }
 
     if (refreshBtn) {
