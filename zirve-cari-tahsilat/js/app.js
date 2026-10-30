@@ -305,6 +305,7 @@ const App = window.App = {
                         this.state = parsed;
                         if (!this.state.cariConfigs) this.state.cariConfigs = {};
                         if (!this.state.cariConfigsByUnvan) this.state.cariConfigsByUnvan = {};
+                        this.refreshUsersFromSource().catch(() => {});
                         return;
                     }
                 }
@@ -3530,6 +3531,47 @@ const App = window.App = {
         }
     },
 
+    async refreshUsersFromSource() {
+        try {
+            let freshData = null;
+            // 1. Önce yerel sunucu API'sini kontrol et
+            try {
+                const res = await fetch("/api/data");
+                if (res.ok) freshData = await res.json();
+            } catch (e) {}
+
+            // 2. Statik web / GitHub veritabanını kontrol et (cache-busting ile)
+            if (!freshData || !Array.isArray(freshData.users)) {
+                try {
+                    const resStatic = await fetch("./data/zirve_finans_db.json?t=" + Date.now());
+                    if (resStatic.ok) freshData = await resStatic.json();
+                } catch (e) {}
+            }
+
+            if (freshData && Array.isArray(freshData.users) && freshData.users.length > 0) {
+                this.state.users = freshData.users;
+                if (!this.state.cariler || this.state.cariler.length === 0) {
+                    this.state = freshData;
+                }
+                try {
+                    localStorage.setItem("zirve_cari_tahsilat_db_v1", JSON.stringify(this.state));
+                } catch (e) {}
+                return true;
+            }
+        } catch (e) {
+            console.warn("refreshUsersFromSource uyarısı:", e);
+        }
+        return false;
+    },
+
+    async manualSyncUsersOnLogin(btn) {
+        const oldText = btn ? btn.textContent : "";
+        if (btn) btn.textContent = "⏳ Eşitleniyor...";
+        const ok = await this.refreshUsersFromSource();
+        if (btn) btn.textContent = ok ? "✅ Hesaplar Güncellendi" : "⚠️ Bağlantı Kurulamadı";
+        setTimeout(() => { if (btn) btn.textContent = oldText; }, 2500);
+    },
+
     checkSession() {
         let session = null;
         try {
@@ -3568,6 +3610,9 @@ const App = window.App = {
         }
         const pInput = document.getElementById("loginPassword");
         if (pInput) pInput.value = "";
+
+        // Başka bilgisayarlardan açılan yeni hesapları eşitlemek için sessizce en güncel kullanıcı listesini çek
+        this.refreshUsersFromSource().catch(() => {});
     },
 
     hideLoginOverlay() {
@@ -3598,7 +3643,14 @@ const App = window.App = {
         if (btn) btn.textContent = "Kontrol ediliyor...";
 
         this.ensureUsersExist();
-        const user = this.state.users.find(u => u.username.toLowerCase() === username);
+        let user = this.state.users.find(u => u.username.toLowerCase() === username);
+
+        // Kullanıcı bu cihazın hafızasında bulunamadıysa sunucudan/GitHub'dan taze kullanıcı listesini çek
+        if (!user) {
+            await this.refreshUsersFromSource();
+            this.ensureUsersExist();
+            user = this.state.users.find(u => u.username.toLowerCase() === username);
+        }
 
         if (!user) {
             if (btn) btn.textContent = "🚀 Güvenli Giriş Yap";
@@ -3618,7 +3670,14 @@ const App = window.App = {
             return;
         }
 
-        const inputHash = await this.hashPassword(password);
+        let inputHash = await this.hashPassword(password);
+        if (user.passwordHash !== inputHash) {
+            // Şifre eşleşmediyse belki başka bir bilgisayardan şifre güncellendi, tekrar yenileyip kontrol et
+            await this.refreshUsersFromSource();
+            const recheckUser = this.state.users.find(u => u.username.toLowerCase() === username);
+            if (recheckUser) user = recheckUser;
+        }
+
         if (user.passwordHash !== inputHash) {
             if (btn) btn.textContent = "🚀 Güvenli Giriş Yap";
             if (errEl) {

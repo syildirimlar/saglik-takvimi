@@ -13,7 +13,7 @@
     <meta name="apple-mobile-web-app-title" content="SODSAN Finans">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="format-detection" content="telephone=no">
-    <link rel="stylesheet" href="css/style.css?v=20261029_5">
+    <link rel="stylesheet" href="css/style.css?v=20261030_1">
 </head>
 <body>
 
@@ -53,6 +53,12 @@
                 <button type="submit" class="btn-login-submit" id="btnLoginSubmit">🚀 Güvenli Giriş Yap</button>
 
                 <div class="login-error-box" id="loginErrorMsg"></div>
+
+                <div style="display:flex; justify-content:center; margin-top:12px;">
+                    <button type="button" class="btn btn-outline btn-sm" onclick="App.manualSyncUsersOnLogin(this)" style="font-size:11.5px; padding:5px 12px; color:#94a3b8; border-color:#334155; border-radius:6px; cursor:pointer;" title="Başka bilgisayarda yeni hesap açıldıysa tıklayarak hemen eşitleyin">
+                        🔄 Hesapları / Kullanıcıları Eşitle
+                    </button>
+                </div>
 
                 <div style="font-size:11.5px; color:#64748b; text-align:center; margin-top:20px;">
                     🔒 Sadece yetkili şirket personeli ve yönetici erişimi içindir.
@@ -1440,7 +1446,7 @@
     <script src="js/ubl_parser.js?v=20261029_3"></script>
     <script src="js/excel_importer.js?v=20261029_3"></script>
     <script src="js/cloud_bridge.js?v=20261029_3"></script>
-    <script src="js/app.js?v=20261029_5"></script>
+    <script src="js/app.js?v=20261030_1"></script>
     <script>
         if ('serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.hostname === 'localhost')) {
             window.addEventListener('load', () => {
