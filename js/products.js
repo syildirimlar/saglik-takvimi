@@ -193,6 +193,21 @@ export class ProductsModule {
     return roleDef && roleDef.permissions && roleDef.permissions.canAccessAdmin;
   }
 
+  // Kayıt düzenleme yetkisi: Sistem Yöneticisi veya kaydı oluşturan kullanıcının kendisi
+  canEditItem(item) {
+    if (isViewer()) return false;
+    const user = appState.state.currentUser;
+    if (!user) return false;
+    // 1. Yönetici her zaman düzenleyebilir
+    if (this.isUserManager()) return true;
+    if (!item) return false;
+    // 2. Kaydı açan personel kendi kaydını düzenleyebilir
+    if (item.createdById && user.id && item.createdById === user.id) return true;
+    if (item.createdByUsername && user.username && item.createdByUsername.toLowerCase() === user.username.toLowerCase()) return true;
+    if (item.createdBy && user.name && item.createdBy.trim().toLowerCase() === user.name.trim().toLowerCase()) return true;
+    return false;
+  }
+
   render() {
     const kpiContainer = document.getElementById("products-kpi-summary");
     const feedContainer = document.getElementById("products-feed-list");
@@ -284,7 +299,7 @@ export class ProductsModule {
       return;
     }
 
-    const canEdit = !isViewer() && this.isUserManager();
+    const isManagerUser = this.isUserManager();
 
     // TEK SATIRDA SADE VE ANLAŞILIR ÇİZELGE GÖRÜNÜMÜ
     feedContainer.innerHTML = `
@@ -345,6 +360,9 @@ export class ProductsModule {
                 const companyDisplay = item.company || item.supplier || 'Belirtilmedi';
                 const invoiceDisplay = item.invoiceNo ? `<span class="text-slate-400 font-normal">(${item.invoiceNo})</span>` : '';
 
+                const canEditThis = this.canEditItem(item);
+                const canDeleteThis = !isViewer() && isManagerUser;
+
                 return `
                   <tr class="hover:bg-slate-50/80 transition">
                     <td class="py-2.5 px-3 font-medium text-slate-600 whitespace-nowrap">
@@ -371,17 +389,21 @@ export class ProductsModule {
                       👤 ${item.createdBy || 'Anonim'}
                     </td>
                     <td class="py-2.5 px-3 text-center whitespace-nowrap">
-                      ${canEdit ? `
+                      ${(canEditThis || canDeleteThis) ? `
                         <div class="inline-flex items-center gap-1.5">
-                          <button data-edit-product="${item.id}" class="bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold px-2 py-1 rounded text-xs transition flex items-center gap-1" title="Yönetici Düzenlemesi">
-                            <span>✏️</span> <span class="hidden sm:inline">Düzenle</span>
-                          </button>
-                          <button data-delete-product="${item.id}" class="bg-red-50 hover:bg-red-100 text-red-600 font-bold px-2 py-1 rounded text-xs transition flex items-center gap-1" title="Yönetici Silme">
-                            <span>🗑️</span> <span class="hidden sm:inline">Sil</span>
-                          </button>
+                          ${canEditThis ? `
+                            <button data-edit-product="${item.id}" class="bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold px-2 py-1 rounded text-xs transition flex items-center gap-1 cursor-pointer" title="${canDeleteThis ? 'Yönetici Düzenlemesi' : 'Kendi Kaydınızı Düzenleyin'}">
+                              <span>✏️</span> <span class="hidden sm:inline">Düzenle</span>
+                            </button>
+                          ` : ''}
+                          ${canDeleteThis ? `
+                            <button data-delete-product="${item.id}" class="bg-red-50 hover:bg-red-100 text-red-600 font-bold px-2 py-1 rounded text-xs transition flex items-center gap-1 cursor-pointer" title="Yönetici Silme">
+                              <span>🗑️</span> <span class="hidden sm:inline">Sil</span>
+                            </button>
+                          ` : ''}
                         </div>
                       ` : `
-                        <span class="text-slate-400 text-[11px] italic font-medium">Yalnızca İzleme</span>
+                        <span class="text-slate-400 text-[11px] italic font-medium">-</span>
                       `}
                     </td>
                   </tr>
@@ -393,14 +415,15 @@ export class ProductsModule {
       </div>
     `;
 
-    // Düzenleme dinleyicileri (Sadece Yönetici)
+    // Düzenleme dinleyicileri (Yönetici VEYA Kaydı Açan Kişi)
     feedContainer.querySelectorAll("[data-edit-product]").forEach(btn => {
       btn.addEventListener("click", (e) => {
-        if (!this.isUserManager()) {
-          alert("Yetkisiz işlem: Hareket kayıtlarını sadece yöneticiler düzenleyebilir.");
+        const id = e.currentTarget.getAttribute("data-edit-product");
+        const target = appState.state.products.find(p => p.id === id);
+        if (!target || !this.canEditItem(target)) {
+          alert("Yetkisiz işlem: Bu hareket kaydını yalnızca oluşturan kişi veya Sistem Yöneticisi düzenleyebilir.");
           return;
         }
-        const id = e.currentTarget.getAttribute("data-edit-product");
         this.openEditModal(id);
       });
     });
@@ -504,6 +527,11 @@ export class ProductsModule {
     const item = appState.state.products.find(p => p.id === id);
     if (!item) return;
 
+    if (!this.canEditItem(item)) {
+      alert("Yetkisiz işlem: Bu hareket kaydını yalnızca oluşturan kişi veya Sistem Yöneticisi düzenleyebilir.");
+      return;
+    }
+
     const newType = document.getElementById("edit-product-type").value;
     const newDeptId = document.getElementById("edit-product-department").value;
     const newName = document.getElementById("edit-product-name").value.trim();
@@ -565,10 +593,13 @@ export class ProductsModule {
     appState.saveState();
 
     // Sistem günlüğüne açık ve detaylı kayıt tut
+    const isManagerUser = this.isUserManager();
     logSystemAction(
       "ÜRÜN_DÜZENLEME",
-      `Yönetici ${uName}, "${newName}" ürün hareketini güncelledi. (${changes.length > 0 ? changes.join(", ") : "Bilgiler teyit edildi"})`,
-      { productId: item.id, changes, editedBy: uName }
+      isManagerUser
+        ? `Yönetici ${uName}, "${newName}" ürün hareketini güncelledi. (${changes.length > 0 ? changes.join(", ") : "Bilgiler teyit edildi"})`
+        : `${uName}, kendi açtığı "${newName}" ürün hareketini güncelledi. (${changes.length > 0 ? changes.join(", ") : "Bilgiler teyit edildi"})`,
+      { productId: item.id, changes, editedBy: uName, isManager: isManagerUser }
     );
 
     playAlertSound("call");
@@ -620,6 +651,7 @@ export class ProductsModule {
 
     const typeLabel = type === 'GELEN' ? 'ürün girişini' : type === 'GIDEN' ? 'sevkiyatını' : 'iç transferini';
 
+    const currentUser = appState.state.currentUser;
     const newProduct = {
       id: "p_" + Date.now(),
       date: new Date().toISOString(),
@@ -632,7 +664,9 @@ export class ProductsModule {
       company: chosenCompany,
       supplier: chosenCompany + (invoiceNo ? ` (${invoiceNo})` : ""),
       invoiceNo,
-      createdBy: appState.state.currentUser ? appState.state.currentUser.name : "Fabrika Yetkilisi",
+      createdBy: currentUser ? currentUser.name : "Fabrika Yetkilisi",
+      createdById: currentUser ? currentUser.id : null,
+      createdByUsername: currentUser ? currentUser.username : null,
       note
     };
 
