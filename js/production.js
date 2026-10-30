@@ -350,14 +350,17 @@ export class ProductionModule {
 
   populateMachineDropdowns() {
     const rawMachines = appState.state.machines || [];
-    const machines = rawMachines.map(m => typeof m === "string" ? { id: m, name: m } : m);
+    // Yalnızca üretim programına dahil olan (üretim yapabilen) makineleri listele
+    const machines = rawMachines
+      .map(m => typeof m === "string" ? { id: m, name: m, excludeFromProduction: false } : m)
+      .filter(m => !m.excludeFromProduction);
 
     // Filtre açılır kutusu
     const filterSelect = document.getElementById("filter-prod-machine");
     if (filterSelect) {
       const cur = filterSelect.value || "ALL";
       filterSelect.innerHTML = `
-        <option value="ALL">Tüm Kayıtlı Makineler (${machines.length})</option>
+        <option value="ALL">Tüm Üretim Makineleri (${machines.length})</option>
         ${machines.map(m => `<option value="${m.id || m.name}">${m.name}</option>`).join("")}
       `;
       filterSelect.value = cur;
@@ -918,7 +921,10 @@ export class ProductionModule {
 
     const canManagePlan = isIdariIslerOrAdmin();
     const rawMachines = appState.state.machines || [];
-    const machines = rawMachines.map(m => typeof m === "string" ? { id: m, name: m, code: "" } : m);
+    // Yalnızca üretim programına dahil olan makineleri matriste göster
+    const machines = rawMachines
+      .map(m => typeof m === "string" ? { id: m, name: m, code: "", excludeFromProduction: false } : m)
+      .filter(m => !m.excludeFromProduction);
 
     // Devam edenler üstte, kapananlar altta
     const activePlans = plans.filter(p => p.status !== "Tamamlandı" && p.status !== "Kapatıldı");

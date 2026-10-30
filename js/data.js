@@ -450,6 +450,7 @@ export const DEFAULT_MACHINES = [
     location: "1500 Sevkiyat",
     notes: "",
     status: "Aktif",
+    excludeFromProduction: true,
     addedAt: "2026-10-22"
   },
   {
@@ -460,6 +461,7 @@ export const DEFAULT_MACHINES = [
     location: "Kompresör Dairesi",
     notes: "",
     status: "Aktif",
+    excludeFromProduction: true,
     addedAt: "2026-10-22"
   },
   {
@@ -470,6 +472,7 @@ export const DEFAULT_MACHINES = [
     location: "Kompresör Dairesi",
     notes: "",
     status: "Aktif",
+    excludeFromProduction: true,
     addedAt: "2026-10-22"
   }
 ];
@@ -820,6 +823,18 @@ export class StateManager {
             parsed.machines.push(defMac);
           }
         });
+
+        // Yardımcı ekipmanlar için varsayılan excludeFromProduction kontrolü
+        parsed.machines.forEach(m => {
+          if (m && typeof m === "object" && m.excludeFromProduction === undefined) {
+            const nameLower = (m.name || "").toLowerCase();
+            if (nameLower.includes("kompresör") || nameLower.includes("kurutucu") || nameLower.includes("forklift")) {
+              m.excludeFromProduction = true;
+            } else {
+              m.excludeFromProduction = false;
+            }
+          }
+        });
       }
 
       // Ürün Hareketleri
@@ -1025,6 +1040,7 @@ export class StateManager {
     let departmentId = "";
     let location = "";
     let notes = "";
+    let excludeFromProduction = false;
 
     if (typeof data === "string") {
       name = data.trim();
@@ -1034,6 +1050,7 @@ export class StateManager {
       departmentId = data.departmentId || "";
       location = (data.location || "").trim();
       notes = (data.notes || "").trim();
+      excludeFromProduction = Boolean(data.excludeFromProduction);
     }
 
     if (!name || name === "DIGER") return null;
@@ -1053,6 +1070,9 @@ export class StateManager {
         if (departmentId) existing.departmentId = departmentId;
         if (location) existing.location = location;
         if (notes) existing.notes = notes;
+        if (data && typeof data === "object" && data.excludeFromProduction !== undefined) {
+          existing.excludeFromProduction = Boolean(data.excludeFromProduction);
+        }
         this.saveState();
         return existing;
       }
@@ -1067,6 +1087,7 @@ export class StateManager {
       location: location,
       notes: notes,
       status: "Aktif",
+      excludeFromProduction: excludeFromProduction,
       addedAt: new Date().toISOString().split("T")[0]
     };
 
@@ -1096,6 +1117,7 @@ export class StateManager {
       location: data.location !== undefined ? data.location.trim() : (old.location || ""),
       notes: data.notes !== undefined ? data.notes.trim() : (old.notes || ""),
       status: data.status || (typeof old === "object" ? old.status : "Aktif"),
+      excludeFromProduction: data.excludeFromProduction !== undefined ? Boolean(data.excludeFromProduction) : Boolean(old.excludeFromProduction),
       addedAt: (typeof old === "object" && old.addedAt) ? old.addedAt : new Date().toISOString().split("T")[0]
     };
 
