@@ -38,6 +38,23 @@ export const DEFAULT_ROLES = [
     }
   },
   {
+    key: "IZLEYICI",
+    title: "İzleyici / Gözlemci",
+    badge: "bg-indigo-100 text-indigo-800 dark:bg-indigo-950 dark:text-indigo-300",
+    permissions: {
+      canAddProduct: false,
+      canCallForklift: false,
+      canCompleteForklift: false,
+      canRequestLeave: false,
+      canApproveLeave: false,
+      canRequestOvertime: false,
+      canApproveOvertime: false,
+      canAddSupply: false,
+      canAddMaintenance: false,
+      canAccessAdmin: false
+    }
+  },
+  {
     key: "IK",
     title: "İnsan Kaynakları",
     badge: "bg-pink-100 text-pink-800",
@@ -182,6 +199,91 @@ export function isIdariIslerOrAdmin() {
 // Oturum açan kullanıcının İK / Yönetici yetkisine sahip olup olmadığını denetler
 export function isManagerOrHr() {
   return isIdariIslerOrAdmin();
+}
+
+// Yardımcı metin normalleştirici (Türkçe karakter ve yazım varyasyonlarına karşı tam uyumlu: 'İ', 'I', 'ı', 'i')
+function normalizeRoleText(str) {
+  if (!str) return "";
+  return String(str)
+    .replace(/İ/g, "i")
+    .replace(/I/g, "i")
+    .replace(/ı/g, "i")
+    .toLowerCase()
+    .trim();
+}
+
+// Oturum açan kullanıcının veya parametre olarak verilen kullanıcının 'İzleyici' rolünde olup olmadığını denetler
+export function isViewer(userOrRole = null) {
+  let role = "";
+  let user = null;
+
+  if (typeof userOrRole === "string") {
+    role = userOrRole;
+  } else if (userOrRole && typeof userOrRole === "object") {
+    user = userOrRole;
+    role = String(user.role || "");
+  } else {
+    user = (typeof appState !== "undefined" && appState && appState.state && appState.state.currentUser)
+      ? appState.state.currentUser
+      : (typeof window !== "undefined" && window.__portalCurrentUser ? window.__portalCurrentUser : null);
+    if (user) {
+      role = String(user.role || "");
+    }
+  }
+
+  const normRole = normalizeRoleText(role);
+  if (!normRole && !user) return false;
+
+  // 1. Standart anahtar varyasyonları: IZLEYICI, VIEWER, GOZLEMCI, ızleyıcı
+  if (normRole === "izleyici" || normRole === "viewer" || normRole === "gozlemci" ||
+      normRole.includes("izleyici") || normRole.includes("viewer") || normRole.includes("gozlemci")) {
+    return true;
+  }
+
+  // 2. Rol listesindeki tanımından kontrol et (Kullanıcının Admin panelinde dinamik oluşturduğu rol başlığı veya anahtarı)
+  if (typeof appState !== "undefined" && appState && appState.state && Array.isArray(appState.state.roles)) {
+    const roleDef = appState.state.roles.find(r => 
+      normalizeRoleText(r.key) === normRole || 
+      String(r.id || "").trim() === String(role).trim()
+    );
+    if (roleDef) {
+      const titleNorm = normalizeRoleText(roleDef.title);
+      const keyNorm = normalizeRoleText(roleDef.key);
+      if (titleNorm.includes("izleyici") || titleNorm.includes("gozlemci") || titleNorm.includes("viewer") ||
+          keyNorm.includes("izleyici") || keyNorm.includes("viewer") || keyNorm.includes("gozlemci")) {
+        return true;
+      }
+    }
+  }
+
+  // 3. Kullanıcı nesnesinin doğrudan title veya roleTitle alanı varsa
+  if (user) {
+    if (user.roleTitle && normalizeRoleText(user.roleTitle).includes("izleyici")) return true;
+    if (user.title && normalizeRoleText(user.title).includes("izleyici")) return true;
+  }
+
+  return false;
+}
+
+// Belirli bir kullanıcının veya personelin aktif oturumu kullanan kişi tarafından görülüp görülemeyeceğini denetler.
+// KURAL: İzleyici rolündeki kullanıcılar YALNIZCA Sistem Yöneticisi (Admin) tarafından görülebilir!
+export function isUserVisibleToCurrentSession(targetUserOrEmployee) {
+  if (!targetUserOrEmployee) return false;
+
+  // Hedef kullanıcının rolünü tespit et
+  let targetRole = targetUserOrEmployee.role || "";
+  if (!targetRole && targetUserOrEmployee.userId && typeof appState !== "undefined" && appState && appState.state) {
+    const u = (appState.state.users || []).find(x => x.id === targetUserOrEmployee.userId);
+    if (u) targetRole = u.role;
+  }
+
+  // Eğer hedef kişi bir İzleyici ise:
+  if (isViewer(targetUserOrEmployee) || isViewer(targetRole)) {
+    // Kural: Sadece ve yalnızca Admin görebilir!
+    return isAdmin();
+  }
+
+  return true;
 }
 
 // Oturum açan kullanıcının çalışanlar (employees) tablosundaki karşılığını getirir
@@ -638,6 +740,12 @@ export class StateManager {
       if (!Array.isArray(parsed.roles) || parsed.roles.length === 0) {
         parsed.roles = JSON.parse(JSON.stringify(DEFAULT_ROLES));
       } else {
+        // Eksik standart roller varsa (örneğin IZLEYICI) ekle
+        DEFAULT_ROLES.forEach(defRole => {
+          if (!parsed.roles.some(r => r.key === defRole.key)) {
+            parsed.roles.push(JSON.parse(JSON.stringify(defRole)));
+          }
+        });
         parsed.roles.forEach(r => {
           if (!r.permissions) r.permissions = {};
           r.permissions.canAccessAdmin = (r.key === "ADMIN");

@@ -1,5 +1,5 @@
 // SODSAN Fabrika Portalı - Sarf Malzeme ve İhtiyaç Panosu (supplies.js)
-import { appState, playAlertSound, logSystemAction } from './data.js';
+import { appState, playAlertSound, logSystemAction, isViewer } from './data.js';
 
 export class SuppliesModule {
   constructor() {
@@ -129,19 +129,23 @@ export class SuppliesModule {
             ` : ''}
 
             <div class="flex gap-1.5 pt-1">
-              ${item.status !== "Sipariş Verildi" && item.status !== "Teslim Edildi" ? `
-                <button data-status-supply="${item.id}" data-new-status="Sipariş Verildi" class="flex-1 text-xs py-1.5 px-2 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded font-semibold transition">
-                  Sipariş Verildi
+              ${!isViewer() ? `
+                ${item.status !== "Sipariş Verildi" && item.status !== "Teslim Edildi" ? `
+                  <button data-status-supply="${item.id}" data-new-status="Sipariş Verildi" class="flex-1 text-xs py-1.5 px-2 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded font-semibold transition">
+                    Sipariş Verildi
+                  </button>
+                ` : ''}
+                ${item.status !== "Teslim Edildi" ? `
+                  <button data-status-supply="${item.id}" data-new-status="Teslim Edildi" class="flex-1 text-xs py-1.5 px-2 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded font-semibold transition">
+                    Teslim Edildi
+                  </button>
+                ` : ''}
+                <button data-delete-supply="${item.id}" class="text-xs py-1.5 px-2 text-slate-400 hover:text-red-600 rounded" title="Sil">
+                  ✕
                 </button>
-              ` : ''}
-              ${item.status !== "Teslim Edildi" ? `
-                <button data-status-supply="${item.id}" data-new-status="Teslim Edildi" class="flex-1 text-xs py-1.5 px-2 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded font-semibold transition">
-                  Teslim Edildi
-                </button>
-              ` : ''}
-              <button data-delete-supply="${item.id}" class="text-xs py-1.5 px-2 text-slate-400 hover:text-red-600 rounded" title="Sil">
-                ✕
-              </button>
+              ` : `
+                <span class="text-[11px] text-slate-400 italic">Yalnızca İzleme</span>
+              `}
             </div>
           </div>
         </div>
@@ -183,6 +187,10 @@ export class SuppliesModule {
   }
 
   saveSupply() {
+    if (isViewer()) {
+      alert("İzleyici yetkisine sahipsiniz. Sarf malzeme talebi açamazsınız.");
+      return;
+    }
     const departmentId = document.getElementById("supply-department").value;
     const itemName = document.getElementById("supply-name").value.trim();
     const amount = parseFloat(document.getElementById("supply-amount").value) || 1;

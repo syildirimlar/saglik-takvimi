@@ -1,5 +1,5 @@
 // SODSAN Fabrika Portalı - Ana Uygulama Yöneticisi (app.js)
-import { appState, ROLES, getRoleInfo, logSystemAction, isAdmin, isIdariIslerOrAdmin } from './data.js';
+import { appState, ROLES, getRoleInfo, logSystemAction, isAdmin, isIdariIslerOrAdmin, isViewer, isUserVisibleToCurrentSession } from './data.js';
 import { CalendarModule } from './calendar.js';
 import { ProductsModule } from './products.js';
 import { SuppliesModule } from './supplies.js';
@@ -177,7 +177,7 @@ class App {
         if (typeof window !== "undefined") window.__portalCurrentUser = user;
         this.hideLoginScreen();
         setTimeout(() => {
-          if (user.role !== "ADMIN" && user.id !== "u_admin") {
+          if (user.role !== "ADMIN" && user.id !== "u_admin" && !isViewer(user)) {
             this.documents?.checkPendingSignaturesAndPrompt?.(user);
           }
         }, 350);
@@ -194,7 +194,7 @@ class App {
         if (typeof window !== "undefined") window.__portalCurrentUser = user;
         this.hideLoginScreen();
         setTimeout(() => {
-          if (user.role !== "ADMIN" && user.id !== "u_admin") {
+          if (user.role !== "ADMIN" && user.id !== "u_admin" && !isViewer(user)) {
             this.documents?.checkPendingSignaturesAndPrompt?.(user);
           }
         }, 350);
@@ -276,8 +276,8 @@ class App {
     }
 
     // Yetki bazlı sekmeleri gizle/göster (Masaüstü ve Mobil)
-    // Yalnızca İdari İşler ve Yönetici (Admin) ayar sayfasını görebilir
-    const hasAdminAccess = isIdariIslerOrAdmin();
+    // İdari İşler, Yönetici (Admin) ve İzleyici (Salt Okunur) ayar sayfasını görebilir
+    const hasAdminAccess = isIdariIslerOrAdmin() || isViewer();
     const adminTabBtns = document.querySelectorAll('[data-tab="tab-admin"]');
     adminTabBtns.forEach(btn => {
       if (hasAdminAccess) {
@@ -291,6 +291,39 @@ class App {
         }
       }
     });
+
+    // İzleyici (Viewer) Modu Kontrolü: Salt okunur kalkanını ve bilgilendirme banner'ını devreye al
+    const viewerAlertContainer = document.getElementById("global-viewer-mode-alert");
+    if (isViewer()) {
+      document.body.classList.add("portal-role-viewer");
+      if (viewerAlertContainer) {
+        viewerAlertContainer.classList.remove("hidden");
+        viewerAlertContainer.innerHTML = `
+          <div class="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white p-3 sm:p-3.5 rounded-2xl shadow-md border border-indigo-700/60 flex items-center justify-between gap-3 transition">
+            <div class="flex items-center gap-2.5 min-w-0">
+              <span class="text-2xl sm:text-3xl bg-indigo-500/20 p-2 rounded-xl flex-shrink-0">👁️</span>
+              <div class="min-w-0">
+                <div class="text-[10px] sm:text-xs font-black uppercase tracking-wider text-indigo-300 flex items-center gap-1.5">
+                  <span>GÖZLEMCİ ERİŞİMİ</span> • <span>TÜM DEPARTMANLAR VE HAREKETLER AÇIK</span>
+                </div>
+                <div class="text-xs sm:text-sm font-bold text-slate-100 mt-0.5 truncate">
+                  İzleyici Modundasınız — Sistemdeki tüm kayıtları ve hareketleri inceleyebilirsiniz (Salt Okunur).
+                </div>
+              </div>
+            </div>
+            <span class="bg-indigo-600/60 border border-indigo-400/40 text-white font-mono text-[10px] sm:text-xs font-black px-2.5 py-1 rounded-xl shadow-xs flex-shrink-0">
+              🔒 DEĞİŞİKLİK YAPILAMAZ
+            </span>
+          </div>
+        `;
+      }
+    } else {
+      document.body.classList.remove("portal-role-viewer");
+      if (viewerAlertContainer) {
+        viewerAlertContainer.classList.add("hidden");
+        viewerAlertContainer.innerHTML = "";
+      }
+    }
 
     // Kullanıcının / Birimin özel menü sıralamasını uygula
     this.applySavedMenuOrder();
@@ -909,7 +942,9 @@ class App {
     if (btnSwitchUser && modalSwitch && userListContainer) {
       btnSwitchUser.addEventListener("click", () => {
         this.closeMobileSidebar();
-        userListContainer.innerHTML = appState.state.users.map(u => {
+        // Kural: İzleyici rolündeki kullanıcılar yalnızca ADMIN tarafından görülebilir!
+        const visibleUsers = (appState.state.users || []).filter(u => isAdmin() || !isViewer(u));
+        userListContainer.innerHTML = visibleUsers.map(u => {
           const dep = appState.state.departments.find(d => d.id === u.departmentId) || { name: "" };
           const roleInfo = getRoleInfo(u.role);
           const isCurrent = u.id === appState.state.currentUser.id;
@@ -943,8 +978,8 @@ class App {
               this.updateUserSessionUI();
               modalSwitch.classList.remove("show");
 
-              // Eğer yönetici sekmesindeyse ve seçilen kullanıcının idari/admin yetkisi yoksa takvime aktar
-              if (!isIdariIslerOrAdmin() && this.activeTab === "tab-admin") {
+              // Eğer yönetici sekmesindeyse ve seçilen kullanıcının idari/admin/izleyici yetkisi yoksa takvime aktar
+              if (!isIdariIslerOrAdmin() && !isViewer() && this.activeTab === "tab-admin") {
                 this.switchTab("tab-calendar");
               }
 

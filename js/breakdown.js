@@ -1,5 +1,5 @@
 // SODSAN Fabrika Portalı - Makina Arıza ve Bakım Takip Modülü (breakdown.js)
-import { appState, playAlertSound, logSystemAction, registerMachine, updateMachine, deleteMachine, addExternalService, updateExternalService, deleteExternalService, isAdmin } from './data.js';
+import { appState, playAlertSound, logSystemAction, registerMachine, updateMachine, deleteMachine, addExternalService, updateExternalService, deleteExternalService, isAdmin, isViewer } from './data.js';
 
 export class BreakdownModule {
   constructor() {
@@ -665,6 +665,10 @@ export class BreakdownModule {
   }
 
   saveBreakdownReport() {
+    if (isViewer()) {
+      alert("İzleyici yetkisine sahipsiniz. Arıza bildiremezsiniz.");
+      return;
+    }
     const machineSelect = document.getElementById("breakdown-machine");
     const customMachineInput = document.getElementById("breakdown-custom-machine");
     const deptSelect = document.getElementById("breakdown-department");

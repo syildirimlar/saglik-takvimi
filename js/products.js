@@ -1,5 +1,5 @@
 // SODSAN Fabrika Portalı - Gelen / Giden Ürünler ve İletişim Akışı (products.js)
-import { appState, playAlertSound, logSystemAction, registerCompany } from './data.js';
+import { appState, playAlertSound, logSystemAction, registerCompany, isViewer } from './data.js';
 
 export class ProductsModule {
   constructor() {
@@ -185,6 +185,7 @@ export class ProductsModule {
   }
 
   isUserManager() {
+    if (isViewer()) return false;
     const user = appState.state.currentUser;
     if (!user) return false;
     if (user.role === "ADMIN" || user.role === "YONETICI") return true;
@@ -283,7 +284,7 @@ export class ProductsModule {
       return;
     }
 
-    const canEdit = this.isUserManager();
+    const canEdit = !isViewer() && this.isUserManager();
 
     // TEK SATIRDA SADE VE ANLAŞILIR ÇİZELGE GÖRÜNÜMÜ
     feedContainer.innerHTML = `
@@ -495,6 +496,10 @@ export class ProductsModule {
   }
 
   saveEditedProduct() {
+    if (isViewer()) {
+      alert("İzleyici yetkisine sahipsiniz. Ürün hareketi düzenleyemezsiniz.");
+      return;
+    }
     const id = document.getElementById("edit-product-id").value;
     const item = appState.state.products.find(p => p.id === id);
     if (!item) return;
@@ -575,6 +580,10 @@ export class ProductsModule {
   }
 
   saveProduct() {
+    if (isViewer()) {
+      alert("İzleyici yetkisine sahipsiniz. Ürün hareketi ekleyemezsiniz.");
+      return;
+    }
     const type = document.getElementById("product-type").value;
     const departmentId = document.getElementById("product-department").value;
     const productName = document.getElementById("product-name").value.trim();

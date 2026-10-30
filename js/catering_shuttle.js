@@ -1,5 +1,5 @@
 // SODSAN Fabrika Portalı - Yemek Menüsü & Personel Servisleri Modülü (catering_shuttle.js)
-import { appState, isManagerOrHr, logSystemAction, isAdmin } from './data.js';
+import { appState, isManagerOrHr, logSystemAction, isAdmin, isViewer, isUserVisibleToCurrentSession } from './data.js';
 
 export class CateringShuttleModule {
   constructor() {
@@ -19,6 +19,8 @@ export class CateringShuttleModule {
 
     (appState.state.employees || []).forEach(emp => {
       if (emp && emp.name && emp.name.trim() && !isAdminPerson(emp)) {
+        // Kural: İzleyici rolündeki çalışanlar yalnızca Admin tarafından görülebilir!
+        if (!isAdmin() && (isViewer(emp) || isViewer(emp.role))) return;
         const key = emp.name.trim().toLowerCase();
         if (!seen.has(key)) {
           seen.add(key);
@@ -29,6 +31,8 @@ export class CateringShuttleModule {
 
     (appState.state.users || []).forEach(u => {
       if (u && u.name && u.name.trim() && !isAdminPerson(u)) {
+        // Kural: İzleyici rolündeki kullanıcılar yalnızca Admin tarafından görülebilir!
+        if (!isAdmin() && (isViewer(u) || isViewer(u.role))) return;
         const key = u.name.trim().toLowerCase();
         if (!seen.has(key)) {
           seen.add(key);

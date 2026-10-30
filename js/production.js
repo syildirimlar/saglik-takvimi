@@ -1,5 +1,5 @@
 // SODSAN Fabrika Portalı - Haftalık Üretim Programı & Kalıp Baskı Planlama Modülü (production.js)
-import { appState, playAlertSound, logSystemAction, isIdariIslerOrAdmin } from './data.js';
+import { appState, playAlertSound, logSystemAction, isIdariIslerOrAdmin, isAdmin, isViewer, isUserVisibleToCurrentSession } from './data.js';
 
 export class ProductionModule {
   constructor() {
@@ -374,7 +374,8 @@ export class ProductionModule {
   }
 
   populateOperatorDropdowns() {
-    const users = appState.state.users || [];
+    // Kural: İzleyici rolündeki kullanıcılar yalnızca Admin tarafından görülebilir!
+    const users = (appState.state.users || []).filter(u => isAdmin() || !isViewer(u));
     const planOperatorSelect = document.getElementById("plan-operator-select");
     if (planOperatorSelect) {
       planOperatorSelect.innerHTML = `
@@ -385,6 +386,10 @@ export class ProductionModule {
   }
 
   handleSaveProductionPlan() {
+    if (isViewer()) {
+      alert("İzleyici yetkisine sahipsiniz. Üretim planı oluşturamaz veya değiştiremezsiniz.");
+      return;
+    }
     if (!isIdariIslerOrAdmin()) {
       alert("Yetki Hatası: Kalıp baskı planı kaydetme yetkiniz bulunmamaktadır!");
       return;
@@ -595,6 +600,10 @@ export class ProductionModule {
   }
 
   handleShiftReportSubmit() {
+    if (isViewer()) {
+      alert("İzleyici yetkisine sahipsiniz. Vardiya raporu giremezsiniz.");
+      return;
+    }
     const planId = document.getElementById("shift-report-plan-id")?.value;
     if (!planId) return;
 

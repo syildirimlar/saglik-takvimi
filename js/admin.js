@@ -1,5 +1,5 @@
 // SODSAN Fabrika Portalı - Yönetici / Admin Paneli (admin.js)
-import { appState, ROLES, getRoleInfo, logSystemAction } from './data.js';
+import { appState, ROLES, getRoleInfo, logSystemAction, isAdmin, isViewer, isUserVisibleToCurrentSession } from './data.js';
 
 export class AdminModule {
   constructor() {
@@ -234,7 +234,9 @@ export class AdminModule {
 
     const currentVal = this.filterLogUser;
     userSelect.innerHTML = `<option value="ALL">Tüm Personeller</option>`;
-    appState.state.users.forEach(u => {
+    // Kural: İzleyici rolündeki kullanıcılar yalnızca ADMIN tarafından görülebilir!
+    const usersToDisplay = (appState.state.users || []).filter(u => isAdmin() || !isViewer(u));
+    usersToDisplay.forEach(u => {
       userSelect.innerHTML += `<option value="${u.name}">${u.name} (@${u.username})</option>`;
     });
     userSelect.value = currentVal;
@@ -293,8 +295,8 @@ export class AdminModule {
     if (!tbody) return;
 
     tbody.innerHTML = appState.state.departments.map(dep => {
-      // Bu departmandaki kullanıcı sayısı
-      const userCount = appState.state.users.filter(u => u.departmentId === dep.id).length;
+      // Bu departmandaki kullanıcı sayısı (İzleyiciler yalnızca Admin'e sayılır)
+      const userCount = appState.state.users.filter(u => (isAdmin() || !isViewer(u)) && u.departmentId === dep.id).length;
 
       return `
         <tr class="border-b border-slate-100 hover:bg-slate-50 transition text-sm">
@@ -304,8 +306,10 @@ export class AdminModule {
           </td>
           <td class="py-3 px-3 text-slate-500 font-medium">${userCount} Kullanıcı</td>
           <td class="py-3 px-3 text-right">
-            <button data-edit-dept="${dep.id}" class="bg-blue-50 text-blue-700 hover:bg-blue-100 px-2.5 py-1 rounded-md text-xs font-bold mr-2 transition">✏️ Düzenle</button>
-            <button data-delete-dept="${dep.id}" class="bg-red-50 text-red-600 hover:bg-red-100 px-2.5 py-1 rounded-md text-xs font-bold transition">Sil</button>
+            ${!isViewer() ? `
+              <button data-edit-dept="${dep.id}" class="bg-blue-50 text-blue-700 hover:bg-blue-100 px-2.5 py-1 rounded-md text-xs font-bold mr-2 transition">✏️ Düzenle</button>
+              <button data-delete-dept="${dep.id}" class="bg-red-50 text-red-600 hover:bg-red-100 px-2.5 py-1 rounded-md text-xs font-bold transition">Sil</button>
+            ` : '<span class="text-xs text-slate-400 font-medium italic">Salt Okunur</span>'}
           </td>
         </tr>
       `;
@@ -342,6 +346,10 @@ export class AdminModule {
   }
 
   saveEditDepartment() {
+    if (isViewer()) {
+      alert("İzleyici yetkisine sahipsiniz. Sistemde değişiklik yapamazsınız.");
+      return;
+    }
     const id = document.getElementById("edit-dept-id").value;
     const newName = document.getElementById("edit-dept-name").value.trim();
     const newIcon = document.getElementById("edit-dept-icon").value.trim() || "🏢";
@@ -393,7 +401,10 @@ export class AdminModule {
     const tbody = document.getElementById("admin-users-tbody");
     if (!tbody) return;
 
-    tbody.innerHTML = appState.state.users.map(u => {
+    // KURAL: İzleyici rolündeki kullanıcılar YALNIZCA Sistem Yöneticisi (Admin) tarafından görülebilir!
+    const usersToDisplay = (appState.state.users || []).filter(u => isAdmin() || !isViewer(u));
+
+    tbody.innerHTML = usersToDisplay.map(u => {
       const dep = appState.state.departments.find(d => d.id === u.departmentId) || { name: "-", icon: "" };
       const roleInfo = getRoleInfo(u.role);
 
@@ -416,10 +427,12 @@ export class AdminModule {
             </div>
           </td>
           <td class="py-3 px-3 text-right">
-            <button data-edit-user="${u.id}" class="bg-blue-50 text-blue-700 hover:bg-blue-100 px-2.5 py-1 rounded-md text-xs font-bold mr-2 transition">✏️ Düzenle</button>
-            ${u.id !== "u_admin" ? `
-              <button data-delete-user="${u.id}" class="bg-red-50 text-red-600 hover:bg-red-100 px-2.5 py-1 rounded-md text-xs font-bold transition">Sil</button>
-            ` : ''}
+            ${!isViewer() ? `
+              <button data-edit-user="${u.id}" class="bg-blue-50 text-blue-700 hover:bg-blue-100 px-2.5 py-1 rounded-md text-xs font-bold mr-2 transition">✏️ Düzenle</button>
+              ${u.id !== "u_admin" ? `
+                <button data-delete-user="${u.id}" class="bg-red-50 text-red-600 hover:bg-red-100 px-2.5 py-1 rounded-md text-xs font-bold transition">Sil</button>
+              ` : ''}
+            ` : '<span class="text-xs text-slate-400 font-medium italic">Salt Okunur</span>'}
           </td>
         </tr>
       `;
@@ -479,6 +492,10 @@ export class AdminModule {
   }
 
   saveEditUser() {
+    if (isViewer()) {
+      alert("İzleyici yetkisine sahipsiniz. Sistemde değişiklik yapamazsınız.");
+      return;
+    }
     const id = document.getElementById("edit-user-id").value;
     const name = document.getElementById("edit-user-name").value.trim();
     const username = document.getElementById("edit-user-username").value.trim().toLowerCase();
@@ -521,6 +538,10 @@ export class AdminModule {
   }
 
   saveDepartment() {
+    if (isViewer()) {
+      alert("İzleyici yetkisine sahipsiniz. Sistemde değişiklik yapamazsınız.");
+      return;
+    }
     const nameInput = document.getElementById("dept-name");
     const iconInput = document.getElementById("dept-icon");
 
@@ -548,6 +569,10 @@ export class AdminModule {
   }
 
   saveUser() {
+    if (isViewer()) {
+      alert("İzleyici yetkisine sahipsiniz. Sistemde değişiklik yapamazsınız.");
+      return;
+    }
     const nameInput = document.getElementById("user-name");
     const usernameInput = document.getElementById("user-username");
     const roleInput = document.getElementById("user-role");
@@ -619,14 +644,16 @@ export class AdminModule {
             </div>
           </td>
           <td class="py-3 px-3 text-right whitespace-nowrap">
-            <button data-edit-role="${r.key}" class="bg-blue-50 text-blue-700 hover:bg-blue-100 px-2.5 py-1 rounded-md text-xs font-bold mr-2 transition">
-              ✏️ Rol Adı & Yetki Düzenle
-            </button>
-            ${r.key !== "ADMIN" && r.key !== "IK" ? `
-              <button data-delete-role="${r.key}" class="bg-red-50 text-red-600 hover:bg-red-100 px-2.5 py-1 rounded-md text-xs font-bold transition">
-                Sil
+            ${!isViewer() ? `
+              <button data-edit-role="${r.key}" class="bg-blue-50 text-blue-700 hover:bg-blue-100 px-2.5 py-1 rounded-md text-xs font-bold mr-2 transition">
+                ✏️ Rol Adı & Yetki Düzenle
               </button>
-            ` : ''}
+              ${r.key !== "ADMIN" && r.key !== "IK" ? `
+                <button data-delete-role="${r.key}" class="bg-red-50 text-red-600 hover:bg-red-100 px-2.5 py-1 rounded-md text-xs font-bold transition">
+                  Sil
+                </button>
+              ` : ''}
+            ` : '<span class="text-xs text-slate-400 font-medium italic">Salt Okunur</span>'}
           </td>
         </tr>
       `;
@@ -677,6 +704,10 @@ export class AdminModule {
   }
 
   saveAddRole() {
+    if (isViewer()) {
+      alert("İzleyici yetkisine sahipsiniz. Sistemde değişiklik yapamazsınız.");
+      return;
+    }
     const title = document.getElementById("role-title").value.trim();
     let key = document.getElementById("role-key").value.trim().toUpperCase().replace(/\s+/g, "_");
 
@@ -723,6 +754,10 @@ export class AdminModule {
   }
 
   saveEditRole() {
+    if (isViewer()) {
+      alert("İzleyici yetkisine sahipsiniz. Sistemde değişiklik yapamazsınız.");
+      return;
+    }
     const key = document.getElementById("edit-role-key").value;
     const title = document.getElementById("edit-role-title").value.trim();
 
@@ -799,6 +834,12 @@ export class AdminModule {
       // İşlem türü filtresi
       if (this.filterLogType !== "ALL") {
         if (!log.actionType.includes(this.filterLogType)) return false;
+      }
+
+      // Kural: İzleyici rolündeki kullanıcıların kayıtları yalnızca Admin tarafından görülebilir
+      if (!isAdmin()) {
+        const uObj = (appState.state.users || []).find(u => u.name === log.userName || u.username === log.userName);
+        if (isViewer(uObj)) return false;
       }
 
       return true;
