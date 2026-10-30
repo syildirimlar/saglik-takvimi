@@ -659,6 +659,7 @@ export class BreakdownModule {
       location: "",
       notes: "",
       status: "Aktif",
+      excludeFromProduction: false,
       addedAt: "2026-10-22"
     } : m);
 
@@ -705,9 +706,10 @@ export class BreakdownModule {
       return `
         <tr class="hover:bg-blue-50/40 transition">
           <td class="py-2.5 px-3.5">
-            <div class="font-extrabold text-slate-900 flex items-center gap-1.5">
+            <div class="font-extrabold text-slate-900 flex items-center gap-1.5 flex-wrap">
               <span class="text-slate-400">⚙️</span>
               <span class="text-sm">${m.name}</span>
+              ${m.excludeFromProduction ? `<span class="bg-amber-100 text-amber-800 text-[9px] font-bold px-1.5 py-0.2 rounded border border-amber-200" title="Üretim ataması yapılmaz, yardımcı ekipmandır">🔧 Yardımcı Ekipman</span>` : ''}
             </div>
             ${m.notes ? `<div class="text-[10px] text-slate-400 truncate max-w-xs mt-0.5 italic">"${m.notes}"</div>` : ''}
           </td>
@@ -785,6 +787,11 @@ export class BreakdownModule {
     document.getElementById("edit-machine-status").value = mObj.status || "Aktif";
     document.getElementById("edit-machine-location").value = mObj.location || "";
     document.getElementById("edit-machine-notes").value = mObj.notes || "";
+
+    const excludeCheckbox = document.getElementById("edit-machine-exclude-prod");
+    if (excludeCheckbox) {
+      excludeCheckbox.checked = Boolean(mObj.excludeFromProduction);
+    }
 
     const deptSelect = document.getElementById("edit-machine-department");
     if (deptSelect && mObj.departmentId) {
@@ -960,6 +967,7 @@ export class BreakdownModule {
     const departmentId = deptSelect ? deptSelect.value : "";
     const location = locInput ? locInput.value.trim() : "";
     const notes = notesInput ? notesInput.value.trim() : "";
+    const excludeFromProduction = document.getElementById("reg-machine-exclude-prod")?.checked || false;
 
     // Makineyi makine parkına kaydet
     registerMachine({
@@ -967,7 +975,8 @@ export class BreakdownModule {
       code,
       departmentId,
       location,
-      notes
+      notes,
+      excludeFromProduction
     });
 
     this.populateMachineSelect();
@@ -1034,7 +1043,8 @@ export class BreakdownModule {
       status: statusSelect ? statusSelect.value : "Aktif",
       departmentId: deptSelect ? deptSelect.value : "",
       location: locInput ? locInput.value.trim() : "",
-      notes: notesInput ? notesInput.value.trim() : ""
+      notes: notesInput ? notesInput.value.trim() : "",
+      excludeFromProduction: document.getElementById("edit-machine-exclude-prod")?.checked || false
     });
 
     if (updated) {
