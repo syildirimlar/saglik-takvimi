@@ -1,5 +1,5 @@
 // SODSAN Fabrika Portalı - Service Worker (sw.js)
-const CACHE_NAME = 'sodsan-portal-v53';
+const CACHE_NAME = 'sodsan-portal-v55';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -20,7 +20,12 @@ const ASSETS_TO_CACHE = [
   './js/cloud_sync.js',
   './js/app.js',
   './assets/sodsan-favicon.png',
-  './assets/sodsan-logo.png'
+  './assets/sodsan-logo.png',
+  './assets/icon-192.png',
+  './assets/icon-512.png',
+  './assets/icon-maskable-192.png',
+  './assets/icon-maskable-512.png',
+  './assets/apple-touch-icon.png'
 ];
 
 self.addEventListener('install', (event) => {

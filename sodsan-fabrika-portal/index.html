@@ -6,10 +6,12 @@
   <title>SODSAN - Fabrika İçi Operasyon ve Haberleşme Portalı</title>
   
   <!-- PWA & Favicon -->
+  <link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png">
   <link rel="icon" type="image/png" href="assets/sodsan-favicon.png">
-  <link rel="apple-touch-icon" href="assets/sodsan-favicon.png">
-  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon.png">
+  <link rel="manifest" href="manifest.json?v=55">
   <meta name="theme-color" content="#2563eb">
+  <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="SODSAN Portal">
@@ -4249,7 +4251,7 @@
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js?v=52').catch(err => {
+        navigator.serviceWorker.register('sw.js?v=55').catch(err => {
           console.log('SW registration failed:', err);
         });
       });
