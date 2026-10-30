@@ -290,9 +290,8 @@ class App {
       }
     }
 
-    // Yetki bazlı sekmeleri gizle/göster (Masaüstü ve Mobil)
-    // İdari İşler, Yönetici (Admin) ve İzleyici (Salt Okunur) ayar sayfasını görebilir
-    const hasAdminAccess = isIdariIslerOrAdmin() || isViewer();
+    // Admin Paneli (Masaüstü Sol Menü ve Mobil Sağ Alt Bar): SADECE VE YALNIZCA ADMIN GÖREBİLİR!
+    const hasAdminAccess = isAdmin();
     const adminTabBtns = document.querySelectorAll('[data-tab="tab-admin"]');
     adminTabBtns.forEach(btn => {
       if (hasAdminAccess) {
@@ -301,11 +300,17 @@ class App {
       } else {
         btn.style.display = "none";
         btn.classList.add("hidden");
-        if (this.activeTab === "tab-admin") {
-          this.switchTab("tab-calendar");
-        }
       }
     });
+
+    const cateringAdminBtn = document.getElementById("btn-open-catering-admin");
+    if (cateringAdminBtn) {
+      cateringAdminBtn.style.display = hasAdminAccess ? "inline-flex" : "none";
+    }
+
+    if (!hasAdminAccess && this.activeTab === "tab-admin") {
+      this.switchTab("tab-calendar");
+    }
 
     // İzleyici (Viewer) Modu Kontrolü: Salt okunur kalkanını ve bilgilendirme banner'ını devreye al
     const viewerAlertContainer = document.getElementById("global-viewer-mode-alert");
@@ -597,8 +602,8 @@ class App {
   }
 
   switchTab(tabId) {
-    if (tabId === "tab-admin" && !isIdariIslerOrAdmin()) {
-      alert("Yetki Hatası: Yönetim ve İK Ayarlar sayfasına erişim yetkiniz bulunmamaktadır!");
+    if (tabId === "tab-admin" && !isAdmin()) {
+      alert("Yetki Hatası: Yönetim & Admin paneline erişim yetkisi yalnızca Sistem Yöneticisine (Admin) aittir!");
       tabId = "tab-calendar";
     }
 
