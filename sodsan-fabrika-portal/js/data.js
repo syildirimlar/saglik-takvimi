@@ -356,7 +356,38 @@ export const DEFAULT_LEAVE_REQUESTS = [];
 export const DEFAULT_OVERTIME_REQUESTS = [];
 
 // Makina Arıza Bildirimleri
-export const DEFAULT_BREAKDOWNS = [];
+export const DEFAULT_BREAKDOWNS = [
+  {
+    id: "brk_1793334488743",
+    machineName: "TAILIFT FORKLİFT",
+    departmentId: "dep_yonetim",
+    location: "1500 VAKUM",
+    faultType: "Mekanik / Sıkışma / Rulman",
+    urgency: "Normal",
+    description: "FORKLİFT BAKIMI YAPILDI(HAMDİ AYAZ)",
+    reportedBy: "Sistem Yöneticisi",
+    reportedTime: "2026-10-30T04:28:08.743Z",
+    status: "Giderildi",
+    assignedTechnician: null,
+    technicianNotes: "[GİDERİLDİ] Sistem Yöneticisi: Arıza giderildi, test yapıldı ve çalışır vaziyette teslim edildi.",
+    resolvedTime: "2026-10-30T04:28:25.598Z"
+  },
+  {
+    id: "brk_1793334390045",
+    machineName: "HUAYA FORKLİFT",
+    departmentId: "dep_yonetim",
+    location: "1400 Depo",
+    faultType: "Mekanik / Sıkışma / Rulman",
+    urgency: "Normal",
+    description: "Aküler yenilendi(Mavi Global)",
+    reportedBy: "Sistem Yöneticisi",
+    reportedTime: "2026-10-30T04:26:30.045Z",
+    status: "Giderildi",
+    assignedTechnician: null,
+    technicianNotes: "[GİDERİLDİ] Sistem Yöneticisi: Arıza giderildi, test yapıldı ve çalışır vaziyette teslim edildi.",
+    resolvedTime: "2026-10-30T04:26:51.981Z"
+  }
+];
 
 // Tanımlı Standart Makine Arıza Türleri
 export const DEFAULT_FAULT_TYPES = [
@@ -474,6 +505,28 @@ export const DEFAULT_MACHINES = [
     status: "Aktif",
     excludeFromProduction: true,
     addedAt: "2026-10-22"
+  },
+  {
+    id: "mac_tailift_forklift",
+    name: "TAILIFT FORKLİFT",
+    code: "FRK-01",
+    departmentId: "dep_1792617758042",
+    location: "1500 VAKUM",
+    notes: "",
+    status: "Aktif",
+    excludeFromProduction: true,
+    addedAt: "2026-10-30"
+  },
+  {
+    id: "mac_huaya_forklift",
+    name: "HUAYA FORKLİFT",
+    code: "FRK-02",
+    departmentId: "dep_1792617758042",
+    location: "1400 Depo",
+    notes: "",
+    status: "Aktif",
+    excludeFromProduction: true,
+    addedAt: "2026-10-30"
   }
 ];
 
@@ -501,12 +554,60 @@ export const DEFAULT_TELEGRAM_CONFIG = {
 // Dışarıdan Hizmet Alınan Servis & Bakım Ekipleri Rehberi
 export const DEFAULT_EXTERNAL_SERVICES = [
   {
-    id: "ext_1",
-    companyName: "Kompresör Yetkili Teknik Servisi",
-    contactPerson: "Ahmet Usta",
-    specialty: "Vidalı Kompresör, Kurutucu & Hava Hattı",
-    phone: "0532 555 10 20",
-    notes: "Periyodik yağ ve filtre bakımı, acil arıza desteği."
+    id: "ext_1793300054267",
+    companyName: "ULUDAĞ KOMPRESÖR",
+    contactPerson: "FATİH",
+    specialty: "KOMPRESÖR",
+    phone: "0536 824 7604",
+    notes: ""
+  },
+  {
+    id: "ext_1793300110958",
+    companyName: "HAITIAN",
+    contactPerson: "ERCAN",
+    specialty: "ENJEKSİYON",
+    phone: "0534 838 80 04",
+    notes: ""
+  },
+  {
+    id: "ext_1793300170971",
+    companyName: "AYAZ FORKLİFT",
+    contactPerson: "HAMDİ AYAZ",
+    specialty: "FORKLİFT",
+    phone: "0532 503 03 83",
+    notes: ""
+  },
+  {
+    id: "ext_1793300219466",
+    companyName: "ROSS OTOMASYON",
+    contactPerson: "HİKMET",
+    specialty: "ELEKTRİK OTOMASYON",
+    phone: "0532 450 29 15",
+    notes: ""
+  },
+  {
+    id: "ext_1793300398477",
+    companyName: "DC ENERJİ",
+    contactPerson: "CİHAN",
+    specialty: "TESİSAT ELEKTRİĞİ & AYDINLATMA",
+    phone: "0532 399 68 91",
+    notes: ""
+  },
+  {
+    id: "ext_1793301415929",
+    companyName: "UÇAK ASANSÖR",
+    contactPerson: "MUHAMMED",
+    specialty: "1500 ASANSÖR ARIZA",
+    phone: "0542 786 48 45",
+    notes: ""
+  },
+  {
+    id: "ext_1793301533528",
+    companyName: "ASANSÖRCÜ FATİH",
+    contactPerson: "FATİH",
+    specialty: "1400 YÜK ASANSÖRÜ ARIZA BAKIM",
+    phone: "0531 474 37 26",
+    notes: ""
   }
 ];
 
@@ -557,7 +658,27 @@ export const DEFAULT_CATERING_CONFIG = {
 };
 
 // Personel Servis Güzergahları & Araç/Şoför Listesi (Sahte veri yoktur)
-export const DEFAULT_SHUTTLE_ROUTES = [];
+export const DEFAULT_SHUTTLE_ROUTES = [
+  {
+    id: "shuttle_1793335790484",
+    routeName: "YILDIRIM-KAYAPA",
+    plateNumber: "16 SPL 40",
+    driverUserId: "u_ahmet",
+    driverName: "Ayhan",
+    driverPhone: "0541 448 60 33",
+    capacity: 16,
+    stops: "",
+    notes: "",
+    arventoUrl: "",
+    arventoVehicleId: "",
+    passengerEmployeeIds: [
+      "u_1792699659049",
+      "u_ik",
+      "u_1792699612413"
+    ],
+    createdAt: "2026-10-30T04:49:50.484Z"
+  }
+];
 
 // Sesli Uyarı Çalıcı (Web Audio API - harici dosya gerektirmez)
 export function playAlertSound(type = "call") {
@@ -859,7 +980,16 @@ export class StateManager {
       if (!Array.isArray(parsed.supplies)) parsed.supplies = [];
       if (!Array.isArray(parsed.leaveRequests)) parsed.leaveRequests = [];
       if (!Array.isArray(parsed.overtimeRequests)) parsed.overtimeRequests = [];
-      if (!Array.isArray(parsed.breakdowns)) parsed.breakdowns = [];
+      // Makina Arızaları (DEFAULT_BREAKDOWNS kayıtlarını koru ve birleştir)
+      if (!Array.isArray(parsed.breakdowns) || parsed.breakdowns.length === 0) {
+        parsed.breakdowns = JSON.parse(JSON.stringify(DEFAULT_BREAKDOWNS));
+      } else {
+        DEFAULT_BREAKDOWNS.forEach(defBrk => {
+          if (!parsed.breakdowns.some(b => b.id === defBrk.id)) {
+            parsed.breakdowns.push(defBrk);
+          }
+        });
+      }
       if (!Array.isArray(parsed.calendarEvents)) parsed.calendarEvents = [];
       if (!Array.isArray(parsed.activityLogs)) parsed.activityLogs = [];
 
@@ -879,9 +1009,15 @@ export class StateManager {
         });
       }
 
-      // Dış Servisler
+      // Dış Servisler (DEFAULT_EXTERNAL_SERVICES ile eksiksiz birleştir)
       if (!Array.isArray(parsed.externalServices) || parsed.externalServices.length === 0) {
-        parsed.externalServices = [...DEFAULT_EXTERNAL_SERVICES];
+        parsed.externalServices = JSON.parse(JSON.stringify(DEFAULT_EXTERNAL_SERVICES));
+      } else {
+        DEFAULT_EXTERNAL_SERVICES.forEach(defExt => {
+          if (!parsed.externalServices.some(s => s.id === defExt.id || (s.companyName && defExt.companyName && s.companyName.trim().toLowerCase() === defExt.companyName.trim().toLowerCase()))) {
+            parsed.externalServices.push(defExt);
+          }
+        });
       }
 
       // Telegram Yapılandırması
@@ -929,9 +1065,15 @@ export class StateManager {
         };
       }
 
-      // Personel Servis Güzergahları
-      if (!Array.isArray(parsed.shuttleRoutes)) {
-        parsed.shuttleRoutes = [];
+      // Personel Servis Güzergahları (DEFAULT_SHUTTLE_ROUTES ile eksiksiz birleştir)
+      if (!Array.isArray(parsed.shuttleRoutes) || parsed.shuttleRoutes.length === 0) {
+        parsed.shuttleRoutes = JSON.parse(JSON.stringify(DEFAULT_SHUTTLE_ROUTES));
+      } else {
+        DEFAULT_SHUTTLE_ROUTES.forEach(defRoute => {
+          if (!parsed.shuttleRoutes.some(r => r.id === defRoute.id || (r.plateNumber && defRoute.plateNumber && r.plateNumber.trim().toUpperCase() === defRoute.plateNumber.trim().toUpperCase()))) {
+            parsed.shuttleRoutes.push(defRoute);
+          }
+        });
       }
 
       // Kurumsal Belgeler & Formlar (KVKK, İSG, İç Yönetmelik)
@@ -1377,16 +1519,150 @@ export class StateManager {
   importDataJson(jsonString, skipCloudNotify = false) {
     try {
       const parsed = JSON.parse(jsonString);
-      if (parsed.departments && parsed.users) {
-        this.state = parsed;
-        if (!Array.isArray(this.state.faultTypes) || this.state.faultTypes.length === 0) {
-          this.state.faultTypes = JSON.parse(JSON.stringify(DEFAULT_FAULT_TYPES));
+      if (parsed && (parsed.departments || parsed.users || parsed.machines)) {
+        const local = this.state || {};
+
+        // 1. Dış Servisler (externalServices): Birleştir ve hiçbir firmayı silme
+        const mergedExtServices = [...(Array.isArray(parsed.externalServices) ? parsed.externalServices : [])];
+        const localExtServices = Array.isArray(local.externalServices) ? local.externalServices : [];
+        const allExtSources = [...DEFAULT_EXTERNAL_SERVICES, ...localExtServices];
+        allExtSources.forEach(src => {
+          if (!mergedExtServices.some(s => s.id === src.id || (s.companyName && src.companyName && s.companyName.trim().toLowerCase() === src.companyName.trim().toLowerCase()))) {
+            mergedExtServices.push(src);
+          }
+        });
+
+        // 2. Makina Arızaları (breakdowns): Birleştir ve giderilen durumları koru
+        const breakdownMap = new Map();
+        DEFAULT_BREAKDOWNS.forEach(b => breakdownMap.set(b.id, { ...b }));
+        if (Array.isArray(local.breakdowns)) {
+          local.breakdowns.forEach(b => {
+            if (b && b.id) breakdownMap.set(b.id, { ...(breakdownMap.get(b.id) || {}), ...b });
+          });
         }
+        if (Array.isArray(parsed.breakdowns)) {
+          parsed.breakdowns.forEach(b => {
+            if (b && b.id) {
+              const existing = breakdownMap.get(b.id);
+              if (existing) {
+                const isResolved = existing.status === "Giderildi" || b.status === "Giderildi";
+                breakdownMap.set(b.id, {
+                  ...existing,
+                  ...b,
+                  status: isResolved ? "Giderildi" : (b.status || existing.status),
+                  technicianNotes: b.technicianNotes || existing.technicianNotes || "",
+                  resolvedTime: b.resolvedTime || existing.resolvedTime || null
+                });
+              } else {
+                breakdownMap.set(b.id, { ...b });
+              }
+            }
+          });
+        }
+
+        // 3. Personel Servis Güzergahları (shuttleRoutes): Birleştir
+        const shuttleMap = new Map();
+        DEFAULT_SHUTTLE_ROUTES.forEach(s => shuttleMap.set(s.plateNumber?.trim().toUpperCase() || s.id, { ...s }));
+        if (Array.isArray(local.shuttleRoutes)) {
+          local.shuttleRoutes.forEach(s => {
+            const key = s.plateNumber?.trim().toUpperCase() || s.id;
+            shuttleMap.set(key, { ...(shuttleMap.get(key) || {}), ...s });
+          });
+        }
+        if (Array.isArray(parsed.shuttleRoutes)) {
+          parsed.shuttleRoutes.forEach(s => {
+            const key = s.plateNumber?.trim().toUpperCase() || s.id;
+            const existing = shuttleMap.get(key);
+            if (existing) {
+              const passengers = Array.from(new Set([...(existing.passengerEmployeeIds || []), ...(s.passengerEmployeeIds || [])]));
+              shuttleMap.set(key, { ...existing, ...s, passengerEmployeeIds: passengers });
+            } else {
+              shuttleMap.set(key, { ...s });
+            }
+          });
+        }
+
+        // 4. Makineler (machines): Birleştir
+        const machineMap = new Map();
+        const FAKE_MACHINE_IDS = new Set(["mac_inj_800", "mac_inj_650", "mac_inj_450", "mac_inj_250", "mac_vak_01", "mac_vak_02", "mac_dos_01"]);
+        DEFAULT_MACHINES.forEach(m => machineMap.set(m.id, { ...m }));
+        if (Array.isArray(local.machines)) {
+          local.machines.forEach(m => {
+            if (m && m.id && !FAKE_MACHINE_IDS.has(m.id)) {
+              machineMap.set(m.id, { ...(machineMap.get(m.id) || {}), ...m });
+            }
+          });
+        }
+        if (Array.isArray(parsed.machines)) {
+          parsed.machines.forEach(m => {
+            if (m && m.id && !FAKE_MACHINE_IDS.has(m.id)) {
+              machineMap.set(m.id, { ...(machineMap.get(m.id) || {}), ...m });
+            }
+          });
+        }
+
+        // 5. Arıza Türleri (faultTypes): Birleştir
+        const faultMap = new Map();
+        DEFAULT_FAULT_TYPES.forEach(f => faultMap.set(typeof f === "object" ? f.name.toLowerCase() : f.toLowerCase(), typeof f === "object" ? f : { id: "ft_" + Math.random(), name: f }));
+        if (Array.isArray(local.faultTypes)) {
+          local.faultTypes.forEach(f => {
+            const name = typeof f === "object" ? f.name : f;
+            if (name) faultMap.set(name.toLowerCase(), typeof f === "object" ? f : { id: "ft_" + Math.random(), name: f });
+          });
+        }
+        if (Array.isArray(parsed.faultTypes)) {
+          parsed.faultTypes.forEach(f => {
+            const name = typeof f === "object" ? f.name : f;
+            if (name) faultMap.set(name.toLowerCase(), typeof f === "object" ? f : { id: "ft_" + Math.random(), name: f });
+          });
+        }
+
+        // 6. Kullanıcılar (users): Birleştir
+        const userMap = new Map();
+        if (Array.isArray(local.users)) {
+          local.users.forEach(u => { if (u && u.id) userMap.set(u.id, u); });
+        }
+        if (Array.isArray(parsed.users)) {
+          parsed.users.forEach(u => { if (u && u.id) userMap.set(u.id, { ...(userMap.get(u.id) || {}), ...u }); });
+        }
+
+        // 7. Yardımcı fonksiyon: ID bazlı birleştirme
+        const mergeById = (localArr, parsedArr) => {
+          const map = new Map();
+          if (Array.isArray(localArr)) localArr.forEach(item => { if (item && item.id) map.set(item.id, item); });
+          if (Array.isArray(parsedArr)) parsedArr.forEach(item => { if (item && item.id) map.set(item.id, { ...(map.get(item.id) || {}), ...item }); });
+          return Array.from(map.values());
+        };
+
+        // Bütünleşik State
+        this.state = {
+          ...parsed,
+          departments: Array.isArray(parsed.departments) && parsed.departments.length > 0 ? parsed.departments : (local.departments || DEFAULT_DEPARTMENTS),
+          users: Array.from(userMap.values()),
+          externalServices: mergedExtServices,
+          breakdowns: Array.from(breakdownMap.values()),
+          shuttleRoutes: Array.from(shuttleMap.values()),
+          machines: Array.from(machineMap.values()),
+          faultTypes: Array.from(faultMap.values()),
+          productionPlans: mergeById(local.productionPlans, parsed.productionPlans),
+          productionOrders: mergeById(local.productionOrders, parsed.productionOrders),
+          shipments: mergeById(local.shipments, parsed.shipments),
+          calendarEvents: mergeById(local.calendarEvents, parsed.calendarEvents),
+          leaveRequests: mergeById(local.leaveRequests, parsed.leaveRequests),
+          overtimeRequests: mergeById(local.overtimeRequests, parsed.overtimeRequests),
+          supplies: mergeById(local.supplies, parsed.supplies),
+          activityLogs: mergeById(local.activityLogs, parsed.activityLogs).sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0)).slice(0, 10000)
+        };
+
+        if (local.currentUser) {
+          this.state.currentUser = local.currentUser;
+        }
+
         this.saveState(skipCloudNotify);
         return true;
       }
     } catch (e) {
-      console.error("Geçersiz JSON dosyası:", e);
+      console.error("Geçersiz JSON dosyası veya içe aktarma hatası:", e);
     }
     return false;
   }
