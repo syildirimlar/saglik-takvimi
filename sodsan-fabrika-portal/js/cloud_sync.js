@@ -151,7 +151,8 @@ export class CloudSyncService {
         headers: {
           "Filename": "sodsan_state.json",
           "Title": `SODSAN_UPDATE|${this.deviceId}|${nowIso}`,
-          "Tags": "factory,sync"
+          "Tags": "factory,sync",
+          "Content-Type": "application/json; charset=utf-8"
         },
         body: statePayload
       });
