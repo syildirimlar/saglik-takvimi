@@ -1,17 +1,17 @@
 // SODSAN Fabrika Portalı - Ana Uygulama Yöneticisi (app.js)
-import { appState, ROLES, getRoleInfo, logSystemAction, isAdmin, isIdariIslerOrAdmin, isViewer, isUserVisibleToCurrentSession } from './data.js?v=8.4';
-import { CalendarModule } from './calendar.js?v=8.4';
-import { ProductsModule } from './products.js?v=8.4';
-import { SuppliesModule } from './supplies.js?v=8.4';
-import { LeaveModule } from './leave.js?v=8.4';
-import { OvertimeModule } from './overtime.js?v=8.4';
-import { ForkliftModule } from './forklift.js?v=8.4';
-import { BreakdownModule } from './breakdown.js?v=8.4';
-import { ProductionModule } from './production.js?v=8.4';
-import { AdminModule } from './admin.js?v=8.4';
-import { CateringShuttleModule, getUserShuttleBanners } from './catering_shuttle.js?v=8.4';
-import { DocumentsModule } from './documents.js?v=8.4';
-import { cloudSync } from './cloud_sync.js?v=8.4';
+import { appState, ROLES, getRoleInfo, logSystemAction, isAdmin, isIdariIslerOrAdmin, isViewer, isUserVisibleToCurrentSession } from './data.js?v=8.5';
+import { CalendarModule } from './calendar.js?v=8.5';
+import { ProductsModule } from './products.js?v=8.5';
+import { SuppliesModule } from './supplies.js?v=8.5';
+import { LeaveModule } from './leave.js?v=8.5';
+import { OvertimeModule } from './overtime.js?v=8.5';
+import { ForkliftModule } from './forklift.js?v=8.5';
+import { BreakdownModule } from './breakdown.js?v=8.5';
+import { ProductionModule } from './production.js?v=8.5';
+import { AdminModule } from './admin.js?v=8.5';
+import { CateringShuttleModule, getUserShuttleBanners } from './catering_shuttle.js?v=8.5';
+import { DocumentsModule } from './documents.js?v=8.5';
+import { cloudSync } from './cloud_sync.js?v=8.5';
 
 class App {
   constructor() {
@@ -547,13 +547,34 @@ class App {
   initLiveClock() {
     const clockEl = document.getElementById("portal-live-clock");
     if (!clockEl) return;
+    let clockTimer = null;
     const updateTime = () => {
+      if (document.hidden) return;
       const now = new Date();
       const timeStr = now.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
-      clockEl.textContent = timeStr;
+      if (clockEl.textContent !== timeStr) {
+        clockEl.textContent = timeStr;
+      }
     };
     updateTime();
-    setInterval(updateTime, 1000);
+
+    const startClock = () => {
+      if (clockTimer) clearInterval(clockTimer);
+      updateTime();
+      clockTimer = setInterval(updateTime, 30000); // 1 saniye yerine 30 sn (saat:dakika için ideal, pil dostu)
+    };
+    const stopClock = () => {
+      if (clockTimer) {
+        clearInterval(clockTimer);
+        clockTimer = null;
+      }
+    };
+
+    startClock();
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) stopClock();
+      else startClock();
+    });
   }
 
   updateActivePageTitle(tabId) {

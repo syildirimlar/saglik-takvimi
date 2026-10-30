@@ -1,5 +1,5 @@
 // SODSAN Fabrika Portalı - Service Worker (sw.js)
-const CACHE_NAME = 'sodsan-portal-v62';
+const CACHE_NAME = 'sodsan-portal-v63';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -52,9 +52,20 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Network-First Stratejisi: Her zaman sunucudaki en güncel dosyayı alır, çevrimdışıysa önbelleği kullanır
+// Network-First Stratejisi: Statik uygulama dosyalarını önbelleğe alır.
+// Pil ve İşlemci Tasarrufu (Kritik): Dış API, ntfy.sh ve canlı SSE akışları Service Worker tarafından yakalanmaz.
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
+
+  try {
+    const url = new URL(event.request.url);
+    // Sadece kendi alan adımızdan (origin) gelen statik dosyaları ele al
+    if (url.origin !== self.location.origin) {
+      return; // Service worker bypass -> doğrudan ağ üzerinden çalışır, telefonun CPU/pilini tüketmez
+    }
+  } catch (e) {
+    return;
+  }
 
   event.respondWith(
     fetch(event.request)
