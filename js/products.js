@@ -1,5 +1,5 @@
 // SODSAN Fabrika Portalı - Gelen / Giden Ürünler ve İletişim Akışı (products.js)
-import { appState, playAlertSound, logSystemAction, registerCompany, isViewer } from './data.js';
+import { appState, playAlertSound, logSystemAction, registerCompany, isViewer, isAdmin, isIdariIslerOrAdmin } from './data.js';
 
 export class ProductsModule {
   constructor() {
@@ -193,32 +193,58 @@ export class ProductsModule {
     return roleDef && roleDef.permissions && roleDef.permissions.canAccessAdmin;
   }
 
-  // Kayıt düzenleme yetkisi: Sistem Yöneticisi, İdari İşler (IK) veya kaydı oluşturan kullanıcının kendisi
+  // Kayıt düzenleme yetkisi: Sistem Yöneticisi, İdari İşler (IK), Öner veya kaydı oluşturan kullanıcının kendisi
   canEditItem(item) {
     if (isViewer()) return false;
     const user = appState.state.currentUser;
     if (!user) return false;
     // 1. Yönetici her zaman düzenleyebilir
-    if (this.isUserManager()) return true;
+    if (this.isUserManager() || isAdmin()) return true;
     if (!item) return false;
 
-    // 2. İdari İşler (IK) rolündeki kullanıcılar malzeme/ürün hareketlerini düzenleyebilir
-    if (user.role === "IK" || user.role === "IDARI_ISLER") return true;
-
-    // 3. Kaydı açan personel kendi kaydını düzenleyebilir (ID eşleşmesi)
-    if (item.createdById && user.id && item.createdById === user.id) return true;
-
-    // 4. İsim / kullanıcı adı bazında geniş Türkçe karakter duyarsız eşleşme
-    const norm = (s) => (s || "").trim().toLocaleLowerCase("tr-TR")
+    const norm = (s) => (s || "").toString().trim().toLocaleLowerCase("tr-TR")
       .replace(/ı/g, "i").replace(/i̇/g, "i").replace(/ö/g, "o").replace(/ü/g, "u").replace(/ş/g, "s").replace(/ç/g, "c").replace(/ğ/g, "g");
 
-    const itemCreator = norm(item.createdBy);
-    const itemCreatorUser = norm(item.createdByUsername);
     const uName = norm(user.name);
     const uUsername = norm(user.username);
+    const uRole = norm(user.role);
 
-    if (itemCreator && (itemCreator === uName || itemCreator === uUsername)) return true;
-    if (itemCreatorUser && (itemCreatorUser === uName || itemCreatorUser === uUsername)) return true;
+    // 2. Öner kullanıcısı (kullanıcı adı veya adı 'oner' içeren) kendi ve sorumlu olduğu hareketleri doğrudan düzenleyebilir
+    if (uUsername.includes("oner") || uName.includes("oner")) return true;
+
+    // 3. İdari İşler veya İK rolündeki kullanıcılar malzeme hareketlerini düzenleyebilir
+    if (isIdariIslerOrAdmin()) return true;
+    if (uRole === "ik" || uRole.includes("idari") || uRole.includes("yonetici") || uRole.includes("yonetim")) return true;
+
+    const depId = norm(user.departmentId);
+    if (depId.includes("ik") || depId.includes("idari") || depId.includes("yonetim")) return true;
+
+    if (appState.state.roles && Array.isArray(appState.state.roles)) {
+      const roleDef = appState.state.roles.find(r => norm(r.key) === uRole || r.id === user.role);
+      if (roleDef) {
+        const rTitle = norm(roleDef.title);
+        if (rTitle.includes("idari") || rTitle.includes("insan kaynak") || rTitle.includes("ik")) return true;
+      }
+    }
+
+    // 4. Kaydı açan personel kendi kaydını düzenleyebilir (ID eşleşmesi)
+    if (item.createdById && user.id && String(item.createdById) === String(user.id)) return true;
+
+    // 5. İsim / kullanıcı adı bazında geniş Türkçe karakter duyarsız ve kısmi eşleşme
+    const itemCreator = norm(item.createdBy);
+    const itemCreatorUser = norm(item.createdByUsername);
+
+    if (itemCreator) {
+      if (itemCreator === uName || itemCreator === uUsername) return true;
+      if (uName && (itemCreator.includes(uName) || uName.includes(itemCreator))) return true;
+      if (uUsername && (itemCreator.includes(uUsername) || uUsername.includes(itemCreator))) return true;
+      if (itemCreator.includes("oner") && (uUsername.includes("oner") || uName.includes("oner"))) return true;
+    }
+
+    if (itemCreatorUser) {
+      if (itemCreatorUser === uName || itemCreatorUser === uUsername) return true;
+      if (uUsername && (itemCreatorUser.includes(uUsername) || uUsername.includes(itemCreatorUser))) return true;
+    }
 
     return false;
   }
