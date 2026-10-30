@@ -1,5 +1,5 @@
 // SODSAN Fabrika Portalı - İK ve Fazla Mesai Yönetim Modülü (overtime.js)
-import { appState, playAlertSound, logSystemAction, isManagerOrHr, getCurrentUserEmployee } from './data.js';
+import { appState, playAlertSound, logSystemAction, isManagerOrHr, getCurrentUserEmployee, isAdmin, isViewer, isUserVisibleToCurrentSession } from './data.js';
 
 export class OvertimeModule {
   constructor() {
@@ -49,7 +49,7 @@ export class OvertimeModule {
     return p.id === "u_admin" || p.userId === "u_admin" || r === "ADMIN" || n === "admin" || n === "sistem yöneticisi" || u === "admin";
   }
 
-  // Tüm kayıtlı fabrika çalışanlarını hem employees hem users tablosundan eksiksiz derler (Admin hariç)
+  // Tüm kayıtlı fabrika çalışanlarını hem employees hem users tablosundan eksiksiz derler (Admin hariç, İzleyiciler yalnızca Admin'e görünür)
   getFactoryEmployees() {
     const list = [];
     const seen = new Set();
@@ -57,6 +57,8 @@ export class OvertimeModule {
     // 1. İK Personel Çizelgesindeki kayıtlar (employees) - Admin hariç
     (appState.state.employees || []).forEach(emp => {
       if (emp && emp.name && emp.name.trim() && !this.isAdminEmployee(emp)) {
+        // Kural: İzleyici rolündeki çalışanlar yalnızca Admin tarafından görülebilir!
+        if (!isAdmin() && (isViewer(emp) || isViewer(emp.role))) return;
         const key = emp.name.trim().toLowerCase();
         if (!seen.has(key)) {
           seen.add(key);
@@ -68,6 +70,8 @@ export class OvertimeModule {
     // 2. Sistemde kayıtlı kullanıcılar (users) - Admin hariç
     (appState.state.users || []).forEach(u => {
       if (u && u.name && u.name.trim() && !this.isAdminEmployee(u)) {
+        // Kural: İzleyici rolündeki kullanıcılar yalnızca Admin tarafından görülebilir!
+        if (!isAdmin() && (isViewer(u) || isViewer(u.role))) return;
         const key = u.name.trim().toLowerCase();
         if (!seen.has(key)) {
           seen.add(key);
@@ -318,6 +322,10 @@ export class OvertimeModule {
   }
 
   saveOvertimeRequest() {
+    if (isViewer()) {
+      alert("İzleyici yetkisine sahipsiniz. Fazla mesai talebi oluşturamazsınız.");
+      return;
+    }
     const checkedEmployees = Array.from(document.querySelectorAll("input[name='overtime-emp']:checked"));
 
     if (checkedEmployees.length === 0) {
@@ -405,6 +413,10 @@ export class OvertimeModule {
   }
 
   processHrAction(overtimeId, newStatus) {
+    if (isViewer()) {
+      alert("İzleyici yetkisine sahipsiniz. Fazla mesai talebi onaylama veya reddetme yetkiniz bulunmamaktadır.");
+      return;
+    }
     const req = appState.state.overtimeRequests.find(r => r.id === overtimeId);
     if (!req) return;
 
@@ -439,6 +451,10 @@ export class OvertimeModule {
   }
 
   deleteOvertimeRequest(overtimeId) {
+    if (isViewer()) {
+      alert("İzleyici yetkisine sahipsiniz. Fazla mesai talebi silemezsiniz.");
+      return;
+    }
     if (!isManagerOrHr()) {
       alert("Yetki Hatası: Yalnızca İK veya Yönetici personeller mesai talebini silebilir!");
       return;
@@ -548,6 +564,17 @@ export class OvertimeModule {
       items = items.filter(r => r.departmentId === this.filterDept);
     }
 
+    // Kural: İzleyici rolündeki çalışanların mesai talepleri yalnızca Admin tarafından görülebilir
+    if (!isAdmin()) {
+      items = items.filter(r => {
+        const anyViewer = (r.employeeIds || []).some(empId => {
+          const emp = (appState.state.employees || []).find(e => e.id === empId || e.userId === empId) || (appState.state.users || []).find(u => u.id === empId);
+          return isViewer(emp);
+        });
+        return !anyViewer;
+      });
+    }
+
     if (items.length === 0) {
       container.innerHTML = `
         <div class="text-center py-12 text-slate-400 bg-white rounded-xl border border-dashed border-slate-200">
@@ -560,7 +587,7 @@ export class OvertimeModule {
     }
 
     const currentUser = appState.state.currentUser || {};
-    const isHrOrAdmin = currentUser.role === "IK" || currentUser.role === "ADMIN";
+    const isHrOrAdmin = !isViewer() && (currentUser.role === "IK" || currentUser.role === "ADMIN");
 
     container.innerHTML = items.map(req => {
       const dep = appState.state.departments.find(d => d.id === req.departmentId) || { name: "-", icon: "🏢" };

@@ -8,6 +8,7 @@ const CalendarModule = (function() {
     let currentYear = 2026;
     let currentMonth = 9; // 0-indexed, 9 = Ekim (October)
     let selectedDate = null;
+    let isSidePaneOpen = true;
 
     const MONTH_NAMES = [
         "Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran",
@@ -24,10 +25,40 @@ const CalendarModule = (function() {
         return Math.ceil((((date - yearStart) / 86400000) + 1) / 7);
     }
 
+    function formatTaxBadge(tax, iso) {
+        const isDecl = (tax.declDate === iso);
+        const isDue = (tax.dueDate === iso);
+        const isSgk = tax.type.includes("SGK");
+        let label = "";
+        let badgeClass = isSgk ? "badge-sgk" : "badge-tax";
+
+        if (isSgk) {
+            label = (isDecl && isDue) ? "👥 SGK Beyan/Ödeme" : (isDecl ? "👥 SGK Bildirge" : "👥 SGK Prim Ödeme");
+        } else if (tax.type.includes("Muhtasar")) {
+            label = "📑 MPHB (Muhtasar)";
+        } else if (tax.type.includes("KDV")) {
+            label = "🏛️ KDV 1-2";
+        } else if (tax.type.includes("Geçici")) {
+            label = "📊 Geçici Vergi";
+        } else if (tax.type.includes("Kurumlar")) {
+            label = "🏛️ Kurumlar V.";
+        } else if (tax.type.includes("Damga")) {
+            label = "📜 Damga Vergisi";
+        } else if (tax.type.includes("Tasdik")) {
+            label = "⚖️ Defter Tasdiki";
+        } else {
+            label = "🏛️ " + tax.type.slice(0, 14);
+        }
+
+        const roleText = (isDecl && isDue) ? "Beyan ve Son Ödeme" : (isDecl ? "Beyanname Son Günü" : "Son Ödeme Günü");
+        return `<span class="event-badge ${badgeClass}" title="${tax.type} (${tax.period}) - ${roleText}">${label}</span>`;
+    }
+
     function init(year, month) {
         const realToday = SODSAN_DB.getRealToday();
         const activeDate = SODSAN_DB.getActiveDate() || realToday;
         selectedDate = selectedDate || activeDate;
+        isSidePaneOpen = false; // Başlangıçta takvim tam ekran genişliğinde ve ferah açılsın
         
         if (year !== undefined && month !== undefined) {
             currentYear = year;
@@ -83,11 +114,11 @@ const CalendarModule = (function() {
             const dStr = String(day).padStart(2, '0');
             const iso = `${currentYear}-${mStr}-${dStr}`;
 
-            // O güne ait olaylar
+            // O güne ait olaylar: Vergi, Beyanname, Ödeme, Görev
             const dayTasks = allTasks.filter(t => t.date === iso);
             const dayPayments = allPayments.filter(p => p.dueDate === iso);
             const dayInvoices = allInvoices.filter(i => i.dueDate === iso);
-            const dayTaxes = allTaxes.filter(t => t.dueDate === iso);
+            const dayTaxes = allTaxes.filter(t => t.dueDate === iso || t.declDate === iso);
 
             const isToday = (iso === realToday);
             const isSelected = (iso === selectedDate);
@@ -131,13 +162,16 @@ const CalendarModule = (function() {
                 <!-- SOL ANA TAKVİM IZGARASI -->
                 <div class="calendar-main-pane">
                     
-                    <!-- TAKVİM ÜST BAR (AY GEÇİŞLERİ) -->
+                    <!-- TAKVİM ÜST BAR (AY GEÇİŞLERİ VE GÜN DETAYI) -->
                     <div class="cal-header">
                         <div class="cal-nav-group">
                             <button class="btn btn-outline btn-sm" onclick="CalendarModule.prevMonth()">◀ Önceki Ay</button>
                             <h3 class="cal-title">${MONTH_NAMES[currentMonth]} ${currentYear}</h3>
                             <button class="btn btn-outline btn-sm" onclick="CalendarModule.nextMonth()">Sonraki Ay ▶</button>
-                            <button class="btn btn-primary btn-sm ml-2" onclick="CalendarModule.jumpToToday()">Bugüne Git</button>
+                            <button class="btn btn-primary btn-sm ml-1" onclick="CalendarModule.jumpToToday()">Bugüne Git</button>
+                            <button class="btn btn-outline btn-sm ml-1" onclick="CalendarModule.toggleSidePane()" title="Seçili günün işlem ve vergi detaylarını aç/kapat">
+                                📋 Gün Detayı (${DashboardModule.formatDateDisplay(selectedDate)})
+                            </button>
                         </div>
 
                         <!-- RENK KODU LEJANTI (Section 11) -->
@@ -200,11 +234,7 @@ const CalendarModule = (function() {
                                             ${cell.isToday ? '<span class="today-tag">BUGÜN</span>' : (cell.isActiveDate ? '<span class="today-tag" style="background:#f59e0b;">SEÇİLİ</span>' : '')}
                                         </div>
                                         <div class="cell-badges">
-                                            ${(cell.taxes || []).map(t => `
-                                                <span class="event-badge badge-tax" title="Vergi: ${t.type}">
-                                                    🏛️ ${t.type.slice(0, 10)}
-                                                </span>
-                                            `).join('')}
+                                            ${(cell.taxes || []).map(t => formatTaxBadge(t, cell.isoDate)).join('')}
                                             ${(cell.tasks || []).slice(0, 2).map(t => {
                                                 const catClass = getCategoryBadgeClass(t.category);
                                                 return `
@@ -231,48 +261,125 @@ const CalendarModule = (function() {
                     </div>
                 </div>
 
+                <!-- BACKDROP (MOBİL & DAR EKRAN İÇİN) -->
+                <div class="side-pane-backdrop ${isSidePaneOpen ? '' : 'backdrop-hidden'}" onclick="CalendarModule.closeSidePane()"></div>
+
                 <!-- SAĞ PANEL: SEÇİLEN GÜNÜN DETAYI (Section 11) -->
-                <div class="calendar-side-pane">
+                <div class="calendar-side-pane ${isSidePaneOpen ? '' : 'pane-closed'}" id="calendarSidePane">
                     <div class="side-pane-header">
                         <div>
-                            <span class="text-xs text-muted">SEÇİLEN GÜN</span>
-                            <h4>${DashboardModule.formatDateDisplay(selectedDate)}</h4>
+                            <div style="display:flex; align-items:center; gap:8px;">
+                                <span class="text-xs text-muted">SEÇİLEN GÜN</span>
+                                <span class="badge badge-primary" style="font-size:10px; padding:2px 6px;">${selectedDayEvents.length} Kayıt</span>
+                            </div>
+                            <h4 style="margin:2px 0 0 0; font-size:15px;">${DashboardModule.formatDateDisplay(selectedDate)}</h4>
                         </div>
-                        <button class="btn btn-primary btn-xs" onclick="App.openQuickTaskModal('${selectedDate}')">+ Görev</button>
+                        <div class="side-pane-header-actions" style="display:flex; gap:6px; align-items:center;">
+                            <button class="btn btn-primary btn-xs" onclick="App.openQuickTaskModal('${selectedDate}')">+ Görev</button>
+                            <button class="btn btn-outline btn-xs" onclick="CalendarModule.closeSidePane()" title="Paneli Kapat" style="font-weight:bold; font-size:12px; padding:3px 7px;">✕ Kapat</button>
+                        </div>
                     </div>
 
                     <div class="side-pane-body">
                         ${selectedDayEvents.length === 0 ? `
                             <div class="empty-state-mini text-center py-4">
-                                📅 Bu gün için tanımlı herhangi bir görev veya ödeme bulunmamaktadır.
-                                <br><br>
-                                <button class="btn btn-outline btn-sm" onclick="App.openQuickTaskModal('${selectedDate}')">+ Bu Güne Görev Ekle</button>
+                                <div style="font-size:32px; margin-bottom:8px;">📅</div>
+                                <div style="font-weight:600; color:var(--text-muted); margin-bottom:6px;">Kayıt Bulunmuyor</div>
+                                <p class="text-xs text-muted">Bu gün için tanımlı vergi, SGK beyanı, ödeme veya görev bulunmamaktadır.</p>
+                                <button class="btn btn-outline btn-sm mt-3" onclick="App.openQuickTaskModal('${selectedDate}')">+ Bu Güne Görev Ekle</button>
                             </div>
                         ` : `
                             <div class="day-events-list">
-                                ${selectedDayEvents.map(ev => `
-                                    <div class="day-event-card ${ev.isDone ? 'event-done' : ''}">
-                                        <div class="event-header-row">
-                                            <span class="category-badge ${ev.badgeClass}">${ev.category}</span>
-                                            <span class="badge ${ev.statusBadgeClass}">${ev.status}</span>
+                                ${selectedDayEvents.map(ev => {
+                                    if (ev.type === 'TAX') {
+                                        const t = ev.taxObj;
+                                        const isSgk = t.type.includes("SGK");
+                                        const cardClass = isSgk ? "card-sgk-duty" : "card-tax-duty";
+                                        const isDone = t.paid && t.declSubmitted;
+                                        return `
+                                            <div class="day-event-card ${cardClass} ${isDone ? 'event-done' : ''}">
+                                                <div class="event-header-row">
+                                                    <span class="category-badge ${isSgk ? 'badge-sgk' : 'badge-tax'}">
+                                                        ${isSgk ? '👥 SGK Yükümlülüğü' : '🏛️ Vergi Yükümlülüğü'}
+                                                    </span>
+                                                    <span class="badge ${ev.statusBadgeClass}">${ev.status}</span>
+                                                </div>
+                                                <h5 class="event-title mt-1 ${isDone ? 'strike' : ''}">${t.type} (${t.period})</h5>
+                                                
+                                                <div style="font-size:11.5px; margin:4px 0 6px 0; padding:4px 8px; background:rgba(0,0,0,0.03); border-radius:4px; font-weight:600; color:${ev.isDueDay ? '#dc2626' : '#2563eb'};">
+                                                    📌 ${ev.roleDesc}
+                                                </div>
+
+                                                <div class="tax-checklist-box">
+                                                    <div class="tax-check-row">
+                                                        <span>1. Beyanname / Bildirge:</span>
+                                                        <span style="font-weight:600; color:${t.declSubmitted ? '#16a34a' : '#ea580c'};">
+                                                            ${t.declSubmitted ? '✓ Verildi' : '⏳ Verilmedi'}
+                                                        </span>
+                                                    </div>
+                                                    <div class="tax-check-row">
+                                                        <span>2. Banka Ödemesi:</span>
+                                                        <span style="font-weight:600; color:${t.paid ? '#16a34a' : '#dc2626'};">
+                                                            ${t.paid ? '✓ Ödendi' : '⏳ Ödenmedi'}
+                                                        </span>
+                                                    </div>
+                                                    <div class="tax-check-row">
+                                                        <span>3. Mali Müşavir Kontrolü:</span>
+                                                        <span style="font-weight:600; color:${t.advisorChecked ? '#16a34a' : '#64748b'};">
+                                                            ${t.advisorChecked ? '✓ Teyit Edildi' : 'Bekliyor'}
+                                                        </span>
+                                                    </div>
+                                                    <div style="border-top:1px dashed var(--border); margin-top:4px; padding-top:4px; font-size:11px; color:var(--text-muted);">
+                                                        Beyanname: <strong>${t.declDate}</strong> | Son Ödeme: <strong>${t.dueDate}</strong>
+                                                    </div>
+                                                </div>
+
+                                                ${ev.amount ? `<div class="event-amount text-danger font-bold mt-2">${ev.amount.toLocaleString('tr-TR')} ₺</div>` : ''}
+
+                                                <div class="tax-action-btns">
+                                                    <button class="btn btn-xs ${t.declSubmitted ? 'btn-outline' : 'btn-primary'}" onclick="App.toggleTaxDeclaration('${t.id}')">
+                                                        ${t.declSubmitted ? '↩ Beyan Geri Al' : '✓ Beyanname Verildi'}
+                                                    </button>
+                                                    <button class="btn btn-xs ${t.paid ? 'btn-outline' : 'btn-success'}" onclick="App.toggleTaxPayment('${t.id}')">
+                                                        ${t.paid ? '↩ Ödeme Geri Al' : '💸 Ödeme Yapıldı'}
+                                                    </button>
+                                                    <button class="btn btn-xs ${t.advisorChecked ? 'btn-outline' : 'btn-secondary'}" onclick="App.toggleTaxAdvisor('${t.id}')">
+                                                        ${t.advisorChecked ? '↩ Müşavir Geri Al' : '📋 Müşavir Onay'}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        `;
+                                    }
+
+                                    return `
+                                        <div class="day-event-card ${ev.isDone ? 'event-done' : ''}">
+                                            <div class="event-header-row">
+                                                <span class="category-badge ${ev.badgeClass}">${ev.category}</span>
+                                                <span class="badge ${ev.statusBadgeClass}">${ev.status}</span>
+                                            </div>
+                                            <h5 class="event-title mt-1 ${ev.isDone ? 'strike' : ''}">${ev.title}</h5>
+                                            ${ev.description ? `<p class="event-desc text-xs text-muted">${ev.description}</p>` : ''}
+                                            ${ev.amount ? `<div class="event-amount text-danger font-bold">${ev.amount.toLocaleString('tr-TR')} ₺</div>` : ''}
+                                            <div class="event-actions mt-2">
+                                                ${ev.type === 'TASK' ? `
+                                                    <button class="btn btn-xs ${ev.isDone ? 'btn-outline' : 'btn-success'}" onclick="App.toggleTask('${ev.id}')">
+                                                        ${ev.isDone ? 'Geri Al' : '✓ Tamamla'}
+                                                    </button>
+                                                ` : ''}
+                                                ${ev.type === 'PAYMENT' && !ev.isDone ? `
+                                                    <button class="btn btn-xs btn-success" onclick="App.markPaymentPaid('${ev.id}')">
+                                                        Öde
+                                                    </button>
+                                                ` : ''}
+                                                ${ev.type === 'INVOICE' && !ev.isDone ? `
+                                                    <button class="btn btn-xs btn-outline" onclick="App.navigateTo('invoices')">
+                                                        Faturalarda Gör
+                                                    </button>
+                                                ` : ''}
+                                            </div>
                                         </div>
-                                        <h5 class="event-title mt-1 ${ev.isDone ? 'strike' : ''}">${ev.title}</h5>
-                                        ${ev.description ? `<p class="event-desc text-xs text-muted">${ev.description}</p>` : ''}
-                                        ${ev.amount ? `<div class="event-amount text-danger font-bold">${ev.amount.toLocaleString('tr-TR')} ₺</div>` : ''}
-                                        <div class="event-actions mt-2">
-                                            ${ev.type === 'TASK' ? `
-                                                <button class="btn btn-xs ${ev.isDone ? 'btn-outline' : 'btn-success'}" onclick="App.toggleTask('${ev.id}')">
-                                                    ${ev.isDone ? 'Geri Al' : '✓ Tamamla'}
-                                                </button>
-                                            ` : ''}
-                                            ${ev.type === 'PAYMENT' && !ev.isDone ? `
-                                                <button class="btn btn-xs btn-success" onclick="App.markPaymentPaid('${ev.id}')">
-                                                    Öde
-                                                </button>
-                                            ` : ''}
-                                        </div>
-                                    </div>
-                                `).join('')}
+                                    `;
+                                }).join('')}
                             </div>
                         `}
                     </div>
@@ -287,24 +394,46 @@ const CalendarModule = (function() {
         const tasks = SODSAN_DB.getAllTasks().filter(t => t.date === dateStr);
         const payments = SODSAN_DB.getPayments().filter(p => p.dueDate === dateStr);
         const invoices = SODSAN_DB.getInvoices().filter(i => i.dueDate === dateStr);
-        const taxes = SODSAN_DB.getTaxes().filter(t => t.dueDate === dateStr);
+        const taxes = SODSAN_DB.getTaxes().filter(t => t.dueDate === dateStr || t.declDate === dateStr);
 
         taxes.forEach(t => {
+            const isDecl = (t.declDate === dateStr);
+            const isDue = (t.dueDate === dateStr);
+            let roleDesc = "";
+            if (isDecl && isDue) {
+                roleDesc = "Beyanname ve Son Ödeme Günü";
+            } else if (isDecl) {
+                roleDesc = "Beyanname / Bildirge Son Günü";
+            } else {
+                roleDesc = "Son Ödeme Günü";
+            }
+            const isSgk = t.type.includes("SGK");
+
             events.push({
                 type: 'TAX',
                 id: t.id,
+                taxObj: t,
                 title: `${t.type} (${t.period})`,
-                category: "Vergi/SGK",
-                badgeClass: "cat-vergi",
-                status: t.paid ? "Ödendi" : "Bekliyor",
-                statusBadgeClass: t.paid ? "badge-success" : "badge-danger",
-                isDone: t.paid,
+                category: isSgk ? "SGK" : "Vergi",
+                badgeClass: isSgk ? "badge-sgk" : "badge-tax",
+                status: t.paid ? "Ödendi" : (t.declSubmitted ? "Beyan Edildi" : "Bekliyor"),
+                statusBadgeClass: t.paid ? "badge-success" : (t.declSubmitted ? "badge-info" : "badge-danger"),
+                isDone: t.paid && t.declSubmitted,
                 amount: t.estAmount,
-                description: `Beyanname: ${t.declDate}, Son Ödeme: ${t.dueDate}`
+                roleDesc: roleDesc,
+                isDeclDay: isDecl,
+                isDueDay: isDue,
+                description: `Beyanname Son: ${t.declDate} | Son Ödeme: ${t.dueDate} | Müşavir: ${t.advisorChecked ? 'Kontrol Edildi' : 'Bekliyor'}`
             });
         });
 
         tasks.forEach(t => {
+            if (t.id && t.id.startsWith("TAX_TASK_")) {
+                const taxId = t.id.replace("TAX_TASK_", "");
+                if (taxes.some(tax => tax.id === taxId)) {
+                    return; // Skip duplicate generic tax task
+                }
+            }
             events.push({
                 type: 'TASK',
                 id: t.id,
@@ -314,6 +443,7 @@ const CalendarModule = (function() {
                 status: t.status,
                 statusBadgeClass: t.status === "Tamamlandı" ? "badge-success" : "badge-secondary",
                 isDone: t.status === "Tamamlandı",
+                amount: t.amount,
                 description: t.description
             });
         });
@@ -339,7 +469,7 @@ const CalendarModule = (function() {
                 id: i.id,
                 title: `Fatura Vadesi: ${i.company}`,
                 category: "Fatura",
-                badgeClass: "cat-fatura",
+                badgeClass: "badge-invoice",
                 status: i.status,
                 statusBadgeClass: i.status === "Ödendi" ? "badge-success" : "badge-warning",
                 isDone: i.status === "Ödendi",
@@ -388,6 +518,22 @@ const CalendarModule = (function() {
 
     function selectDate(isoDateStr) {
         selectedDate = isoDateStr;
+        isSidePaneOpen = true;
+        render();
+    }
+
+    function closeSidePane() {
+        isSidePaneOpen = false;
+        render();
+    }
+
+    function openSidePane() {
+        isSidePaneOpen = true;
+        render();
+    }
+
+    function toggleSidePane() {
+        isSidePaneOpen = !isSidePaneOpen;
         render();
     }
 
@@ -410,6 +556,9 @@ const CalendarModule = (function() {
         prevMonth,
         nextMonth,
         selectDate,
+        closeSidePane,
+        openSidePane,
+        toggleSidePane,
         jumpToToday
     };
 })();

@@ -1,5 +1,5 @@
 // SODSAN Fabrika Portalı - KVKK & Kurumsal Formlar ve E-İmza Modülü (documents.js)
-import { appState, isIdariIslerOrAdmin, isAdmin, logSystemAction } from './data.js';
+import { appState, isIdariIslerOrAdmin, isAdmin, logSystemAction, isViewer, isUserVisibleToCurrentSession } from './data.js';
 
 export class DocumentsModule {
   constructor() {
@@ -223,8 +223,8 @@ export class DocumentsModule {
   // ==========================================
   checkPendingSignaturesAndPrompt(currentUser) {
     if (!currentUser) return;
-    // Yöneticiye (Admin) kesinlikle imza formlarını çıkarma
-    if (currentUser.role === "ADMIN" || currentUser.id === "u_admin") return;
+    // Yöneticiye (Admin) ve İzleyiciye kesinlikle imza formlarını çıkarma
+    if (currentUser.role === "ADMIN" || currentUser.id === "u_admin" || isViewer(currentUser)) return;
 
     const pendingDocs = appState.getPendingDocumentsForUser(currentUser);
     if (pendingDocs.length === 0) {
@@ -271,6 +271,10 @@ export class DocumentsModule {
   }
 
   handleSignatureSubmit() {
+    if (isViewer()) {
+      alert("İzleyici yetkisine sahipsiniz. Belge imzalayamazsınız.");
+      return;
+    }
     const checkbox = document.getElementById("mandatory-sig-checkbox");
     if (!checkbox || !checkbox.checked) {
       alert("Lütfen metni okuduğunuzu ve onayladığınızı belirten kutucuğu işaretleyiniz!");
@@ -359,6 +363,10 @@ export class DocumentsModule {
   }
 
   handleSaveDocumentSubmit() {
+    if (isViewer()) {
+      alert("İzleyici yetkisine sahipsiniz. Kurumsal form kaydedemezsiniz.");
+      return;
+    }
     if (!isIdariIslerOrAdmin()) {
       alert("Yetki Hatası: Kurumsal form kaydetme yetkiniz bulunmamaktadır!");
       return;
@@ -478,9 +486,9 @@ export class DocumentsModule {
     if (!container) return;
 
     const list = appState.state.corporateDocuments || [];
-    const canManage = isIdariIslerOrAdmin();
+    const canManage = !isViewer() && isIdariIslerOrAdmin();
     const signedList = appState.state.signedDocuments || [];
-    const totalUsers = (appState.state.users || []).filter(u => u.role !== "ADMIN").length || 1;
+    const totalUsers = (appState.state.users || []).filter(u => u.role !== "ADMIN" && (isAdmin() || !isViewer(u))).length || 1;
 
     // Yetki Butonu Kontrolü
     const btnAdd = document.getElementById("btn-open-add-document");
@@ -671,7 +679,7 @@ export class DocumentsModule {
     if (!alertBox) return;
 
     const curUser = appState.state.currentUser;
-    if (!curUser || curUser.role === "ADMIN" || curUser.id === "u_admin") {
+    if (!curUser || curUser.role === "ADMIN" || curUser.id === "u_admin" || isViewer(curUser)) {
       alertBox.classList.add("hidden");
       return;
     }

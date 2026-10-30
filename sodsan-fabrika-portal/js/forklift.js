@@ -1,5 +1,5 @@
 // SODSAN Fabrika Portalı - Forklift Çağrı, Parkur & Bot Entegrasyon Modülü (forklift.js)
-import { appState, playAlertSound, speakVoiceAlert, logSystemAction, isAdmin } from './data.js';
+import { appState, playAlertSound, speakVoiceAlert, logSystemAction, isAdmin, isViewer } from './data.js';
 
 export class ForkliftModule {
   constructor() {
@@ -658,7 +658,7 @@ export class ForkliftModule {
       }
 
       const currentUser = appState.state.currentUser;
-      const isForkliftOperatorOrAdmin = currentUser ? (currentUser.role === "FORKLIFT" || currentUser.role === "ADMIN" || currentUser.role === "USTA") : true;
+      const isForkliftOperatorOrAdmin = !isViewer() && currentUser ? (currentUser.role === "FORKLIFT" || currentUser.role === "ADMIN" || currentUser.role === "USTA") : false;
 
       return `
         <div class="bg-white dark:bg-slate-900 p-4 rounded-xl border ${borderClass} shadow-sm flex flex-col justify-between space-y-3 relative">
@@ -906,6 +906,10 @@ export class ForkliftModule {
   }
 
   saveForkliftCall() {
+    if (isViewer()) {
+      alert("İzleyici yetkisine sahipsiniz. Forklift çağıramazsınız.");
+      return;
+    }
     const departmentId = document.getElementById("forklift-call-department").value;
     const location = document.getElementById("forklift-location").value.trim();
     const urgency = document.getElementById("forklift-urgency").value;

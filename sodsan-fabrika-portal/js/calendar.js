@@ -1,5 +1,5 @@
 // SODSAN Fabrika Portalı - Planlama & Operasyon Takvimi Modülü (calendar.js)
-import { appState, logSystemAction, playAlertSound } from './data.js';
+import { appState, logSystemAction, playAlertSound, isViewer } from './data.js';
 
 export class CalendarModule {
   constructor() {
@@ -18,6 +18,7 @@ export class CalendarModule {
   }
 
   isUserManager() {
+    if (isViewer()) return false;
     const user = appState.state.currentUser;
     if (!user) return false;
     if (user.role === "ADMIN" || user.role === "YONETICI" || user.role === "BAKIM") return true;
@@ -550,6 +551,10 @@ export class CalendarModule {
   }
 
   saveEditedEvent() {
+    if (isViewer()) {
+      alert("İzleyici yetkisine sahipsiniz. Takvimdeki etkinlikleri düzenleyemezsiniz.");
+      return;
+    }
     const id = document.getElementById("edit-event-id").value;
     const ev = (appState.state.calendarEvents || []).find(x => x.id === id);
     if (!ev) return;
@@ -803,6 +808,10 @@ export class CalendarModule {
   }
 
   saveNewEvent() {
+    if (isViewer()) {
+      alert("İzleyici yetkisine sahipsiniz. Takvime etkinlik veya not ekleyemezsiniz.");
+      return;
+    }
     const titleInput = document.getElementById("event-title");
     const typeSelect = document.getElementById("event-type");
     const dateInput = document.getElementById("event-date");

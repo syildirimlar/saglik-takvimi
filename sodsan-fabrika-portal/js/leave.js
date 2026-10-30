@@ -1,5 +1,5 @@
 // SODSAN Fabrika Portalı - İK ve İzin Yönetim Modülü (leave.js)
-import { appState, playAlertSound, logSystemAction, getRoleInfo, isManagerOrHr, getCurrentUserEmployee } from './data.js';
+import { appState, playAlertSound, logSystemAction, getRoleInfo, isManagerOrHr, getCurrentUserEmployee, isAdmin, isViewer, isUserVisibleToCurrentSession } from './data.js';
 
 export class LeaveModule {
   constructor() {
@@ -28,7 +28,7 @@ export class LeaveModule {
     return p.id === "u_admin" || p.userId === "u_admin" || r === "ADMIN" || n === "admin" || n === "sistem yöneticisi" || u === "admin";
   }
 
-  // Tüm kayıtlı fabrika çalışanlarını hem employees hem users tablosundan eksiksiz derler (Admin hariç)
+  // Tüm kayıtlı fabrika çalışanlarını hem employees hem users tablosundan eksiksiz derler (Admin hariç, İzleyiciler yalnızca Admin'e görünür)
   getFactoryEmployees() {
     const list = [];
     const seen = new Set();
@@ -36,6 +36,8 @@ export class LeaveModule {
     // 1. İK Personel Çizelgesindeki kayıtlar (employees) - Admin hariç
     (appState.state.employees || []).forEach(emp => {
       if (emp && emp.name && emp.name.trim() && !this.isAdminEmployee(emp)) {
+        // Kural: İzleyici rolündeki kişiler yalnızca Admin tarafından görülebilir!
+        if (!isAdmin() && (isViewer(emp) || isViewer(emp.role))) return;
         const key = emp.name.trim().toLowerCase();
         if (!seen.has(key)) {
           seen.add(key);
@@ -47,6 +49,8 @@ export class LeaveModule {
     // 2. Sistemde kayıtlı kullanıcılar (users) - Admin hariç
     (appState.state.users || []).forEach(u => {
       if (u && u.name && u.name.trim() && !this.isAdminEmployee(u)) {
+        // Kural: İzleyici rolündeki kullanıcılar yalnızca Admin tarafından görülebilir!
+        if (!isAdmin() && (isViewer(u) || isViewer(u.role))) return;
         const key = u.name.trim().toLowerCase();
         if (!seen.has(key)) {
           seen.add(key);
@@ -288,6 +292,10 @@ export class LeaveModule {
   }
 
   saveNewEmployee() {
+    if (isViewer()) {
+      alert("İzleyici yetkisine sahipsiniz. Personel ekleme veya düzenleme yapamazsınız.");
+      return;
+    }
     const nameInput = document.getElementById("employee-name");
     const deptSelect = document.getElementById("employee-department");
     const totalLeaveInput = document.getElementById("employee-total-leave");
@@ -355,6 +363,14 @@ export class LeaveModule {
       items = items.filter(r => r.status === this.filterStatus);
     }
 
+    // Kural: İzleyici rolündeki personellerin talepleri yalnızca Admin tarafından görülebilir
+    if (!isAdmin()) {
+      items = items.filter(r => {
+        const emp = (appState.state.employees || []).find(e => e.id === r.employeeId) || (appState.state.users || []).find(u => u.name === r.employeeName);
+        return !isViewer(emp);
+      });
+    }
+
     if (items.length === 0) {
       container.innerHTML = `
         <div class="text-center py-10 text-slate-400 bg-white rounded-xl border border-dashed border-slate-200">
@@ -366,7 +382,7 @@ export class LeaveModule {
     }
 
     const user = appState.state.currentUser;
-    const isHrOrAdmin = user ? (user.role === "IK" || user.role === "ADMIN") : true;
+    const isHrOrAdmin = !isViewer() && user ? (user.role === "IK" || user.role === "ADMIN") : false;
 
     container.innerHTML = items.map(req => {
       const dep = appState.state.departments.find(d => d.id === req.departmentId) || { name: "", icon: "🏢" };
@@ -454,6 +470,10 @@ export class LeaveModule {
   }
 
   processHrAction(leaveId, newStatus) {
+    if (isViewer()) {
+      alert("İzleyici yetkisine sahipsiniz. İzin onaylama veya reddetme yetkiniz bulunmamaktadır.");
+      return;
+    }
     const req = appState.state.leaveRequests.find(r => r.id === leaveId);
     if (!req) return;
 
@@ -490,7 +510,8 @@ export class LeaveModule {
     const tableBody = document.getElementById("leave-balances-table-body");
     if (!tableBody) return;
 
-    const employees = (appState.state.employees || []).filter(e => !this.isAdminEmployee(e));
+    // Kural: İzleyici rolündeki çalışanlar yalnızca Admin tarafından görülebilir!
+    const employees = (appState.state.employees || []).filter(e => !this.isAdminEmployee(e) && (isAdmin() || !isViewer(e)));
 
     // Sayaçları güncelle
     const fieldCount = employees.filter(e => (e.role || "PERSONEL") === "PERSONEL").length;
@@ -675,6 +696,10 @@ export class LeaveModule {
   }
 
   saveLeaveRequest() {
+    if (isViewer()) {
+      alert("İzleyici yetkisine sahipsiniz. İzin talebi oluşturamazsınız.");
+      return;
+    }
     const empSelect = document.getElementById("leave-employee");
     const empId = empSelect.value;
 
