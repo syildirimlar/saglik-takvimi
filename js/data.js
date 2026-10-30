@@ -832,6 +832,43 @@ BEYAN:
   }
 ];
 
+// Bozuk karakterleri (mojibake / çift UTF-8 kodlama) otomatik tespit edip düzelten temizleyici
+export function fixMojibake(val) {
+  if (typeof val === "string") {
+    if (!/[\u00C2-\u00C5]/.test(val)) return val;
+    try {
+      return decodeURIComponent(escape(val));
+    } catch (e) {
+      return val
+        .replace(/Ã–/g, "Ö")
+        .replace(/Ä°/g, "İ")
+        .replace(/ÄŸ/g, "ğ")
+        .replace(/Ã§/g, "ç")
+        .replace(/ÅŸ/g, "ş")
+        .replace(/Ã¼/g, "ü")
+        .replace(/Ä±/g, "ı")
+        .replace(/Ã¶/g, "ö")
+        .replace(/Äž/g, "Ğ")
+        .replace(/Ã‡/g, "Ç")
+        .replace(/Åž/g, "Ş")
+        .replace(/Ãœ/g, "Ü")
+        .replace(/Ã¢/g, "â")
+        .replace(/Ã®/g, "î");
+    }
+  } else if (Array.isArray(val)) {
+    return val.map(item => fixMojibake(item));
+  } else if (val && typeof val === "object") {
+    const res = {};
+    for (const k in val) {
+      if (Object.prototype.hasOwnProperty.call(val, k)) {
+        res[k] = fixMojibake(val[k]);
+      }
+    }
+    return res;
+  }
+  return val;
+}
+
 // LocalStorage Veri Yükleyici & Saklayıcı
 export class StateManager {
   constructor() {
@@ -858,6 +895,8 @@ export class StateManager {
 
       if (!parsed || typeof parsed !== "object") {
         parsed = {};
+      } else {
+        parsed = fixMojibake(parsed);
       }
 
       // Departmanlar: Boşsa veya eksikse varsayılan gerçek fabrika departmanlarını kullan
@@ -1518,7 +1557,10 @@ export class StateManager {
 
   importDataJson(jsonString, skipCloudNotify = false) {
     try {
-      const parsed = JSON.parse(jsonString);
+      let parsed = JSON.parse(jsonString);
+      if (parsed && typeof parsed === "object") {
+        parsed = fixMojibake(parsed);
+      }
       if (parsed && (parsed.departments || parsed.users || parsed.machines)) {
         const local = this.state || {};
 
