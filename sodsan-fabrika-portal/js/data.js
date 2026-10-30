@@ -189,11 +189,24 @@ export function isIdariIslerOrAdmin() {
     ? appState.state.currentUser 
     : (typeof window !== "undefined" ? window.__portalCurrentUser : null);
   if (!user) return false;
-  const role = String(user.role || "").trim().toUpperCase();
+  const normRole = normalizeRoleText(user.role);
   const depId = String(user.departmentId || "").trim().toLowerCase();
-  if (role === "IK" || role === "IDARI_ISLER" || role === "YONETICI" || depId === "dep_ik" || depId === "dep_yonetim") return true;
-  const roleDef = (appState.state.roles || []).find(r => String(r.key || "").trim().toUpperCase() === role);
-  return !!(roleDef && roleDef.permissions && (roleDef.permissions.canApproveLeave || roleDef.permissions.canApproveOvertime));
+  const uUsername = String(user.username || "").toLowerCase();
+  const uName = String(user.name || "").toLowerCase();
+
+  // Öner kullanıcısı veya idari işler / İK / yönetim rolleri
+  if (uUsername.includes("oner") || uName.includes("oner")) return true;
+  if (normRole === "ik" || normRole.includes("idari") || normRole.includes("yonetici") || normRole.includes("yonetim") || depId === "dep_ik" || depId === "dep_yonetim") return true;
+
+  if (typeof appState !== "undefined" && appState && appState.state && Array.isArray(appState.state.roles)) {
+    const roleDef = appState.state.roles.find(r => normalizeRoleText(r.key) === normRole || r.id === user.role);
+    if (roleDef) {
+      const titleNorm = normalizeRoleText(roleDef.title);
+      if (titleNorm.includes("idari") || titleNorm.includes("insan kaynak") || titleNorm.includes("ik") || titleNorm.includes("yonetici") || titleNorm.includes("yonetim")) return true;
+      if (roleDef.permissions && (roleDef.permissions.canApproveLeave || roleDef.permissions.canApproveOvertime)) return true;
+    }
+  }
+  return false;
 }
 
 // Oturum açan kullanıcının İK / Yönetici yetkisine sahip olup olmadığını denetler

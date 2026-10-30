@@ -2024,13 +2024,13 @@
     </div>
   </div>
 
-  <!-- MODAL 1.2: Ürün Hareketi Düzenle (Yönetici) -->
+  <!-- MODAL 1.2: Ürün Hareketi Düzenle -->
   <div id="modal-edit-product" class="modal-backdrop">
     <div class="modal-card p-5">
       <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
         <div>
           <h3 class="text-base font-extrabold text-slate-900">✏️ Ürün Hareketini Düzenle</h3>
-          <p class="text-xs text-slate-500">Yönetici yetkisiyle kaydı güncelleyin (yaptığınız değişiklikler sistem günlüğüne kaydedilir).</p>
+          <p class="text-xs text-slate-500">Kayıt detaylarını güncelleyin (yaptığınız değişiklikler sistem günlüğüne kaydedilir).</p>
         </div>
         <button data-close-modal class="text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
       </div>
@@ -4251,7 +4251,9 @@
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js?v=59').catch(err => {
+        navigator.serviceWorker.register('sw.js?v=60').then((reg) => {
+          if (reg) reg.update();
+        }).catch(err => {
           console.log('SW registration failed:', err);
         });
       });
@@ -4259,6 +4261,6 @@
   </script>
 
   <!-- ES Modül Girişi -->
-  <script type="module" src="js/app.js?v=8.1"></script>
+  <script type="module" src="js/app.js?v=8.2"></script>
 </body>
 </html>
