@@ -1146,6 +1146,10 @@
           <button id="subtab-btn-external-services" class="px-3.5 py-1.5 rounded-lg text-xs font-black transition flex items-center gap-1.5 text-slate-600 hover:text-slate-900">
             <span>📞</span> <span>Dış Servis Rehberi</span>
           </button>
+          <button id="subtab-btn-fault-types" class="px-3.5 py-1.5 rounded-lg text-xs font-black transition flex items-center gap-1.5 text-slate-600 hover:text-slate-900 cursor-pointer">
+            <span>🏷️</span> <span>Arıza Türleri</span>
+            <span id="fault-types-badge-count" class="bg-amber-100 text-amber-700 text-[10px] font-black px-1.5 py-0.2 rounded-full">0</span>
+          </button>
         </div>
 
         <div class="flex items-center gap-2">
@@ -1267,6 +1271,55 @@
             </button>
           </div>
           <div id="external-services-list" class="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            <!-- JS tarafından doldurulur -->
+          </div>
+        </div>
+      </div>
+
+      <!-- ALT PANE 4: ARIZA TÜRLERİ YÖNETİMİ -->
+      <div id="subpane-fault-types" class="hidden space-y-4">
+        <!-- Arıza Türü Ekleme & Açıklama Kartı -->
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-4">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 class="text-base font-extrabold text-slate-800 flex items-center gap-2">
+                <span>🏷️</span> <span>Makina Arıza Türleri Yönetimi</span>
+                <span class="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded font-bold">Kategori Tanımları</span>
+              </h2>
+              <p class="text-xs text-slate-500">Fabrikadaki makineler için arıza bildiriminde kullanılan kategorileri düzenleyebilir ve yeni arıza türleri tanımlayabilirsiniz.</p>
+            </div>
+          </div>
+
+          <!-- Yeni Arıza Türü Ekleme Formu -->
+          <form id="form-add-fault-type" class="bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+            <h3 class="text-xs font-bold text-slate-700 mb-2.5 flex items-center gap-1.5">
+              <span>➕</span> <span>Yeni Arıza Türü Tanımla</span>
+            </h3>
+            <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
+              <div class="sm:col-span-2">
+                <label class="text-[11px] font-bold text-slate-600 block mb-1">Simge / İkon:</label>
+                <input type="text" id="input-new-ft-icon" maxlength="4" value="⚠️" class="w-full text-center text-sm bg-white border border-slate-200 rounded-lg p-2 font-bold" title="Emoji veya Simge">
+              </div>
+              <div class="sm:col-span-7">
+                <label class="text-[11px] font-bold text-slate-600 block mb-1">Arıza Türü / Kategori Adı:</label>
+                <input type="text" id="input-new-ft-name" required placeholder="Örn: Pnömatik Valf / Hava Sızıntısı veya Kalıp Aşınması" class="w-full text-xs bg-white border border-slate-200 rounded-lg p-2 font-semibold text-slate-800">
+              </div>
+              <div class="sm:col-span-3">
+                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-2 px-3 rounded-lg shadow-sm transition flex items-center justify-center gap-1.5 cursor-pointer">
+                  <span>➕</span> <span>Arıza Türünü Ekle</span>
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+
+        <!-- Mevcut Arıza Türleri Kart Grid -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+          <div class="p-3.5 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
+            <span class="text-xs font-extrabold text-slate-700">Kayıtlı Arıza Türleri Listesi</span>
+            <span id="fault-types-total-count" class="text-[11px] font-bold text-slate-500">Toplam: 8 Tür</span>
+          </div>
+          <div id="fault-types-list-container" class="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             <!-- JS tarafından doldurulur -->
           </div>
         </div>
@@ -2984,15 +3037,41 @@
         <!-- Arıza Türü ve Aciliyet -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label class="text-xs font-bold text-slate-700 block mb-1">Arıza Türü / Kategori:</label>
+            <div class="flex items-center justify-between mb-1">
+              <label class="text-xs font-bold text-slate-700">Arıza Türü / Kategori:</label>
+              <button type="button" id="btn-toggle-new-fault-type" class="text-[11px] font-bold text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1 cursor-pointer">
+                <span>➕</span> <span>Yeni Tür Ekle</span>
+              </button>
+            </div>
             <select id="breakdown-fault-type" class="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg p-2 font-semibold">
-              <option value="Mekanik / Sıkışma / Rulman">⚙️ Mekanik / Sıkışma / Rulman / Kasnak</option>
-              <option value="Elektrik / Sigorta / Motor">⚡ Elektrik / Sigorta / Motor / Şalter</option>
-              <option value="Hidrolik / Pnömatik / Hava Kaçağı">💧 Hidrolik / Pnömatik / Basınç / Kaçak</option>
+              <option value="Mekanik / Sıkışma / Rulman / Kasnak">⚙️ Mekanik / Sıkışma / Rulman / Kasnak</option>
+              <option value="Elektrik / Sigorta / Motor / Şalter">⚡ Elektrik / Sigorta / Motor / Şalter</option>
+              <option value="Hidrolik / Pnömatik / Basınç / Kaçak">💧 Hidrolik / Pnömatik / Basınç / Kaçak</option>
               <option value="Bıçak / Tel Kopması / Kalıp">🔪 Bıçak / Tel Kopması / Kalıp</option>
               <option value="Otomasyon / Sensör / PLC / Ekran">💻 Otomasyon / Sensör / PLC / Ekran</option>
-              <option value="Bilinmiyor / Anormal Ses & Duman">❓ Bilinmiyor / Ses, Koku veya Duman</option>
+              <option value="Isıtıcı / Rezistans / Termokupl">🔥 Isıtıcı / Rezistans / Termokupl</option>
+              <option value="Yağlama / Filtre / Soğutma Suyu">🛢️ Yağlama / Filtre / Soğutma Suyu</option>
+              <option value="Bilinmiyor / Ses, Koku veya Duman">❓ Bilinmiyor / Ses, Koku veya Duman</option>
             </select>
+
+            <!-- Hızlı Yeni Arıza Türü Ekleme Alanı (Inline) -->
+            <div id="new-fault-type-inline-wrap" class="hidden mt-2 p-2.5 bg-blue-50/80 border border-blue-200 rounded-lg space-y-2">
+              <div class="text-[11px] font-bold text-blue-900 flex items-center justify-between">
+                <span>✨ Yeni Arıza Türü Tanımla</span>
+                <button type="button" id="btn-cancel-new-fault-type" class="text-slate-400 hover:text-slate-600 font-bold text-xs cursor-pointer">&times;</button>
+              </div>
+              <div class="grid grid-cols-4 gap-2">
+                <div class="col-span-1">
+                  <input type="text" id="new-fault-type-icon" placeholder="⚙️" maxlength="4" value="⚠️" class="w-full text-center text-xs bg-white border border-blue-200 rounded-lg p-1.5 font-bold" title="Simge/Emoji">
+                </div>
+                <div class="col-span-3">
+                  <input type="text" id="new-fault-type-name" placeholder="Örn: Pnömatik Valf / Kaçak" class="w-full text-xs bg-white border border-blue-200 rounded-lg p-1.5 font-semibold text-slate-800">
+                </div>
+              </div>
+              <div class="flex justify-end gap-1.5">
+                <button type="button" id="btn-save-new-fault-type" class="bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-bold py-1 px-3 rounded-lg shadow-sm transition cursor-pointer">Kaydet ve Seç</button>
+              </div>
+            </div>
           </div>
           <div>
             <label class="text-xs font-bold text-slate-700 block mb-1">Aciliyet Durumu:</label>

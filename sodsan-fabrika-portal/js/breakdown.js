@@ -1,5 +1,5 @@
 // SODSAN Fabrika Portalı - Makina Arıza ve Bakım Takip Modülü (breakdown.js)
-import { appState, playAlertSound, logSystemAction, registerMachine, updateMachine, deleteMachine, addExternalService, updateExternalService, deleteExternalService, isAdmin, isViewer } from './data.js';
+import { appState, playAlertSound, logSystemAction, registerMachine, updateMachine, deleteMachine, addExternalService, updateExternalService, deleteExternalService, registerFaultType, deleteFaultType, DEFAULT_FAULT_TYPES, isAdmin, isViewer } from './data.js';
 
 export class BreakdownModule {
   constructor() {
@@ -14,8 +14,10 @@ export class BreakdownModule {
   init() {
     this.populateDepartmentSelect();
     this.populateMachineSelect();
+    this.populateFaultTypeSelect();
     this.bindEvents();
     this.render();
+    this.renderFaultTypes();
   }
 
   populateDepartmentSelect() {
@@ -79,42 +81,69 @@ export class BreakdownModule {
     }
   }
 
+  populateFaultTypeSelect(selectedName = null) {
+    const select = document.getElementById("breakdown-fault-type");
+    if (!select) return;
+    const currentVal = selectedName || select.value;
+    const faultTypes = Array.isArray(appState.state.faultTypes) && appState.state.faultTypes.length > 0
+      ? appState.state.faultTypes
+      : DEFAULT_FAULT_TYPES;
+
+    select.innerHTML = faultTypes.map(ft => {
+      const name = typeof ft === "string" ? ft : ft.name;
+      const icon = typeof ft === "object" && ft.icon ? ft.icon : "⚠️";
+      const isSelected = currentVal && (currentVal === name || currentVal === `${icon} ${name}`) ? "selected" : "";
+      return `<option value="${name}" ${isSelected}>${icon} ${name}</option>`;
+    }).join("");
+
+    if (currentVal) {
+      select.value = currentVal;
+    }
+  }
+
   bindEvents() {
-    // Alt Sekme Geçişleri (Canlı Arıza vs Makine Parkuru vs Dış Servis Rehberi)
+    // Alt Sekme Geçişleri (Canlı Arıza vs Makine Parkuru vs Dış Servis Rehberi vs Arıza Türleri)
     const subtabBtnLive = document.getElementById("subtab-btn-breakdown-live");
     const subtabBtnPark = document.getElementById("subtab-btn-machine-park");
     const subtabBtnExt = document.getElementById("subtab-btn-external-services");
+    const subtabBtnFaultTypes = document.getElementById("subtab-btn-fault-types");
     const subpaneLive = document.getElementById("subpane-breakdown-live");
     const subpanePark = document.getElementById("subpane-machine-park");
     const subpaneExt = document.getElementById("subpane-external-services");
+    const subpaneFaultTypes = document.getElementById("subpane-fault-types");
 
     const switchSubtab = (tab) => {
       this.activeSubtab = tab;
-      [subtabBtnLive, subtabBtnPark, subtabBtnExt].forEach(btn => {
+      [subtabBtnLive, subtabBtnPark, subtabBtnExt, subtabBtnFaultTypes].forEach(btn => {
         if (!btn) return;
-        btn.className = "px-3.5 py-1.5 rounded-lg text-xs font-black transition flex items-center gap-1.5 text-slate-600 hover:text-slate-900";
+        btn.className = "px-3.5 py-1.5 rounded-lg text-xs font-black transition flex items-center gap-1.5 text-slate-600 hover:text-slate-900 cursor-pointer";
       });
-      [subpaneLive, subpanePark, subpaneExt].forEach(pane => {
+      [subpaneLive, subpanePark, subpaneExt, subpaneFaultTypes].forEach(pane => {
         if (pane) pane.classList.add("hidden");
       });
 
       if (tab === "LIVE") {
-        if (subtabBtnLive) subtabBtnLive.className = "px-3.5 py-1.5 rounded-lg text-xs font-black transition flex items-center gap-1.5 bg-white text-blue-700 shadow-sm";
+        if (subtabBtnLive) subtabBtnLive.className = "px-3.5 py-1.5 rounded-lg text-xs font-black transition flex items-center gap-1.5 bg-white text-blue-700 shadow-sm cursor-pointer";
         if (subpaneLive) subpaneLive.classList.remove("hidden");
       } else if (tab === "PARK") {
-        if (subtabBtnPark) subtabBtnPark.className = "px-3.5 py-1.5 rounded-lg text-xs font-black transition flex items-center gap-1.5 bg-white text-blue-700 shadow-sm";
+        if (subtabBtnPark) subtabBtnPark.className = "px-3.5 py-1.5 rounded-lg text-xs font-black transition flex items-center gap-1.5 bg-white text-blue-700 shadow-sm cursor-pointer";
         if (subpanePark) subpanePark.classList.remove("hidden");
         this.renderMachinePark();
       } else if (tab === "EXTERNAL") {
-        if (subtabBtnExt) subtabBtnExt.className = "px-3.5 py-1.5 rounded-lg text-xs font-black transition flex items-center gap-1.5 bg-white text-blue-700 shadow-sm";
+        if (subtabBtnExt) subtabBtnExt.className = "px-3.5 py-1.5 rounded-lg text-xs font-black transition flex items-center gap-1.5 bg-white text-blue-700 shadow-sm cursor-pointer";
         if (subpaneExt) subpaneExt.classList.remove("hidden");
         this.renderExternalServices();
+      } else if (tab === "FAULT_TYPES") {
+        if (subtabBtnFaultTypes) subtabBtnFaultTypes.className = "px-3.5 py-1.5 rounded-lg text-xs font-black transition flex items-center gap-1.5 bg-white text-blue-700 shadow-sm cursor-pointer";
+        if (subpaneFaultTypes) subpaneFaultTypes.classList.remove("hidden");
+        this.renderFaultTypes();
       }
     };
 
     if (subtabBtnLive) subtabBtnLive.addEventListener("click", () => switchSubtab("LIVE"));
     if (subtabBtnPark) subtabBtnPark.addEventListener("click", () => switchSubtab("PARK"));
     if (subtabBtnExt) subtabBtnExt.addEventListener("click", () => switchSubtab("EXTERNAL"));
+    if (subtabBtnFaultTypes) subtabBtnFaultTypes.addEventListener("click", () => switchSubtab("FAULT_TYPES"));
 
     // Makine Parkuru Arama ve Filtre Dinleyicileri
     const searchPark = document.getElementById("search-machine-park");
@@ -269,6 +298,91 @@ export class BreakdownModule {
       formReport.addEventListener("submit", (e) => {
         e.preventDefault();
         this.saveBreakdownReport();
+      });
+    }
+
+    // Hızlı Arıza Türü Ekleme (Arıza Bildir Modalı İçindeki Inline Form)
+    const btnToggleNewFt = document.getElementById("btn-toggle-new-fault-type");
+    const btnCancelNewFt = document.getElementById("btn-cancel-new-fault-type");
+    const btnSaveNewFt = document.getElementById("btn-save-new-fault-type");
+    const inlineFtWrap = document.getElementById("new-fault-type-inline-wrap");
+
+    if (btnToggleNewFt && inlineFtWrap) {
+      btnToggleNewFt.addEventListener("click", () => {
+        if (isViewer()) {
+          alert("İzleyici yetkisine sahipsiniz. Yeni arıza türü ekleyemezsiniz.");
+          return;
+        }
+        inlineFtWrap.classList.toggle("hidden");
+        if (!inlineFtWrap.classList.contains("hidden")) {
+          const nameInput = document.getElementById("new-fault-type-name");
+          if (nameInput) nameInput.focus();
+        }
+      });
+    }
+
+    if (btnCancelNewFt && inlineFtWrap) {
+      btnCancelNewFt.addEventListener("click", () => {
+        inlineFtWrap.classList.add("hidden");
+      });
+    }
+
+    if (btnSaveNewFt) {
+      btnSaveNewFt.addEventListener("click", () => {
+        if (isViewer()) {
+          alert("İzleyici yetkisine sahipsiniz. Yeni arıza türü ekleyemezsiniz.");
+          return;
+        }
+        const iconInput = document.getElementById("new-fault-type-icon");
+        const nameInput = document.getElementById("new-fault-type-name");
+        const name = nameInput ? nameInput.value.trim() : "";
+        const icon = iconInput ? iconInput.value.trim() || "⚠️" : "⚠️";
+
+        if (!name) {
+          alert("Lütfen arıza türü adını giriniz.");
+          return;
+        }
+
+        const newFt = registerFaultType({ name, icon });
+        if (newFt) {
+          this.populateFaultTypeSelect(newFt.name);
+          this.renderFaultTypes();
+          if (nameInput) nameInput.value = "";
+          if (inlineFtWrap) inlineFtWrap.classList.add("hidden");
+          const uName = appState.state.currentUser ? appState.state.currentUser.name : "Yetkili";
+          logSystemAction("ARIZA_TÜRÜ_EKLEME", `${uName}, "${icon} ${name}" arıza türünü sisteme ekledi.`);
+        }
+      });
+    }
+
+    // Arıza Türleri Yönetim Paneli Formu (subpane-fault-types)
+    const formAddFt = document.getElementById("form-add-fault-type");
+    if (formAddFt) {
+      formAddFt.addEventListener("submit", (e) => {
+        e.preventDefault();
+        if (isViewer()) {
+          alert("İzleyici yetkisine sahipsiniz. Yeni arıza türü ekleyemezsiniz.");
+          return;
+        }
+        const iconEl = document.getElementById("input-new-ft-icon");
+        const nameEl = document.getElementById("input-new-ft-name");
+        const name = nameEl ? nameEl.value.trim() : "";
+        const icon = iconEl ? iconEl.value.trim() || "⚠️" : "⚠️";
+
+        if (!name) {
+          alert("Lütfen arıza türü / kategori adını giriniz.");
+          return;
+        }
+
+        const newFt = registerFaultType({ name, icon });
+        if (newFt) {
+          this.populateFaultTypeSelect();
+          this.renderFaultTypes();
+          if (nameEl) nameEl.value = "";
+          if (iconEl) iconEl.value = "⚠️";
+          const uName = appState.state.currentUser ? appState.state.currentUser.name : "Yetkili";
+          logSystemAction("ARIZA_TÜRÜ_EKLEME", `${uName}, "${icon} ${name}" arıza türünü sisteme ekledi.`);
+        }
       });
     }
   }
@@ -456,6 +570,80 @@ export class BreakdownModule {
     });
   }
 
+  renderFaultTypes() {
+    const container = document.getElementById("fault-types-list-container");
+    const badgeCount = document.getElementById("fault-types-badge-count");
+    const totalCount = document.getElementById("fault-types-total-count");
+
+    const faultTypes = Array.isArray(appState.state.faultTypes) && appState.state.faultTypes.length > 0
+      ? appState.state.faultTypes
+      : DEFAULT_FAULT_TYPES;
+
+    if (badgeCount) badgeCount.textContent = faultTypes.length;
+    if (totalCount) totalCount.textContent = `Toplam: ${faultTypes.length} Tür`;
+
+    if (!container) return;
+
+    container.innerHTML = faultTypes.map(ft => {
+      const id = typeof ft === "object" ? ft.id : ft;
+      const name = typeof ft === "object" ? ft.name : ft;
+      const icon = typeof ft === "object" && ft.icon ? ft.icon : "⚠️";
+      const isCustom = typeof ft === "object" ? (ft.isCustom !== false) : false;
+
+      // Bu arıza türüne ait aktif / toplam arıza sayısı
+      const usageCount = (appState.state.breakdowns || []).filter(b => b.faultType === name || b.faultType === `${icon} ${name}`).length;
+
+      return `
+        <div class="p-3 rounded-xl border border-slate-200 bg-white hover:border-blue-300 hover:shadow-sm transition flex items-center justify-between gap-3">
+          <div class="flex items-center gap-2.5 min-w-0">
+            <span class="text-2xl p-2 bg-slate-50 border border-slate-100 rounded-lg flex-shrink-0">${icon}</span>
+            <div class="min-w-0">
+              <h4 class="text-xs font-black text-slate-800 truncate" title="${name}">${name}</h4>
+              <div class="flex items-center gap-2 mt-0.5">
+                <span class="text-[10px] font-bold ${isCustom ? 'text-blue-600 bg-blue-50' : 'text-slate-500 bg-slate-100'} px-1.5 py-0.2 rounded">
+                  ${isCustom ? '✨ Özel Tanımlı' : '⚙️ Standart'}
+                </span>
+                ${usageCount > 0 ? `<span class="text-[10px] text-amber-700 bg-amber-50 font-bold px-1.5 py-0.2 rounded">${usageCount} Arıza Kaydı</span>` : ''}
+              </div>
+            </div>
+          </div>
+          <div class="flex items-center gap-1 flex-shrink-0">
+            ${isCustom ? `
+              <button data-delete-fault-type="${id}" data-fault-name="${name}" class="text-red-500 hover:text-red-700 hover:bg-red-50 p-1.5 rounded-lg transition text-xs font-bold cursor-pointer" title="Arıza Türünü Sil">
+                🗑️
+              </button>
+            ` : `
+              <span class="text-slate-300 text-xs p-1" title="Sistem varsayılan arıza türü">🔒</span>
+            `}
+          </div>
+        </div>
+      `;
+    }).join("");
+
+    container.querySelectorAll("[data-delete-fault-type]").forEach(btn => {
+      btn.addEventListener("click", (e) => {
+        if (isViewer()) {
+          alert("İzleyici yetkisine sahipsiniz. Arıza türü silemezsiniz.");
+          return;
+        }
+        const id = e.currentTarget.getAttribute("data-delete-fault-type");
+        const name = e.currentTarget.getAttribute("data-fault-name");
+        const activeUsage = (appState.state.breakdowns || []).some(b => (b.faultType === name || b.faultType.includes(name)) && b.status !== "Giderildi");
+        if (activeUsage) {
+          alert(`"${name}" arıza türüne ait giderilmemiş aktif arıza kayıtları bulunmaktadır. Önce kayıtları kapatınız veya güncelleyiniz.`);
+          return;
+        }
+        if (confirm(`"${name}" arıza türünü sistemden silmek istediğinize emin misiniz?`)) {
+          deleteFaultType(id);
+          this.populateFaultTypeSelect();
+          this.renderFaultTypes();
+          const uName = appState.state.currentUser ? appState.state.currentUser.name : "Yetkili";
+          logSystemAction("ARIZA_TÜRÜ_SİLME", `${uName}, "${name}" arıza türünü sildi.`);
+        }
+      });
+    });
+  }
+
   renderMachinePark() {
     const tbody = document.getElementById("machine-park-table-tbody");
     const emptyMsg = document.getElementById("machine-park-empty-msg");
@@ -634,6 +822,10 @@ export class BreakdownModule {
     if (window.portalApp?.closeMobileSidebar) window.portalApp.closeMobileSidebar();
     this.populateDepartmentSelect();
     this.populateMachineSelect();
+    this.populateFaultTypeSelect();
+
+    const inlineWrap = document.getElementById("new-fault-type-inline-wrap");
+    if (inlineWrap) inlineWrap.classList.add("hidden");
 
     // Oturumdaki kullanıcının adını göster
     const reporterEl = document.getElementById("breakdown-reporter-name");
