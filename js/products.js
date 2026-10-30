@@ -193,7 +193,7 @@ export class ProductsModule {
     return roleDef && roleDef.permissions && roleDef.permissions.canAccessAdmin;
   }
 
-  // Kayıt düzenleme yetkisi: Sistem Yöneticisi veya kaydı oluşturan kullanıcının kendisi
+  // Kayıt düzenleme yetkisi: Sistem Yöneticisi, İdari İşler (IK) veya kaydı oluşturan kullanıcının kendisi
   canEditItem(item) {
     if (isViewer()) return false;
     const user = appState.state.currentUser;
@@ -201,10 +201,25 @@ export class ProductsModule {
     // 1. Yönetici her zaman düzenleyebilir
     if (this.isUserManager()) return true;
     if (!item) return false;
-    // 2. Kaydı açan personel kendi kaydını düzenleyebilir
+
+    // 2. İdari İşler (IK) rolündeki kullanıcılar malzeme/ürün hareketlerini düzenleyebilir
+    if (user.role === "IK" || user.role === "IDARI_ISLER") return true;
+
+    // 3. Kaydı açan personel kendi kaydını düzenleyebilir (ID eşleşmesi)
     if (item.createdById && user.id && item.createdById === user.id) return true;
-    if (item.createdByUsername && user.username && item.createdByUsername.toLowerCase() === user.username.toLowerCase()) return true;
-    if (item.createdBy && user.name && item.createdBy.trim().toLowerCase() === user.name.trim().toLowerCase()) return true;
+
+    // 4. İsim / kullanıcı adı bazında geniş Türkçe karakter duyarsız eşleşme
+    const norm = (s) => (s || "").trim().toLocaleLowerCase("tr-TR")
+      .replace(/ı/g, "i").replace(/i̇/g, "i").replace(/ö/g, "o").replace(/ü/g, "u").replace(/ş/g, "s").replace(/ç/g, "c").replace(/ğ/g, "g");
+
+    const itemCreator = norm(item.createdBy);
+    const itemCreatorUser = norm(item.createdByUsername);
+    const uName = norm(user.name);
+    const uUsername = norm(user.username);
+
+    if (itemCreator && (itemCreator === uName || itemCreator === uUsername)) return true;
+    if (itemCreatorUser && (itemCreatorUser === uName || itemCreatorUser === uUsername)) return true;
+
     return false;
   }
 
