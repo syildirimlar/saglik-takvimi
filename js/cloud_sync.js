@@ -1,5 +1,5 @@
 // SODSAN Fabrika Portalı - Çoklu Cihaz Bulut Senkronizasyon Modülü (cloud_sync.js)
-// PC, Tablet ve Telefonlar arasında sıfır kurulum ve sınırsız kota ile anlık canlı senkronizasyon sağlar.
+// PC, Tablet ve Mobil Telefonlar için Optimize Edilmiş, Pil ve Veri Dostu Canlı Senkronizasyon.
 
 import { appState } from "./data.js";
 
@@ -14,9 +14,12 @@ export class CloudSyncService {
     this.eventSource = null;
     this.pushDebounceTimer = null;
     this.pollInterval = null;
+    this.idleTimer = null;
+    this.sseErrorCount = 0;
     this.lastSyncedTimestamp = 0;
-    this.isSyncing = false;
+    this.lastProcessedMessageId = null;
     this.lastUploadedFileUrl = "";
+    this.isSyncing = false;
   }
 
   getOrCreateDeviceId() {
@@ -29,65 +32,101 @@ export class CloudSyncService {
   }
 
   init() {
-    console.log("[CloudSync] Başlatılıyor. Cihaz ID:", this.deviceId);
+    console.log("[CloudSync] Pil dostu modda başlatılıyor. Cihaz ID:", this.deviceId);
 
     // 1. Başlangıçta buluttan en güncel veriyi sessizce çek
     this.pullFromCloud(false);
 
-    // 2. Canlı Dinleme (Server-Sent Events / SSE üzerinden 100ms anlık bildirim)
-    this.startLiveListener();
+    // 2. Yalnızca ekran açık ve görünür durumdaysa canlı SSE ve periyodu başlat
+    if (!document.hidden && document.visibilityState === "visible") {
+      this.startLiveListener();
+      this.startPolling();
+    }
 
-    // 3. Ekran Kilidi Açılınca veya Sekmeye Geri Dönünce Otomatik Eşitle
-    document.addEventListener("visibilitychange", () => {
-      const loginScreen = document.getElementById("screen-auth-login");
-      if (loginScreen && !loginScreen.classList.contains("hidden") && loginScreen.style.display !== "none") {
-        return; // Kullanıcı giriş yaparken araya girme
-      }
-      if (document.visibilityState === "visible") {
-        this.pullFromCloud(false);
-      }
-    });
-    window.addEventListener("focus", () => {
-      const loginScreen = document.getElementById("screen-auth-login");
-      if (loginScreen && !loginScreen.classList.contains("hidden") && loginScreen.style.display !== "none") {
-        return; // Kullanıcı giriş yaparken araya girme
-      }
-      this.pullFromCloud(false);
-    });
+    // 3. Ekran Kilidi, Sekme Değişimi ve Mobil Yaşam Döngüsü Yönetimi (Pil Tasarrufunun Kalbi)
+    this.initLifecycleManager();
 
-    // 4. Periyodik Akıllı Eşitleme (Yalnızca sekme açık ve görünürken her 60 saniyede bir)
-    this.pollInterval = setInterval(() => {
-      const loginScreen = document.getElementById("screen-auth-login");
-      if (loginScreen && !loginScreen.classList.contains("hidden") && loginScreen.style.display !== "none") {
-        return;
-      }
-      if (document.visibilityState === "visible" && !this.isSyncing) {
-        this.pullFromCloud(false);
-      }
-    }, 60000);
-
-    // 5. İnternet Bağlantı Değişikliklerini Dinle
+    // 4. İnternet Bağlantı Değişikliklerini Dinle
     window.addEventListener("online", () => {
       this.updateStatus("SYNCING", "İnternet bağlandı, eşitleniyor...");
       this.pullFromCloud(false);
-      this.startLiveListener();
+      if (!document.hidden && document.visibilityState === "visible") {
+        this.startLiveListener();
+        this.startPolling();
+      }
     });
     window.addEventListener("offline", () => {
+      this.stopLiveListener();
+      this.stopPolling();
       this.updateStatus("OFFLINE", "Çevrimdışı (Yerel Mod)");
     });
 
     this.renderStatusIndicator();
   }
 
+  // Mobil Cihaz Yaşam Döngüsü: Telefon kilitlendiğinde veya arka plana atıldığında
+  // tüm ağ soketlerini ve zamanlayıcıları KESİNTİSİZ UYUTUR (Pil tüketimi sıfıra iner).
+  initLifecycleManager() {
+    const handleVisibility = () => {
+      if (document.hidden || document.visibilityState === "hidden") {
+        // Telefon ekranı kilitlendi veya kullanıcı başka uygulamaya geçti
+        this.stopLiveListener();
+        this.stopPolling();
+        if (this.idleTimer) clearTimeout(this.idleTimer);
+      } else if (document.visibilityState === "visible") {
+        // Kullanıcı telefonu açtı veya uygulamaya geri döndü
+        const loginScreen = document.getElementById("screen-auth-login");
+        if (loginScreen && !loginScreen.classList.contains("hidden") && loginScreen.style.display !== "none") {
+          return;
+        }
+        // Uyanınca hemen bir kez kontrol et, ardından dinleyicileri yeniden devreye sok
+        this.pullFromCloud(false);
+        this.startLiveListener();
+        this.startPolling();
+        this.resetIdleTimer();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibility);
+    window.addEventListener("pagehide", () => {
+      this.stopLiveListener();
+      this.stopPolling();
+    });
+    window.addEventListener("freeze", () => {
+      this.stopLiveListener();
+      this.stopPolling();
+    });
+
+    // Mobil Açık Ekran Koruması (Hareketsizlik / Idle Koruması):
+    // Telefon masaya açık bırakılırsa, 5 dakika dokunulmadığında canlı SSE kapatılır
+    ['touchstart', 'mousedown', 'keydown', 'scroll'].forEach(evt => {
+      window.addEventListener(evt, () => this.resetIdleTimer(), { passive: true });
+    });
+    this.resetIdleTimer();
+  }
+
+  resetIdleTimer() {
+    if (this.idleTimer) clearTimeout(this.idleTimer);
+    if (!this.eventSource && !document.hidden && document.visibilityState === "visible") {
+      this.startLiveListener();
+    }
+    this.idleTimer = setTimeout(() => {
+      if (document.visibilityState === "visible") {
+        console.log("[CloudSync] 5 dk kullanıcı hareketsiz kaldı. Pil tasarrufu için canlı dinleyici uyutuldu.");
+        this.stopLiveListener();
+      }
+    }, 300000); // 5 dakika
+  }
+
   startLiveListener() {
     if (typeof EventSource === "undefined") return;
+    if (document.hidden || document.visibilityState === "hidden") return; // Arka planda asla çalıştırma!
 
     try {
-      if (this.eventSource) {
-        this.eventSource.close();
-      }
+      this.stopLiveListener();
 
       this.eventSource = new EventSource(`${NTFY_BASE}/${this.syncRoom}/sse`);
+      this.sseErrorCount = 0;
 
       this.eventSource.onmessage = async (event) => {
         try {
@@ -101,7 +140,7 @@ export class CloudSyncService {
               return;
             }
 
-            // Eğer şu an bir senkronizasyon yürütülüyorsa çakışmayı önle
+            // Halihazırda senkronizasyon yapılıyorsa çakışmayı önle
             if (this.isSyncing) {
               return;
             }
@@ -115,10 +154,47 @@ export class CloudSyncService {
       };
 
       this.eventSource.onerror = () => {
-        // SSE bağlantı koptuğunda otomatik yeniden dener
+        this.sseErrorCount++;
+        // Eğer arka arkaya 3 hata gelirse (ör. zayıf mobil çekim), sonsuz döngüde pil bitirmemesi için kapat
+        if (this.sseErrorCount >= 3) {
+          console.warn("[CloudSync] Zayıf ağ/hata nedeniyle SSE dinleyici uyutuldu, periyodik kontrole geçildi.");
+          this.stopLiveListener();
+        }
       };
     } catch (err) {
       console.warn("[CloudSync] Live listener hatası:", err);
+    }
+  }
+
+  stopLiveListener() {
+    if (this.eventSource) {
+      try {
+        this.eventSource.close();
+      } catch (e) {}
+      this.eventSource = null;
+    }
+  }
+
+  startPolling() {
+    this.stopPolling();
+    if (document.hidden || document.visibilityState === "hidden") return;
+
+    // Yalnızca sekme açık ve görünürken her 3 dakikada bir kontrol (Pil tasarrufu: %66 daha az uyanma)
+    this.pollInterval = setInterval(() => {
+      const loginScreen = document.getElementById("screen-auth-login");
+      if (loginScreen && !loginScreen.classList.contains("hidden") && loginScreen.style.display !== "none") {
+        return;
+      }
+      if (document.visibilityState === "visible" && !this.isSyncing) {
+        this.pullFromCloud(false);
+      }
+    }, 180000); // 3 dakika
+  }
+
+  stopPolling() {
+    if (this.pollInterval) {
+      clearInterval(this.pollInterval);
+      this.pollInterval = null;
     }
   }
 
@@ -161,6 +237,7 @@ export class CloudSyncService {
         const resJson = await resp.json();
         this.lastSyncedTimestamp = Date.now();
         this.lastUploadedFileUrl = resJson.attachment?.url || "";
+        this.lastProcessedMessageId = resJson.id || null;
         appState.state._lastSyncTime = nowIso;
         localStorage.setItem("sodsan_last_sync_time", nowIso);
         this.updateStatus("SYNCED", "Bulut Eşitlendi");
@@ -193,8 +270,8 @@ export class CloudSyncService {
         this.updateStatus("SYNCING", "Buluttan yükleniyor...");
       }
 
-      // ntfy son mesajları JSON lines formatında döner
-      const resp = await fetch(`${NTFY_BASE}/${this.syncRoom}/json?poll=1&since=all`, {
+      // ntfy son mesajları JSON lines formatında döner (since=12h ile tüm arşiv yerine sadece yakın kayıtları çeker)
+      const resp = await fetch(`${NTFY_BASE}/${this.syncRoom}/json?poll=1&since=12h`, {
         method: "GET",
         headers: { "Cache-Control": "no-cache" }
       });
@@ -224,6 +301,12 @@ export class CloudSyncService {
         return { success: true, message: "Bulutta henüz yeni bir kayıt bulunmuyor." };
       }
 
+      // Eğer son işlenen mesaj ID'si ile aynıysa, 240 KB dosyayı tekrar indirme! (Pil ve kota tasarrufu)
+      if (!force && this.lastProcessedMessageId && this.lastProcessedMessageId === latestMessage.id) {
+        this.updateStatus("SYNCED", "Bulut Eşitlendi");
+        return { success: true, message: "Cihazınız zaten en güncel sürümde." };
+      }
+
       // Başlıktan gönderici cihaz ve zaman bilgisini ayıkla
       const titleParts = (latestMessage.title || "").split("|");
       const senderDeviceId = titleParts[1] || "";
@@ -235,6 +318,7 @@ export class CloudSyncService {
 
       // Kendi gönderdiğimiz ve zorlanmayan güncellemeleri atla
       if (senderDeviceId === this.deviceId && !force) {
+        this.lastProcessedMessageId = latestMessage.id;
         this.updateStatus("SYNCED", "Bulut Eşitlendi");
         return { success: true, message: "Cihazınız zaten en güncel sürümde." };
       }
@@ -253,7 +337,7 @@ export class CloudSyncService {
         const remoteJsonText = await fileResp.text();
         const currentUser = appState.state.currentUser;
 
-        const imported = appState.importDataJson(remoteJsonText, true); // true: Buluttan çekilen veriyi tekrar buluta gönderme loopunu kır
+        const imported = appState.importDataJson(remoteJsonText, true);
         if (imported) {
           if (currentUser) {
             appState.state.currentUser = currentUser;
@@ -261,6 +345,8 @@ export class CloudSyncService {
           appState.state._lastSyncTime = remoteUpdatedAtStr;
           localStorage.setItem("sodsan_last_sync_time", remoteUpdatedAtStr);
           this.lastSyncedTimestamp = Date.now();
+          this.lastProcessedMessageId = latestMessage.id;
+          this.lastUploadedFileUrl = latestMessage.attachment.url;
           this.updateStatus("SYNCED", "Bulut Eşitlendi");
 
           if (window.portalApp && typeof window.portalApp.refreshAllActiveViews === "function") {
@@ -275,6 +361,7 @@ export class CloudSyncService {
         }
       }
 
+      this.lastProcessedMessageId = latestMessage.id;
       this.updateStatus("SYNCED", "Bulut Eşitlendi");
       return { success: true, message: "Cihazınızdaki veriler güncel." };
     } catch (e) {
@@ -298,7 +385,7 @@ export class CloudSyncService {
 
     let icon = "🟢";
     let badgeClass = "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800";
-    let title = "Tüm cihazlar senkronize";
+    let title = "Tüm cihazlar senkronize (Pil Dostu)";
 
     if (this.syncStatus === "SYNCING") {
       icon = "🔄";
@@ -357,7 +444,7 @@ export class CloudSyncService {
 
   async showSyncModal() {
     const lastSyncTimeStr = this.lastSyncedTimestamp ? new Date(this.lastSyncedTimestamp).toLocaleTimeString("tr-TR") : "Az önce";
-    const msg = `🌐 SODSAN Çoklu Cihaz Canlı Bulut Eşitlemesi\n\n` +
+    const msg = `🌐 SODSAN Çoklu Cihaz Canlı Bulut Eşitlemesi (Pil Korumalı)\n\n` +
       `Durum: ${this.syncText || 'Bağlı'}\n` +
       `Cihaz ID: ${this.deviceId}\n` +
       `Son Senkronizasyon: ${lastSyncTimeStr}\n` +
