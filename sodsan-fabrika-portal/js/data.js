@@ -25,6 +25,7 @@ export const DEFAULT_ROLES = [
     title: "Sistem Yöneticisi (Admin)",
     badge: "bg-red-100 text-red-800",
     permissions: {
+      canViewAllLeaveBalances: true,
       canAddProduct: true,
       canCallForklift: true,
       canCompleteForklift: true,
@@ -42,6 +43,7 @@ export const DEFAULT_ROLES = [
     title: "İzleyici / Gözlemci",
     badge: "bg-indigo-100 text-indigo-800 dark:bg-indigo-950 dark:text-indigo-300",
     permissions: {
+      canViewAllLeaveBalances: true,
       canAddProduct: false,
       canCallForklift: false,
       canCompleteForklift: false,
@@ -59,6 +61,7 @@ export const DEFAULT_ROLES = [
     title: "İnsan Kaynakları",
     badge: "bg-pink-100 text-pink-800",
     permissions: {
+      canViewAllLeaveBalances: true,
       canAddProduct: true,
       canCallForklift: false,
       canCompleteForklift: false,
@@ -76,6 +79,7 @@ export const DEFAULT_ROLES = [
     title: "Usta / Formen",
     badge: "bg-blue-100 text-blue-800",
     permissions: {
+      canViewAllLeaveBalances: false,
       canAddProduct: true,
       canCallForklift: true,
       canCompleteForklift: false,
@@ -93,6 +97,7 @@ export const DEFAULT_ROLES = [
     title: "Forklift Operatörü",
     badge: "bg-amber-100 text-amber-800",
     permissions: {
+      canViewAllLeaveBalances: false,
       canAddProduct: false,
       canCallForklift: false,
       canCompleteForklift: true,
@@ -110,6 +115,7 @@ export const DEFAULT_ROLES = [
     title: "Bakım & Onarım Teknisyeni",
     badge: "bg-purple-100 text-purple-800",
     permissions: {
+      canViewAllLeaveBalances: false,
       canAddProduct: true,
       canCallForklift: true,
       canCompleteForklift: false,
@@ -127,6 +133,7 @@ export const DEFAULT_ROLES = [
     title: "Saha Personeli / Çalışan",
     badge: "bg-slate-100 text-slate-800",
     permissions: {
+      canViewAllLeaveBalances: false,
       canAddProduct: false,
       canCallForklift: false,
       canCompleteForklift: false,
@@ -330,9 +337,22 @@ export function isEmployeeCurrentUser(emp, user = null) {
 
 // Admin, İzleyici ve İdari Kısım (İK / İdari İşler / Yönetim) dışındaki hiçbir rolün ve kişinin
 // kendisinden başkalarının izin gün sayılarını görmesini engelleyen merkezi güvenlik fonksiyonu
+// Admin panelindeki Yetki & Görünürlük Matrisinden dinamik olarak kontrol edilebilir!
 export function canViewAllLeaveBalances(user = null) {
   const curUser = user || (typeof appState !== "undefined" && appState && appState.state ? appState.state.currentUser : null);
   if (isAdmin()) return true;
+  if (!curUser) return false;
+
+  // 1. Dinamik rol tablosundaki 'canViewAllLeaveBalances' tanımını kontrol et
+  const roleKey = String(curUser.role || "").toUpperCase();
+  if (typeof appState !== "undefined" && appState && appState.state && Array.isArray(appState.state.roles)) {
+    const roleDef = appState.state.roles.find(r => String(r.key || "").toUpperCase() === roleKey || r.id === curUser.role);
+    if (roleDef && roleDef.permissions && typeof roleDef.permissions.canViewAllLeaveBalances === "boolean") {
+      return roleDef.permissions.canViewAllLeaveBalances;
+    }
+  }
+
+  // 2. Varsayılan korumalar: İzleyici veya İdari Kısım görebilir, diğerleri göremez
   if (isViewer(curUser)) return true;
   if (isIdariIslerOrAdmin()) return true;
   return false;
@@ -2453,6 +2473,9 @@ export class StateManager {
         parsed.roles.forEach(r => {
           if (!r.permissions) r.permissions = {};
           r.permissions.canAccessAdmin = (r.key === "ADMIN");
+          if (typeof r.permissions.canViewAllLeaveBalances !== "boolean") {
+            r.permissions.canViewAllLeaveBalances = (r.key === "ADMIN" || r.key === "IZLEYICI" || r.key === "IK");
+          }
         });
       }
 

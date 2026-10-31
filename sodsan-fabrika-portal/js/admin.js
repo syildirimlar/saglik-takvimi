@@ -612,41 +612,80 @@ export class AdminModule {
 
     const rolesList = appState.state.roles || [];
 
+    // Matris Sütun Tanımları (Görünürlük ve Yetki Alanları)
+    const PERM_COLUMNS = [
+      { key: "canViewAllLeaveBalances", title: "Başkalarının İzin Günlerini Görebilme", icon: "🏖️" },
+      { key: "canRequestLeave", title: "Kendi İzin Talebini Açma", icon: "🏖️" },
+      { key: "canApproveLeave", title: "İzin Talebini Onaylama", icon: "👔" },
+      { key: "canRequestOvertime", title: "Mesai Talebi Açma", icon: "⏰" },
+      { key: "canApproveOvertime", title: "Mesai Talebini Onaylama", icon: "👔" },
+      { key: "canAddProduct", title: "Malzeme & Stok Girişi Yapma", icon: "📦" },
+      { key: "canCallForklift", title: "Forklift Çağrısı Yapabilme", icon: "🚜" },
+      { key: "canCompleteForklift", title: "Forklift Görevini Tamamlama", icon: "🛠️" },
+      { key: "canAddSupply", title: "Sarf Malzeme İhtiyacı Bildirme", icon: "🛒" },
+      { key: "canAddMaintenance", title: "Makinelere Bakım Planı Ekleme", icon: "📅" },
+      { key: "canAccessAdmin", title: "Admin Paneli Girişi", icon: "🛡️" }
+    ];
+
     tbody.innerHTML = rolesList.map(r => {
       const perms = r.permissions || {};
-      const pillList = [];
-      if (perms.canAddProduct) pillList.push("📦 Ürün");
-      if (perms.canCallForklift) pillList.push("🚜 Forklift Çağrı");
-      if (perms.canCompleteForklift) pillList.push("🛠️ Forklift Görev");
-      if (perms.canRequestLeave) pillList.push("🏖️ İzin Talebi");
-      if (perms.canApproveLeave) pillList.push("👔 İzin Onay");
-      if (perms.canRequestOvertime) pillList.push("⏰ Mesai Talebi");
-      if (perms.canApproveOvertime) pillList.push("👔 Mesai Onay");
-      if (perms.canAddSupply) pillList.push("🛒 Sarf İhtiyaç");
-      if (perms.canAddMaintenance) pillList.push("📅 Bakım Planı");
-      if (r.key === "ADMIN") pillList.push("🛡️ Admin Paneli");
+      const isReadOnly = isViewer();
 
-      const pillsHtml = pillList.map(p => `
-        <span class="bg-slate-100 text-slate-700 text-[10px] font-bold px-2 py-0.5 rounded mr-1 mb-1 inline-block border border-slate-200">
-          ${p}
-        </span>
-      `).join("");
+      // Hücrelerin HTML üretimi
+      const cellsHtml = PERM_COLUMNS.map(col => {
+        // Admin Paneli sütunu özel koruma: Sadece ADMIN rolünde kilitli açık, diğerlerinde kilitli kapalı
+        if (col.key === "canAccessAdmin") {
+          if (r.key === "ADMIN") {
+            return `
+              <td class="py-3 px-2 text-center whitespace-nowrap">
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-purple-100 text-purple-800 border border-purple-200" title="Sistem Yöneticisi - Kilitli Güvenlik Yetkisi">
+                  🔒 Açık
+                </span>
+              </td>
+            `;
+          } else {
+            return `
+              <td class="py-3 px-2 text-center whitespace-nowrap">
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed" title="Admin Paneli kural gereği yalnızca Sistem Yöneticisine aittir">
+                  🔒 Kilitli
+                </span>
+              </td>
+            `;
+          }
+        }
+
+        const isAllowed = !!perms[col.key];
+
+        if (isAllowed) {
+          return `
+            <td class="py-3 px-2 text-center whitespace-nowrap">
+              <button data-matrix-toggle="${r.key}" data-perm="${col.key}" ${isReadOnly ? 'disabled' : ''} class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-300 hover:bg-emerald-200 transition active:scale-95 shadow-2xs ${isReadOnly ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}" title="${r.title}: ${col.title} yetkisini KAPAT">
+                <span>✅</span> <span>Açık</span>
+              </button>
+            </td>
+          `;
+        } else {
+          return `
+            <td class="py-3 px-2 text-center whitespace-nowrap">
+              <button data-matrix-toggle="${r.key}" data-perm="${col.key}" ${isReadOnly ? 'disabled' : ''} class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-slate-100 text-slate-500 border border-slate-200 hover:bg-slate-200 hover:text-slate-800 transition active:scale-95 ${isReadOnly ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}" title="${r.title}: ${col.title} yetkisini AÇ">
+                <span>❌</span> <span>Kapalı</span>
+              </button>
+            </td>
+          `;
+        }
+      }).join("");
 
       return `
-        <tr class="border-b border-slate-100 hover:bg-slate-50 transition text-sm">
-          <td class="py-3 px-3">
-            <div class="font-bold text-slate-900">${r.title}</div>
+        <tr class="border-b border-slate-100 hover:bg-slate-50/70 transition text-sm">
+          <td class="py-3 px-3 sticky left-0 bg-white group-hover:bg-slate-50 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)] z-10">
+            <div class="font-extrabold text-slate-900">${r.title}</div>
             <div class="text-[11px] font-mono text-slate-400 font-semibold">[${r.key}]</div>
           </td>
-          <td class="py-3 px-3">
-            <div class="flex flex-wrap gap-1 max-w-md">
-              ${pillsHtml || '<span class="text-xs text-slate-400 italic">Hiçbir yetki verilmemiş</span>'}
-            </div>
-          </td>
+          ${cellsHtml}
           <td class="py-3 px-3 text-right whitespace-nowrap">
             ${!isViewer() ? `
-              <button data-edit-role="${r.key}" class="bg-blue-50 text-blue-700 hover:bg-blue-100 px-2.5 py-1 rounded-md text-xs font-bold mr-2 transition">
-                ✏️ Rol Adı & Yetki Düzenle
+              <button data-edit-role="${r.key}" class="bg-blue-50 text-blue-700 hover:bg-blue-100 px-2.5 py-1 rounded-md text-xs font-bold mr-1.5 transition">
+                ✏️ Rol Adı
               </button>
               ${r.key !== "ADMIN" && r.key !== "IK" ? `
                 <button data-delete-role="${r.key}" class="bg-red-50 text-red-600 hover:bg-red-100 px-2.5 py-1 rounded-md text-xs font-bold transition">
@@ -659,7 +698,42 @@ export class AdminModule {
       `;
     }).join("");
 
-    // Yetki Düzenle Dinleyicisi
+    // İnteraktif Matris Aç/Kapa (Toggle) Dinleyicileri
+    tbody.querySelectorAll("[data-matrix-toggle]").forEach(btn => {
+      btn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (isViewer()) {
+          alert("İzleyici yetkisine sahipsiniz. Yetki matrisini değiştiremezsiniz.");
+          return;
+        }
+        const roleKey = btn.getAttribute("data-matrix-toggle");
+        const permKey = btn.getAttribute("data-perm");
+        const role = (appState.state.roles || []).find(r => r.key === roleKey);
+        if (!role) return;
+        if (!role.permissions) role.permissions = {};
+
+        // canAccessAdmin kesinlikle sadece ADMIN'de true kalır
+        if (permKey === "canAccessAdmin") return;
+
+        role.permissions[permKey] = !role.permissions[permKey];
+        appState.saveState();
+
+        const colDef = PERM_COLUMNS.find(c => c.key === permKey);
+        const permTitle = colDef ? colDef.title : permKey;
+        const dur = role.permissions[permKey] ? "AÇILDI (✅)" : "KAPATILDI (❌)";
+        
+        logSystemAction("YETKİ_GÜNCELLEME", `"${role.title}" rolü için "${permTitle}" yetkisi ${dur}.`, { roleKey, permKey, value: role.permissions[permKey] });
+
+        if (window.__cloudSyncService) {
+          window.__cloudSyncService.pushToCloud(false).catch(err => console.warn("CloudSync push hatası:", err));
+        }
+
+        this.renderRolesTable();
+      });
+    });
+
+    // Rol Başlığı Düzenleme Dinleyicisi
     tbody.querySelectorAll("[data-edit-role]").forEach(btn => {
       btn.addEventListener("click", (e) => {
         const key = e.currentTarget.getAttribute("data-edit-role");
@@ -670,6 +744,9 @@ export class AdminModule {
           const keyBadge = document.getElementById("edit-role-key-badge");
           if (keyBadge) keyBadge.textContent = role.key;
           const p = role.permissions || {};
+          if (document.getElementById("edit-perm-view-leave-balances")) {
+            document.getElementById("edit-perm-view-leave-balances").checked = !!p.canViewAllLeaveBalances;
+          }
           document.getElementById("edit-perm-add-product").checked = !!p.canAddProduct;
           document.getElementById("edit-perm-call-forklift").checked = !!p.canCallForklift;
           document.getElementById("edit-perm-complete-forklift").checked = !!p.canCompleteForklift;
@@ -726,6 +803,7 @@ export class AdminModule {
       title: title,
       badge: "bg-blue-100 text-blue-800",
       permissions: {
+        canViewAllLeaveBalances: document.getElementById("perm-view-leave-balances") ? document.getElementById("perm-view-leave-balances").checked : false,
         canAddProduct: document.getElementById("perm-add-product").checked,
         canCallForklift: document.getElementById("perm-call-forklift").checked,
         canCompleteForklift: document.getElementById("perm-complete-forklift").checked,
@@ -776,6 +854,7 @@ export class AdminModule {
       }
 
       role.permissions = {
+        canViewAllLeaveBalances: document.getElementById("edit-perm-view-leave-balances") ? document.getElementById("edit-perm-view-leave-balances").checked : false,
         canAddProduct: document.getElementById("edit-perm-add-product").checked,
         canCallForklift: document.getElementById("edit-perm-call-forklift").checked,
         canCompleteForklift: document.getElementById("edit-perm-complete-forklift").checked,

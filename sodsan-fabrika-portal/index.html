@@ -1502,22 +1502,35 @@
 
       <!-- Roller ve Yetkiler Yönetimi (Yetki Matrisi) -->
       <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-        <div class="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+        <div class="p-4 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3 bg-slate-50">
           <div>
-            <h3 class="text-sm font-extrabold text-slate-800">Roller & Yetki Matrisi</h3>
-            <p class="text-xs text-slate-500">Sistemdeki rolleri tanımlayın ve hangi ekranlara yetkili olduklarını belirleyin</p>
+            <div class="flex items-center gap-2">
+              <span class="text-xl">🎛️</span>
+              <h3 class="text-sm font-extrabold text-slate-800">Kullanıcı Rolleri & Görünürlük / Yetki Matrisi</h3>
+            </div>
+            <p class="text-xs text-slate-500 mt-0.5">Fabrikadaki rollerin hangi ekranları görebileceğini ve işlem yapabileceğini tablodan tek tıkla açıp kapatabilirsiniz.</p>
           </div>
-          <button id="btn-open-add-role" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-1.5 px-3 rounded-lg transition">
+          <button id="btn-open-add-role" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-1.5 px-3 rounded-lg transition shadow-sm">
             + Yeni Rol Tanımla
           </button>
         </div>
         <div class="overflow-x-auto">
-          <table class="w-full text-left">
-            <thead class="bg-slate-100 text-[11px] font-bold text-slate-500 uppercase">
+          <table class="w-full text-left border-collapse min-w-[980px]">
+            <thead class="bg-slate-100 text-[11px] font-bold text-slate-600 uppercase border-b border-slate-200">
               <tr>
-                <th class="py-2.5 px-3">Rol Adı</th>
-                <th class="py-2.5 px-3">Tanımlı Yetkiler</th>
-                <th class="py-2.5 px-3 text-right">İşlem</th>
+                <th class="py-3 px-3 min-w-[170px] sticky left-0 bg-slate-100 z-10">Rol / Unvan</th>
+                <th class="py-3 px-2 text-center" title="Başkalarının İzin Gün Sayılarını Görebilme">🏖️ İzin Bakiyesi</th>
+                <th class="py-3 px-2 text-center" title="Kendi İzin Talebini Açabilme">🏖️ İzin Talebi</th>
+                <th class="py-3 px-2 text-center" title="Personelin İzin Talebini Onaylama">👔 İzin Onay</th>
+                <th class="py-3 px-2 text-center" title="Fazla Mesai Talebi Açabilme">⏰ Mesai Talebi</th>
+                <th class="py-3 px-2 text-center" title="Fazla Mesai Talebini Onaylama">👔 Mesai Onay</th>
+                <th class="py-3 px-2 text-center" title="Gelen Malzeme & Stok Hareketi Girişi">📦 Malzeme Giriş</th>
+                <th class="py-3 px-2 text-center" title="Acil Forklift Çağrısı Yapabilme">🚜 Forklift Çağrı</th>
+                <th class="py-3 px-2 text-center" title="Forklift Görevi Teslim Alma & Kapatma">🛠️ Forklift Görev</th>
+                <th class="py-3 px-2 text-center" title="Sarf Malzeme İhtiyacı Bildirme">🛒 Sarf Talep</th>
+                <th class="py-3 px-2 text-center" title="Makinelere Periyodik Bakım Planı Ekleme">📅 Bakım Planı</th>
+                <th class="py-3 px-2 text-center" title="Admin Paneline Giriş Yetkisi">🛡️ Admin Paneli</th>
+                <th class="py-3 px-3 text-right">İşlem</th>
               </tr>
             </thead>
             <tbody id="admin-roles-tbody">
@@ -2759,6 +2772,10 @@
         <div>
           <label class="text-xs font-bold text-slate-700 block mb-2">Bu Rolün Sahip Olacağı Yetkiler:</label>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs bg-slate-50 p-3 rounded-xl border border-slate-200">
+            <label class="flex items-center gap-2 cursor-pointer bg-amber-50/60 p-1.5 rounded-lg border border-amber-200/60 col-span-1 sm:col-span-2">
+              <input type="checkbox" id="perm-view-leave-balances" class="w-4 h-4 text-blue-600 rounded">
+              <span class="font-bold text-amber-950">🏖️ Başkalarının İzin Gün Sayılarını Görebilme</span>
+            </label>
             <label class="flex items-center gap-2 cursor-pointer">
               <input type="checkbox" id="perm-add-product" class="w-4 h-4 text-blue-600 rounded">
               <span>📦 Ürün Girişi / Çıkışı</span>
@@ -2831,6 +2848,10 @@
         <div>
           <label class="text-xs font-bold text-slate-700 block mb-2">Bu Rolün Sahip Olacağı Yetkiler:</label>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs bg-slate-50 p-3 rounded-xl border border-slate-200">
+            <label class="flex items-center gap-2 cursor-pointer bg-amber-50/60 p-1.5 rounded-lg border border-amber-200/60 col-span-1 sm:col-span-2">
+              <input type="checkbox" id="edit-perm-view-leave-balances" class="w-4 h-4 text-blue-600 rounded">
+              <span class="font-bold text-amber-950">🏖️ Başkalarının İzin Gün Sayılarını Görebilme</span>
+            </label>
             <label class="flex items-center gap-2 cursor-pointer">
               <input type="checkbox" id="edit-perm-add-product" class="w-4 h-4 text-blue-600 rounded">
               <span>📦 Ürün Girişi / Çıkışı</span>
@@ -4254,7 +4275,7 @@
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js?v=65').then((reg) => {
+        navigator.serviceWorker.register('sw.js?v=66').then((reg) => {
           if (reg) reg.update();
         }).catch(err => {
           console.log('SW registration failed:', err);
@@ -4264,6 +4285,6 @@
   </script>
 
   <!-- ES Modül Girişi -->
-  <script type="module" src="js/app.js?v=8.7"></script>
+  <script type="module" src="js/app.js?v=8.8"></script>
 </body>
 </html>
