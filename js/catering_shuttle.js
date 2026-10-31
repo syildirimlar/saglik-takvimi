@@ -151,6 +151,13 @@ export class CateringShuttleModule {
       });
     }
 
+    const modalBtnAddShuttle = document.getElementById("modal-btn-open-add-shuttle");
+    if (modalBtnAddShuttle) {
+      modalBtnAddShuttle.addEventListener("click", () => {
+        this.openAddShuttleModal();
+      });
+    }
+
     const formShuttle = document.getElementById("form-add-edit-shuttle");
     if (formShuttle) {
       formShuttle.addEventListener("submit", (e) => {
@@ -201,7 +208,8 @@ export class CateringShuttleModule {
       { id: "leave", btn: "subtab-btn-leave", pane: "subpane-leave" },
       { id: "overtime", btn: "subtab-btn-overtime", pane: "subpane-overtime" },
       { id: "catering", btn: "subtab-btn-catering", pane: "subpane-catering" },
-      { id: "shuttle", btn: "subtab-btn-shuttle", pane: "subpane-shuttle" }
+      { id: "shuttle", btn: "subtab-btn-shuttle", pane: "subpane-shuttle" },
+      { id: "docs", btn: "subtab-btn-docs", pane: "subpane-docs" }
     ];
 
     subtabs.forEach(t => {
@@ -231,6 +239,8 @@ export class CateringShuttleModule {
       window.portalApp.leave.render();
     } else if (target === "overtime" && window.portalApp && window.portalApp.overtime) {
       window.portalApp.overtime.render();
+    } else if (target === "docs" && window.portalApp && window.portalApp.documents) {
+      window.portalApp.documents.render();
     }
   }
 
@@ -1111,10 +1121,24 @@ export class CateringShuttleModule {
 
     appState.saveState();
 
+    // Değişikliği anında buluta push et (Debounce beklemeden ve alert gecikmesine takılmadan)
+    if (window.__cloudSyncService && typeof window.__cloudSyncService.pushToCloud === "function") {
+      window.__cloudSyncService.pushToCloud(false).catch(e => console.warn("Cloud push error:", e));
+    }
+
     const modal = document.getElementById("modal-add-edit-shuttle");
     if (modal) modal.classList.remove("show");
 
     this.render();
+    this.renderShuttleModalContent();
+    if (window.portalApp) {
+      if (typeof window.portalApp.renderUserShuttleNotificationBanner === "function") {
+        window.portalApp.renderUserShuttleNotificationBanner();
+      }
+      if (typeof window.portalApp.refreshAllActiveViews === "function") {
+        window.portalApp.refreshAllActiveViews();
+      }
+    }
     alert("✅ Servis güzergahı ve yolcu listesi başarıyla kaydedildi!");
   }
 
@@ -1131,6 +1155,10 @@ export class CateringShuttleModule {
       appState.state.shuttleRoutes = appState.state.shuttleRoutes.filter(r => r.id !== shuttleId);
       appState.saveState();
 
+      if (window.__cloudSyncService && typeof window.__cloudSyncService.pushToCloud === "function") {
+        window.__cloudSyncService.pushToCloud(false).catch(e => console.warn("Cloud push error:", e));
+      }
+
       logSystemAction(
         "SERVİS_SİLME",
         `${route.routeName} (${route.plateNumber}) servis güzergahı silindi.`,
@@ -1138,6 +1166,15 @@ export class CateringShuttleModule {
       );
 
       this.render();
+      this.renderShuttleModalContent();
+      if (window.portalApp) {
+        if (typeof window.portalApp.renderUserShuttleNotificationBanner === "function") {
+          window.portalApp.renderUserShuttleNotificationBanner();
+        }
+        if (typeof window.portalApp.refreshAllActiveViews === "function") {
+          window.portalApp.refreshAllActiveViews();
+        }
+      }
     }
   }
 
@@ -1316,6 +1353,10 @@ export class CateringShuttleModule {
     if (btnAddShuttle) {
       btnAddShuttle.style.display = isManagerOrHr() ? "" : "none";
     }
+    const modalBtnAddShuttle = document.getElementById("modal-btn-open-add-shuttle");
+    if (modalBtnAddShuttle) {
+      modalBtnAddShuttle.style.display = isManagerOrHr() ? "" : "none";
+    }
 
     this.renderCateringSection();
     this.renderShuttleSection();
@@ -1369,6 +1410,18 @@ export function getUserShuttleBanners(currentUser) {
       });
     }
   });
+
+  // 3. Yönetici / İK Genel Bakış Banner'ı (Eğer kullanıcı Admin veya İK ise ve servisler varsa, ana sayfada doğrudan görmesini sağla)
+  if (banners.length === 0 && (isAdmin() || isManagerOrHr())) {
+    if (routes.length > 0) {
+      banners.push({
+        type: "MANAGER_OVERVIEW",
+        title: "FABRİKA SERVİS GÜZERGAHLARI & CANLI TAKİP",
+        totalRoutes: routes.length,
+        routes: routes
+      });
+    }
+  }
 
   return banners;
 }
