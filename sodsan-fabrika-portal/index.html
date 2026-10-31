@@ -3624,6 +3624,9 @@
         </div>
 
         <div class="flex items-center gap-2">
+          <button type="button" id="modal-btn-open-add-shuttle" class="bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold text-xs py-1.5 px-3 rounded-xl shadow-xs transition flex items-center gap-1 cursor-pointer">
+            <span>+</span> <span>Yeni Servis Ekle</span>
+          </button>
           <button type="button" data-close-modal class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xl font-black w-8 h-8 rounded-full flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer" title="Kapat">
             ✕
           </button>
@@ -4275,7 +4278,7 @@
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js?v=66').then((reg) => {
+        navigator.serviceWorker.register('sw.js?v=67').then((reg) => {
           if (reg) reg.update();
         }).catch(err => {
           console.log('SW registration failed:', err);
@@ -4285,6 +4288,6 @@
   </script>
 
   <!-- ES Modül Girişi -->
-  <script type="module" src="js/app.js?v=8.8"></script>
+  <script type="module" src="js/app.js?v=8.9"></script>
 </body>
 </html>

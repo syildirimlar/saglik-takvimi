@@ -132,6 +132,8 @@ class App {
       else if (tabId === "tab-leave") {
         this.leave?.render?.();
         this.overtime?.render?.();
+        this.cateringShuttle?.render?.();
+        this.documents?.render?.();
       }
       else if (tabId === "tab-forklift") this.forklift?.render?.();
       else if (tabId === "tab-breakdown") this.breakdown?.render?.();
@@ -399,6 +401,35 @@ class App {
               </button>
               <button type="button" data-open-shuttle-info class="bg-white hover:bg-amber-50 text-amber-800 text-xs font-black py-2 px-3.5 rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer">
                 <span>📋</span> <span>Yolcu Listesi</span> &rarr;
+              </button>
+            </div>
+          </div>
+        `;
+      } else if (b.type === "MANAGER_OVERVIEW") {
+        return `
+          <div class="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white p-3.5 sm:p-4 rounded-2xl shadow-md border border-indigo-800/60 flex items-center justify-between flex-wrap gap-2.5 transition">
+            <div class="flex items-center gap-3 min-w-0">
+              <span class="text-2xl sm:text-3xl bg-white/10 p-2 rounded-xl flex-shrink-0">🚐</span>
+              <div class="min-w-0">
+                <div class="text-[10px] sm:text-xs font-black uppercase tracking-wider text-indigo-300 flex items-center gap-1.5">
+                  <span>🏢</span> <span>${b.title}</span>
+                  <span class="bg-indigo-600 text-white text-[10px] px-2 py-0.5 rounded-full font-bold">${b.totalRoutes} Hat Kayıtlı</span>
+                </div>
+                <div class="text-xs sm:text-sm font-bold text-slate-200 mt-1 flex items-center flex-wrap gap-2">
+                  ${b.routes.map(r => `
+                    <span class="inline-flex items-center gap-1.5 bg-slate-800/90 px-2.5 py-1 rounded-lg border border-slate-700 text-xs">
+                      <span class="font-mono font-black text-amber-300">${r.plateNumber || 'Plakasız'}</span>
+                      <span class="text-white font-bold">${r.routeName}</span>
+                      <span class="text-slate-400 text-[11px] font-normal">(${r.driverName || 'Şoförsüz'})</span>
+                      ${r.arventoUrl ? '<span class="text-[10px] text-emerald-400 font-bold">● Canlı Takip</span>' : ''}
+                    </span>
+                  `).join("")}
+                </div>
+              </div>
+            </div>
+            <div class="flex items-center gap-2 ml-auto sm:ml-0 flex-shrink-0">
+              <button type="button" data-open-shuttle-info class="bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white text-xs font-black py-2 px-3.5 rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer">
+                <span>🚐</span> <span>Tüm Servisleri Gör & Yönet</span> &rarr;
               </button>
             </div>
           </div>
