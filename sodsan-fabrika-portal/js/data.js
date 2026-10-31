@@ -1,4 +1,4 @@
-﻿// SODSAN Fabrika İçi Portal - Veri Modeli ve Durum Yönetimi (data.js)
+// SODSAN Fabrika İçi Portal - Veri Modeli ve Durum Yönetimi (data.js)
 
 const STORAGE_KEY = "SODSAN_PORTAL_STATE_V2";
 const LEGACY_STORAGE_KEY = "SODSAN_PORTAL_STATE_V1";
@@ -304,7 +304,38 @@ export function getCurrentUserEmployee() {
   if (typeof appState === "undefined" || !appState || !appState.state || !appState.state.currentUser) return null;
   const user = appState.state.currentUser;
   const employees = appState.state.employees || [];
-  return employees.find(e => e.userId === user.id || e.id === user.id || e.name.toLowerCase() === user.name.toLowerCase()) || null;
+  return employees.find(e => isEmployeeCurrentUser(e, user)) || null;
+}
+
+// Bir çalışan nesnesinin (employee) oturumdaki aktif kullanıcıya ait olup olmadığını doğrular
+export function isEmployeeCurrentUser(emp, user = null) {
+  const curUser = user || (typeof appState !== "undefined" && appState && appState.state ? appState.state.currentUser : null);
+  if (!curUser || !emp) return false;
+
+  const curId = String(curUser.id || "").trim();
+  const curUsername = normalizeRoleText(curUser.username || "");
+  const curName = normalizeRoleText(curUser.name || "");
+
+  const empId = String(emp.id || "").trim();
+  const empUserId = String(emp.userId || "").trim();
+  const empName = normalizeRoleText(emp.name || "");
+
+  return (
+    (curId && (empUserId === curId || empId === curId)) ||
+    (curUsername && (empName === curUsername || normalizeRoleText(empUserId) === curUsername)) ||
+    (curName && empName === curName) ||
+    (empName && curName && (empName.includes(curName) || curName.includes(empName)))
+  );
+}
+
+// Admin, İzleyici ve İdari Kısım (İK / İdari İşler / Yönetim) dışındaki hiçbir rolün ve kişinin
+// kendisinden başkalarının izin gün sayılarını görmesini engelleyen merkezi güvenlik fonksiyonu
+export function canViewAllLeaveBalances(user = null) {
+  const curUser = user || (typeof appState !== "undefined" && appState && appState.state ? appState.state.currentUser : null);
+  if (isAdmin()) return true;
+  if (isViewer(curUser)) return true;
+  if (isIdariIslerOrAdmin()) return true;
+  return false;
 }
 
 // Başlangıç Gerçek Fabrika Kullanıcıları (Admin PIN: 58105810, Personel PIN: 1234)

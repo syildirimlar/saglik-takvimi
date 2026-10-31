@@ -752,6 +752,9 @@
           <!-- JavaScript tarafından doldurulur -->
         </div>
 
+        <!-- Kişisel İzin Özeti Kartı (Yetkisiz kullanıcılar için tablonun hemen üstünde) -->
+        <div id="personal-leave-summary-card" class="mb-4 hidden"></div>
+
         <!-- Personel İzin Bakiye Çizelgesi (50+ Çalışan İçin 2 Sekmeli & Arama Özellikli) -->
         <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mt-6">
           <div class="p-4 border-b border-slate-200 flex items-center justify-between flex-wrap gap-3">
@@ -760,7 +763,7 @@
                 <h3 class="text-sm font-extrabold text-slate-800">Personel İzin Bakiye & Hak Ediş Çizelgesi</h3>
                 <span class="text-[11px] bg-slate-100 text-slate-600 font-bold px-2 py-0.5 rounded-full" id="emp-total-badge">0 Çalışan</span>
               </div>
-              <p class="text-xs text-slate-400 mt-0.5">Ustalar ve tüm kullanıcılar dahildir. 50+ çalışan için sekmeli yönetim.</p>
+              <p class="text-xs text-slate-400 mt-0.5" id="emp-table-subtitle">Ustalar ve tüm kullanıcılar dahildir. 50+ çalışan için sekmeli yönetim.</p>
             </div>
             <div class="flex items-center gap-2 flex-wrap">
               <!-- Excel İle Hızlı Toplu Personel Ekleme (Yönetici & İK) -->
@@ -4251,7 +4254,7 @@
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js?v=63').then((reg) => {
+        navigator.serviceWorker.register('sw.js?v=64').then((reg) => {
           if (reg) reg.update();
         }).catch(err => {
           console.log('SW registration failed:', err);
@@ -4261,6 +4264,6 @@
   </script>
 
   <!-- ES Modül Girişi -->
-  <script type="module" src="js/app.js?v=8.5"></script>
+  <script type="module" src="js/app.js?v=8.6"></script>
 </body>
 </html>

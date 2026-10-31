@@ -1,5 +1,18 @@
 // SODSAN Fabrika Portalı - İK ve İzin Yönetim Modülü (leave.js)
-import { appState, playAlertSound, logSystemAction, getRoleInfo, isManagerOrHr, getCurrentUserEmployee, isAdmin, isViewer, isUserVisibleToCurrentSession } from './data.js';
+import { 
+  appState, 
+  playAlertSound, 
+  logSystemAction, 
+  getRoleInfo, 
+  isManagerOrHr, 
+  isIdariIslerOrAdmin,
+  getCurrentUserEmployee, 
+  isAdmin, 
+  isViewer, 
+  isUserVisibleToCurrentSession,
+  canViewAllLeaveBalances,
+  isEmployeeCurrentUser
+} from './data.js';
 
 export class LeaveModule {
   constructor() {
@@ -78,6 +91,7 @@ export class LeaveModule {
 
     const employees = this.getFactoryEmployees();
     const currentUser = appState.state.currentUser;
+    const canViewAll = canViewAllLeaveBalances(currentUser);
 
     empSelect.disabled = false;
 
@@ -89,19 +103,24 @@ export class LeaveModule {
     empSelect.innerHTML = `<option value="">-- Personel Seçiniz (${employees.length} Kayıtlı Çalışan) --</option>`;
     employees.forEach(emp => {
       const dep = appState.state.departments.find(d => d.id === emp.departmentId) || { name: "Genel Fabrika" };
-      const isMe = currentUser && (emp.userId === currentUser.id || emp.id === currentUser.id || (emp.name && emp.name.toLowerCase() === currentUser.name.toLowerCase()));
+      const isMe = isEmployeeCurrentUser(emp, currentUser);
       const remaining = typeof emp.remainingLeave === "number" ? emp.remainingLeave : 14;
 
+      // Kural: Admin, İzleyici ve İdari Kısım dışındaki hiçbir rol ve kişi kendisinden başkasının izin gün sayısını göremez
+      const optLabel = isMe
+        ? `${emp.name} (${dep.name} - Kalan İzniniz: ${remaining} Gün)`
+        : (canViewAll ? `${emp.name} (${dep.name} - Kalan İzin: ${remaining} Gün)` : `${emp.name} (${dep.name})`);
+
       empSelect.innerHTML += `
-        <option value="${emp.id}" data-dept="${emp.departmentId || ''}" data-remaining="${remaining}" ${isMe ? 'selected' : ''}>
-          ${emp.name} (${dep.name} - Kalan İzin: ${remaining} Gün)
+        <option value="${emp.id}" data-dept="${emp.departmentId || ''}" data-remaining="${(canViewAll || isMe) ? remaining : ''}" ${isMe ? 'selected' : ''}>
+          ${optLabel}
         </option>
       `;
     });
 
     // Oturumdaki kullanıcının kendi profili varsa ve seçim yapılmadıysa onu otomatik seç
     if (currentUser && (!empSelect.value || empSelect.value === "")) {
-      const myEmp = employees.find(e => e.userId === currentUser.id || e.id === currentUser.id || (e.name && e.name.toLowerCase() === currentUser.name.toLowerCase()));
+      const myEmp = employees.find(e => isEmployeeCurrentUser(e, currentUser));
       if (myEmp) {
         empSelect.value = myEmp.id;
       }
@@ -363,11 +382,33 @@ export class LeaveModule {
       items = items.filter(r => r.status === this.filterStatus);
     }
 
-    // Kural: İzleyici rolündeki personellerin talepleri yalnızca Admin tarafından görülebilir
+    // Kural 1: İzleyici rolündeki personellerin talepleri yalnızca Admin tarafından görülebilir
     if (!isAdmin()) {
       items = items.filter(r => {
         const emp = (appState.state.employees || []).find(e => e.id === r.employeeId) || (appState.state.users || []).find(u => u.name === r.employeeName);
         return !isViewer(emp);
+      });
+    }
+
+    // Kural 2: Admin, İzleyici ve İdari Kısım dışındaki roller ve kişiler yalnızca kendi izin taleplerini veya kendi açtıkları talepleri görebilir
+    if (!canViewAllLeaveBalances()) {
+      const cUser = appState.state.currentUser;
+      const cName = cUser ? String(cUser.name || "").trim().toLowerCase() : "";
+      const cUsername = cUser ? String(cUser.username || "").trim().toLowerCase() : "";
+      const cId = cUser ? String(cUser.id || "").trim() : "";
+
+      items = items.filter(r => {
+        const reqEmpName = String(r.employeeName || "").trim().toLowerCase();
+        const reqEmpId = String(r.employeeId || "").trim();
+        const reqBy = String(r.requestedBy || "").trim().toLowerCase();
+
+        return (
+          (cId && reqEmpId === cId) ||
+          (cName && reqEmpName === cName) ||
+          (cUsername && reqEmpName === cUsername) ||
+          (cName && reqBy === cName) ||
+          (cUsername && reqBy === cUsername)
+        );
       });
     }
 
@@ -510,8 +551,92 @@ export class LeaveModule {
     const tableBody = document.getElementById("leave-balances-table-body");
     if (!tableBody) return;
 
-    // Kural: İzleyici rolündeki çalışanlar yalnızca Admin tarafından görülebilir!
+    // Kural 1: İzleyici rolündeki çalışanlar yalnızca Admin tarafından görülebilir!
     const employees = (appState.state.employees || []).filter(e => !this.isAdminEmployee(e) && (isAdmin() || !isViewer(e)));
+    const curUser = appState.state.currentUser;
+    const canViewAll = canViewAllLeaveBalances(curUser);
+    const canManageEmployees = isIdariIslerOrAdmin();
+
+    // Excel ve personel ekleme butonlarını sadece İK / Admin'e göster
+    const btnTpl = document.getElementById("btn-download-emp-excel-template");
+    const btnImp = document.getElementById("btn-open-import-emp-excel");
+    const btnAdd = document.getElementById("btn-open-add-employee");
+    if (btnTpl) btnTpl.style.display = canManageEmployees ? "inline-flex" : "none";
+    if (btnImp) btnImp.style.display = canManageEmployees ? "inline-flex" : "none";
+    if (btnAdd) btnAdd.style.display = canManageEmployees ? "inline-flex" : "none";
+
+    const subtitleEl = document.getElementById("emp-table-subtitle");
+    if (subtitleEl) {
+      if (!canViewAll) {
+        subtitleEl.innerHTML = `<span class="text-amber-600 dark:text-amber-400 font-semibold">🔒 Gizlilik Kuralı: Şirket politikası gereği Admin, İzleyici ve İdari Kısım haricindeki personeller yalnızca kendi izin gün sayısını görebilir. Diğer çalışanların izin günleri gizlenmiştir.</span>`;
+      } else {
+        subtitleEl.textContent = "Ustalar ve tüm kullanıcılar dahildir. 50+ çalışan için sekmeli yönetim.";
+      }
+    }
+
+    // Kişisel İzin Özeti Kartı (Admin, İzleyici ve İdari Kısım dışındaki personeller için tablonun hemen üstünde)
+    let myCardContainer = document.getElementById("personal-leave-summary-card");
+    if (!myCardContainer) {
+      const tableWrapper = tableBody.closest(".bg-white");
+      if (tableWrapper && tableWrapper.parentElement) {
+        myCardContainer = document.createElement("div");
+        myCardContainer.id = "personal-leave-summary-card";
+        tableWrapper.parentElement.insertBefore(myCardContainer, tableWrapper);
+      }
+    }
+
+    if (myCardContainer) {
+      if (!canViewAll) {
+        const myEmp = employees.find(e => isEmployeeCurrentUser(e, curUser));
+        if (myEmp) {
+          const myDep = appState.state.departments.find(d => d.id === myEmp.departmentId) || { name: "-" };
+          const myRoleInfo = getRoleInfo(myEmp.role);
+          const percentUsed = myEmp.totalLeave > 0 ? Math.min(100, Math.round((myEmp.usedLeave / myEmp.totalLeave) * 100)) : 0;
+
+          myCardContainer.className = "mb-4 block";
+          myCardContainer.innerHTML = `
+            <div class="bg-gradient-to-r from-blue-50 via-indigo-50 to-slate-50 dark:from-slate-800 dark:via-slate-850 dark:to-slate-900 border-2 border-blue-200 dark:border-blue-700 rounded-2xl p-4 shadow-sm flex items-center justify-between flex-wrap gap-4">
+              <div class="flex items-center gap-3.5">
+                <div class="w-12 h-12 rounded-2xl bg-blue-600 text-white flex items-center justify-center font-black text-xl shadow-md">
+                  ${(myEmp.name || "P").charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <div class="flex items-center gap-2">
+                    <span class="font-black text-slate-900 dark:text-white text-base">${myEmp.name}</span>
+                    <span class="bg-blue-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-2xs">SİZ</span>
+                    <span class="${myRoleInfo.badge || 'bg-slate-200 text-slate-800'} text-[11px] font-bold px-2 py-0.5 rounded">
+                      ${myRoleInfo.title}
+                    </span>
+                  </div>
+                  <p class="text-xs text-slate-500 mt-0.5">${myDep.name} • Kişisel İzin Bakiye Durumunuz</p>
+                </div>
+              </div>
+
+              <div class="flex items-center gap-3 sm:gap-4 flex-wrap">
+                <div class="bg-white dark:bg-slate-800 px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs text-center min-w-[85px]">
+                  <span class="block text-[10px] text-slate-400 font-bold uppercase tracking-wider">Hak Edilen</span>
+                  <span class="font-black text-slate-800 dark:text-slate-100 text-sm sm:text-base">${myEmp.totalLeave} Gün</span>
+                </div>
+                <div class="bg-white dark:bg-slate-800 px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs text-center min-w-[85px]">
+                  <span class="block text-[10px] text-slate-400 font-bold uppercase tracking-wider">Kullanılan</span>
+                  <span class="font-black text-slate-500 text-sm sm:text-base">${myEmp.usedLeave} Gün</span>
+                </div>
+                <div class="bg-emerald-50 dark:bg-emerald-950/40 px-4 py-2 rounded-xl border border-emerald-300 dark:border-emerald-700 shadow-2xs text-center min-w-[95px]">
+                  <span class="block text-[10px] text-emerald-700 dark:text-emerald-300 font-black uppercase tracking-wider">Kalan İzniniz</span>
+                  <span class="font-black text-emerald-700 dark:text-emerald-300 text-base sm:text-lg">${myEmp.remainingLeave} Gün</span>
+                </div>
+              </div>
+            </div>
+          `;
+        } else {
+          myCardContainer.className = "hidden";
+          myCardContainer.innerHTML = "";
+        }
+      } else {
+        myCardContainer.className = "hidden";
+        myCardContainer.innerHTML = "";
+      }
+    }
 
     // Sayaçları güncelle
     const fieldCount = employees.filter(e => (e.role || "PERSONEL") === "PERSONEL").length;
@@ -572,22 +697,21 @@ export class LeaveModule {
       return;
     }
 
-    const currentUserId = appState.state.currentUser ? appState.state.currentUser.id : null;
-    const currentUserName = appState.state.currentUser ? appState.state.currentUser.name : "";
     const isHrOrAdmin = appState.state.currentUser && (appState.state.currentUser.role === "ADMIN" || appState.state.currentUser.role === "IK");
 
     tableBody.innerHTML = filtered.map(emp => {
       const dep = appState.state.departments.find(d => d.id === emp.departmentId) || { name: "-" };
       const roleInfo = getRoleInfo(emp.role);
-      const isMe = (currentUserId && (emp.userId === currentUserId || emp.id === currentUserId)) || (currentUserName && emp.name === currentUserName);
+      const isMe = isEmployeeCurrentUser(emp, curUser);
       const percentUsed = emp.totalLeave > 0 ? Math.min(100, Math.round((emp.usedLeave / emp.totalLeave) * 100)) : 0;
+      const canSeeLeaveDays = canViewAll || isMe;
 
       return `
-        <tr class="border-b border-slate-100 hover:bg-slate-50 transition text-sm">
+        <tr class="border-b border-slate-100 ${isMe ? 'bg-blue-50/60 hover:bg-blue-50' : 'hover:bg-slate-50'} transition text-sm">
           <td class="py-3 px-3 font-bold text-slate-800">
             <div class="flex items-center gap-1.5">
               <span>${emp.name}</span>
-              ${isMe ? `<span class="bg-blue-600 text-white text-[10px] font-black px-1.5 py-0.2 rounded-full">SİZ</span>` : ''}
+              ${isMe ? `<span class="bg-blue-600 text-white text-[10px] font-black px-1.5 py-0.2 rounded-full shadow-2xs">SİZ</span>` : ''}
             </div>
           </td>
           <td class="py-3 px-3 whitespace-nowrap">
@@ -596,17 +720,35 @@ export class LeaveModule {
             </span>
           </td>
           <td class="py-3 px-3 text-slate-600 text-xs font-medium whitespace-nowrap">${dep.name}</td>
-          <td class="py-3 px-3 text-center font-medium">${emp.totalLeave} Gün</td>
-          <td class="py-3 px-3 text-center text-slate-500">${emp.usedLeave} Gün</td>
-          <td class="py-3 px-3 text-center font-black ${emp.remainingLeave <= 3 ? 'text-red-600' : 'text-emerald-700'}">
-            ${emp.remainingLeave} Gün
+          
+          <!-- HAK EDİLEN İZİN -->
+          <td class="py-3 px-3 text-center font-medium">
+            ${canSeeLeaveDays ? `${emp.totalLeave} Gün` : '<span class="text-slate-400 font-mono text-xs" title="Gizlilik Kuralı: Yalnızca yetkililer görebilir">🔒 Gizli</span>'}
           </td>
+
+          <!-- KULLANILAN İZİN -->
+          <td class="py-3 px-3 text-center text-slate-500">
+            ${canSeeLeaveDays ? `${emp.usedLeave} Gün` : '<span class="text-slate-400 font-mono text-xs" title="Gizlilik Kuralı: Yalnızca yetkililer görebilir">🔒 Gizli</span>'}
+          </td>
+
+          <!-- KALAN İZİN -->
+          <td class="py-3 px-3 text-center font-black ${canSeeLeaveDays ? (emp.remainingLeave <= 3 ? 'text-red-600' : 'text-emerald-700') : 'text-slate-400 font-mono text-xs'}">
+            ${canSeeLeaveDays ? `${emp.remainingLeave} Gün` : '🔒 Gizli'}
+          </td>
+
+          <!-- KULLANIM GRAFİĞİ -->
           <td class="py-3 px-3">
-            <div class="w-24 bg-slate-100 rounded-full h-2 overflow-hidden mx-auto">
-              <div class="bg-blue-600 h-2 rounded-full" style="width: ${percentUsed}%"></div>
-            </div>
-            <div class="text-[10px] text-center text-slate-400 mt-0.5">%${percentUsed} kullanıldı</div>
+            ${canSeeLeaveDays ? `
+              <div class="w-24 bg-slate-100 rounded-full h-2 overflow-hidden mx-auto">
+                <div class="bg-blue-600 h-2 rounded-full" style="width: ${percentUsed}%"></div>
+              </div>
+              <div class="text-[10px] text-center text-slate-400 mt-0.5">%${percentUsed} kullanıldı</div>
+            ` : `
+              <div class="text-center text-slate-300 text-xs">-</div>
+            `}
           </td>
+
+          <!-- İŞLEM -->
           <td class="py-3 px-3 text-center whitespace-nowrap">
             ${isHrOrAdmin ? `
               <button data-delete-employee="${emp.id}" class="text-red-500 hover:text-red-700 font-bold text-xs p-1 rounded hover:bg-red-50 transition" title="Personeli Kaldır">
