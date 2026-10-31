@@ -5,6 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>SODSAN - Fabrika İçi Operasyon ve Haberleşme Portalı</title>
   
+  <!-- Cache Control (Anında Güncelleme Garantisi) -->
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  
   <!-- PWA & Favicon -->
   <link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png">
   <link rel="icon" type="image/png" href="assets/sodsan-favicon.png">
@@ -233,13 +238,27 @@
             </div>
           </div>
 
-          <!-- 6. İK: İzin & Fazla Mesai -->
+          <!-- 6. İdari Kısım: İzin & Mesai -->
           <div role="button" tabindex="0" class="nav-tab-btn w-full select-none cursor-pointer" data-tab="tab-leave">
             <span class="text-lg">🏖️</span>
             <div class="flex-1 text-left min-w-0">
-              <div class="text-xs font-bold leading-tight">İK: İzin & Mesai</div>
-              <div class="text-[10px] text-slate-400 dark:text-slate-500 font-normal truncate">Personel İzinleri & Mesai</div>
+              <div class="text-xs font-bold leading-tight">İdari Kısım (İzin & Mesai)</div>
+              <div class="text-[10px] text-slate-400 dark:text-slate-500 font-normal truncate">Personel İzinleri & Fazla Mesai</div>
             </div>
+            <div class="reorder-actions hidden items-center gap-0.5 ml-1">
+              <span role="button" tabindex="0" class="btn-move-tab-up p-1 text-[11px] hover:bg-slate-200 dark:hover:bg-slate-700 rounded text-slate-500 hover:text-blue-600 transition cursor-pointer" title="Yukarı Taşı">▲</span>
+              <span role="button" tabindex="0" class="btn-move-tab-down p-1 text-[11px] hover:bg-slate-200 dark:hover:bg-slate-700 rounded text-slate-500 hover:text-blue-600 transition cursor-pointer" title="Aşağı Taşı">▼</span>
+            </div>
+          </div>
+
+          <!-- 7. Personel Servisleri & Canlı Takip -->
+          <div role="button" tabindex="0" class="nav-tab-btn w-full select-none cursor-pointer" data-tab="tab-shuttle">
+            <span class="text-lg">🚐</span>
+            <div class="flex-1 text-left min-w-0">
+              <div class="text-xs font-bold leading-tight">Personel Servisleri</div>
+              <div class="text-[10px] text-slate-400 dark:text-slate-500 font-normal truncate">Güzergahlar & Arvento Canlı Takip</div>
+            </div>
+            <span id="shuttle-active-count" class="badge-tab bg-indigo-600 text-white text-[10px] font-black px-1.5 py-0.2 rounded-full">1</span>
             <div class="reorder-actions hidden items-center gap-0.5 ml-1">
               <span role="button" tabindex="0" class="btn-move-tab-up p-1 text-[11px] hover:bg-slate-200 dark:hover:bg-slate-700 rounded text-slate-500 hover:text-blue-600 transition cursor-pointer" title="Yukarı Taşı">▲</span>
               <span role="button" tabindex="0" class="btn-move-tab-down p-1 text-[11px] hover:bg-slate-200 dark:hover:bg-slate-700 rounded text-slate-500 hover:text-blue-600 transition cursor-pointer" title="Aşağı Taşı">▼</span>
@@ -346,7 +365,7 @@
 
           <!-- Servis Güzergahları Hızlı Butonu -->
           <button data-open-shuttle-info class="bg-indigo-600 hover:bg-indigo-700 active:scale-98 text-white font-extrabold text-xs px-2 py-1.5 sm:px-2.5 sm:py-1.5 rounded-lg shadow-xs transition flex items-center gap-1 cursor-pointer flex-shrink-0" title="Personel Servis Güzergahları & Şoförler">
-            <span>🚐</span> <span class="hidden lg:inline">Servisler</span>
+            <span>🚐</span> <span class="hidden sm:inline font-bold">Servisler</span>
           </button>
 
           <!-- Hızlı Arıza Bildir Butonu (Üst Çubukta da hazır) -->
@@ -1441,6 +1460,39 @@
               </button>
             </div>
           </div>
+        </div>
+      </div>
+
+      <!-- ==================== PERSONEL SERVİSLERİ VE GÜZERGAH YÖNETİMİ ==================== -->
+      <div id="admin-shuttles-section" class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="p-4 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3 bg-slate-50">
+          <div class="flex items-center gap-2">
+            <span class="text-xl">🚐</span>
+            <div>
+              <h3 class="text-sm font-extrabold text-slate-800">Personel Servis Güzergahları & Araç Yönetimi</h3>
+              <p class="text-xs text-slate-500">Tüm servis araçları, şoförler, yolcu listesi ve Arvento canlı konum takibi</p>
+            </div>
+          </div>
+          <button type="button" onclick="window.portalApp.cateringShuttle.openAddShuttleModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold py-1.5 px-3 rounded-lg transition shadow-xs flex items-center gap-1.5 cursor-pointer">
+            <span>+</span> <span>Yeni Servis Ekle</span>
+          </button>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse min-w-[720px]">
+            <thead class="bg-slate-100 text-[11px] font-bold text-slate-600 uppercase border-b border-slate-200">
+              <tr>
+                <th class="py-3 px-3">Plaka</th>
+                <th class="py-3 px-3">Güzergah</th>
+                <th class="py-3 px-3">Şoför & İletişim</th>
+                <th class="py-3 px-3 text-center">Kapasite / Yolcu</th>
+                <th class="py-3 px-3 text-center">Arvento Canlı Takip</th>
+                <th class="py-3 px-3 text-right">İşlem</th>
+              </tr>
+            </thead>
+            <tbody id="admin-shuttles-tbody">
+              <!-- AdminModule.renderShuttlesTable tarafından doldurulur -->
+            </tbody>
+          </table>
         </div>
       </div>
 
@@ -2841,7 +2893,7 @@
             <label class="text-xs font-bold text-slate-700">Rol Başlığı / Görünen Unvan:</label>
             <span class="text-[10px] text-slate-400">Sistem Kodu: <b id="edit-role-key-badge" class="font-mono text-slate-700 font-bold bg-white px-1.5 py-0.5 rounded border border-slate-200"></b></span>
           </div>
-          <input type="text" id="edit-role-title" required placeholder="Örn: Kesim Usta / Formen" class="w-full text-xs border border-slate-300 rounded-lg p-2.5 font-extrabold text-slate-900 bg-white focus:ring-2 focus:ring-blue-500">
+          <input type="text" id="edit-role-title" required placeholder="Örn: Vardiya Amiri" class="w-full text-xs border border-slate-300 rounded-lg p-2.5 font-extrabold text-slate-900 bg-white focus:ring-2 focus:ring-blue-500">
           <p class="text-[10px] text-slate-500 mt-1">Bu unvan personel kartlarında, üst oturum çubuğunda ve yetki listelerinde görünür.</p>
         </div>
 
@@ -4277,8 +4329,15 @@
   <!-- Service Worker Kaydı (PWA) -->
   <script>
     if ('serviceWorker' in navigator) {
+      let refreshing = false;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (!refreshing) {
+          refreshing = true;
+          window.location.reload();
+        }
+      });
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js?v=67').then((reg) => {
+        navigator.serviceWorker.register('sw.js?v=70').then((reg) => {
           if (reg) reg.update();
         }).catch(err => {
           console.log('SW registration failed:', err);
@@ -4288,6 +4347,6 @@
   </script>
 
   <!-- ES Modül Girişi -->
-  <script type="module" src="js/app.js?v=8.9"></script>
+  <script type="module" src="js/app.js?v=9.0"></script>
 </body>
 </html>

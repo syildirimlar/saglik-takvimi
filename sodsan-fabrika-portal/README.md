@@ -29,7 +29,7 @@ Sağ üstteki **👤 Kullanıcı Değiştir** butonuna tıklayarak istediğiniz 
 | Kullanıcı Adı | İsim | Rolü | Departmanı | Yetki Alanı |
 | :--- | :--- | :--- | :--- | :--- |
 | `admin` | Sistem Yöneticisi | **ADMIN** | Fabrika Yönetimi | Tüm paneller, kullanıcı ve departman açma/silme, yedekleme. |
-| `ik_elif` | Elif Hanım | **IK** | İnsan Kaynakları | İzin onaylama, revize isteme, iş gücü grafiği ve personel bakiye takibi. |
+| `ik_elif` | Elif Hanım | **IK** | İdari Kısım | İzin onaylama, revize isteme, iş gücü grafiği ve personel bakiye takibi. |
 | `usta_ahmet` | Ahmet Usta | **USTA** | Kesim & Sünger | Personeli adına izin talep etme, ürün girişi, sarf malzeme isteme, forklift çağırma. |
 | `usta_mehmet`| Mehmet Usta | **USTA** | Montaj & Hatlar | Personeli adına izin talep etme, malzeme hareketi ve sarf malzeme isteme. |
 | `forklift_ali`| Ali K. | **FORKLIFT**| Sevkiyat | Forklift çağrılarını görme, "Yoldayım" ve "Tamamlandı" işaretleme. |

@@ -9,7 +9,7 @@ export const DEFAULT_DEPARTMENTS = [
   { id: "dep_bakim", name: "Bakım & Onarım", icon: "🛠️", color: "#ef4444" },
   { id: "dep_kalite", name: "Kalite Kontrol", icon: "🔍", color: "#10b981" },
   { id: "dep_satinalma", name: "Satın Alma", icon: "🛒", color: "#6366f1" },
-  { id: "dep_ik", name: "İnsan Kaynakları & İdari İşler", icon: "👔", color: "#ec4899" },
+  { id: "dep_ik", name: "İdari Kısım", icon: "👔", color: "#ec4899" },
   { id: "dep_yonetim", name: "Fabrika Müdürlüğü / Yönetim", icon: "🏢", color: "#1e293b" },
   { id: "dep_1792617714014", name: "1400 ÜRETİM", icon: "🏢", color: "#2563eb" },
   { id: "dep_1792617758042", name: "1400 DEPO", icon: "🏢", color: "#2563eb" },
@@ -58,7 +58,7 @@ export const DEFAULT_ROLES = [
   },
   {
     key: "IK",
-    title: "İnsan Kaynakları",
+    title: "İdari Kısım",
     badge: "bg-pink-100 text-pink-800",
     permissions: {
       canViewAllLeaveBalances: true,
@@ -76,7 +76,7 @@ export const DEFAULT_ROLES = [
   },
   {
     key: "USTA",
-    title: "Usta / Formen",
+    title: "Vardiya Amiri",
     badge: "bg-blue-100 text-blue-800",
     permissions: {
       canViewAllLeaveBalances: false,
@@ -2459,6 +2459,12 @@ export class StateManager {
           }
         });
       }
+      // Kullanıcı isteği gereği departman adını İdari Kısım olarak sabitle
+      parsed.departments.forEach(d => {
+        if (d.id === "dep_ik" && (!d.name || d.name.includes("İnsan Kaynakları"))) {
+          d.name = "İdari Kısım";
+        }
+      });
 
       // Roller: Sadece ADMIN rolünde canAccessAdmin true olabilir, diğer tüm rollerde kural gereği kesinlikle false olmalıdır!
       if (!Array.isArray(parsed.roles) || parsed.roles.length === 0) {
@@ -2475,6 +2481,13 @@ export class StateManager {
           r.permissions.canAccessAdmin = (r.key === "ADMIN");
           if (typeof r.permissions.canViewAllLeaveBalances !== "boolean") {
             r.permissions.canViewAllLeaveBalances = (r.key === "ADMIN" || r.key === "IZLEYICI" || r.key === "IK");
+          }
+          // Kullanıcı isteği doğrultusunda kalıcı rol unvanı eşitlemesi
+          if (r.key === "USTA" && (!r.title || r.title === "Usta / Formen")) {
+            r.title = "Vardiya Amiri";
+          }
+          if (r.key === "IK" && (!r.title || r.title === "İnsan Kaynakları" || r.title.includes("İnsan Kaynakları"))) {
+            r.title = "İdari Kısım";
           }
         });
       }
@@ -3241,10 +3254,35 @@ export class StateManager {
           return Array.from(map.values());
         };
 
+        // 8. Roller (roles): Birleştir ve unvanları kalıcı koru
+        const roleMap = new Map();
+        DEFAULT_ROLES.forEach(r => roleMap.set(r.key, { ...r }));
+        if (Array.isArray(local.roles)) {
+          local.roles.forEach(r => { if (r && r.key) roleMap.set(r.key, { ...(roleMap.get(r.key) || {}), ...r }); });
+        }
+        if (Array.isArray(parsed.roles)) {
+          parsed.roles.forEach(r => { if (r && r.key) roleMap.set(r.key, { ...(roleMap.get(r.key) || {}), ...r }); });
+        }
+        const mergedRoles = Array.from(roleMap.values()).map(r => {
+          if (r.key === "USTA" && (!r.title || r.title === "Usta / Formen")) r.title = "Vardiya Amiri";
+          if (r.key === "IK" && (!r.title || r.title === "İnsan Kaynakları" || r.title.includes("İnsan Kaynakları"))) r.title = "İdari Kısım";
+          return r;
+        });
+
+        // Departmanlar: dep_ik her zaman İdari Kısım olarak korunur
+        const rawDeps = Array.isArray(parsed.departments) && parsed.departments.length > 0 ? parsed.departments : (local.departments || DEFAULT_DEPARTMENTS);
+        const mergedDepartments = rawDeps.map(d => {
+          if (d.id === "dep_ik" && (!d.name || d.name.includes("İnsan Kaynakları"))) {
+            return { ...d, name: "İdari Kısım" };
+          }
+          return d;
+        });
+
         // Bütünleşik State
         this.state = {
           ...parsed,
-          departments: Array.isArray(parsed.departments) && parsed.departments.length > 0 ? parsed.departments : (local.departments || DEFAULT_DEPARTMENTS),
+          roles: mergedRoles,
+          departments: mergedDepartments,
           users: Array.from(userMap.values()),
           employees: mergeById(local.employees, parsed.employees),
           products: mergeById(local.products, parsed.products),

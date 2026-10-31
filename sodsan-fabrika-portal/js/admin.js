@@ -284,10 +284,76 @@ export class AdminModule {
 
   render() {
     this.populateLogUserSelect();
+    this.renderShuttlesTable();
     this.renderDepartmentsTable();
     this.renderUsersTable();
     this.renderRolesTable();
     this.renderAuditLogsTable();
+  }
+
+  renderShuttlesTable() {
+    const tbody = document.getElementById("admin-shuttles-tbody");
+    if (!tbody) return;
+
+    const routes = appState.state.shuttleRoutes || [];
+    if (routes.length === 0) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="6" class="py-8 text-center text-xs text-slate-400">
+            Kayıtlı personel servisi bulunamadı. Yukarıdaki <b>"+ Yeni Servis Ekle"</b> butonundan yeni bir güzergah ekleyebilirsiniz.
+          </td>
+        </tr>
+      `;
+      return;
+    }
+
+    tbody.innerHTML = routes.map(r => {
+      const passengerCount = (r.passengerEmployeeIds || []).length;
+      const capacity = r.capacity || 16;
+      const hasArvento = Boolean(r.arventoUrl || r.arventoVehicleId);
+
+      return `
+        <tr class="border-b border-slate-100 hover:bg-slate-50 transition text-xs">
+          <td class="py-3 px-3 font-mono font-black text-slate-900">
+            <span class="inline-block bg-slate-900 text-amber-300 border border-slate-700 px-2.5 py-1 rounded shadow-xs font-mono">
+              ${r.plateNumber || 'PLAKASIZ'}
+            </span>
+          </td>
+          <td class="py-3 px-3 font-extrabold text-slate-800">
+            <div>${r.routeName}</div>
+            ${r.stops ? `<div class="text-[10px] text-slate-400 font-normal truncate max-w-xs mt-0.5">${r.stops.split('\n')[0]}</div>` : ''}
+          </td>
+          <td class="py-3 px-3">
+            <div class="font-bold text-slate-800">${r.driverName || 'Belirtilmedi'}</div>
+            <div class="text-[11px] text-slate-500 font-mono">${r.driverPhone || '-'}</div>
+          </td>
+          <td class="py-3 px-3 text-center">
+            <span class="inline-flex items-center gap-1 font-bold ${passengerCount >= capacity ? 'text-red-600' : 'text-slate-700'}">
+              👥 ${passengerCount} / ${capacity} Kişi
+            </span>
+          </td>
+          <td class="py-3 px-3 text-center">
+            ${hasArvento ? `
+              <button type="button" onclick="window.portalApp.cateringShuttle.showLiveVehicleMap('${r.id}')" class="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-1 rounded-full text-[11px] font-bold hover:bg-emerald-100 transition cursor-pointer shadow-xs">
+                <span>🟢</span> <span>Canlı Konum</span>
+              </button>
+            ` : `
+              <span class="text-slate-400 text-[11px] font-medium italic">Takip Linki Yok</span>
+            `}
+          </td>
+          <td class="py-3 px-3 text-right whitespace-nowrap">
+            ${!isViewer() ? `
+              <button type="button" onclick="window.portalApp.cateringShuttle.openEditShuttleModal('${r.id}')" class="bg-blue-50 text-blue-700 hover:bg-blue-100 px-2.5 py-1 rounded-md text-xs font-bold mr-1.5 transition cursor-pointer">
+                ✏️ Düzenle
+              </button>
+              <button type="button" onclick="window.portalApp.cateringShuttle.deleteShuttleRoute('${r.id}')" class="bg-red-50 text-red-600 hover:bg-red-100 px-2.5 py-1 rounded-md text-xs font-bold transition cursor-pointer">
+                🗑️ Sil
+              </button>
+            ` : '<span class="text-xs text-slate-400 font-medium italic">Salt Okunur</span>'}
+          </td>
+        </tr>
+      `;
+    }).join("");
   }
 
   renderDepartmentsTable() {

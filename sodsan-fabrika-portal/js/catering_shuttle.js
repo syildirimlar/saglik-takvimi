@@ -1132,6 +1132,9 @@ export class CateringShuttleModule {
     this.render();
     this.renderShuttleModalContent();
     if (window.portalApp) {
+      if (window.portalApp.admin && typeof window.portalApp.admin.renderShuttlesTable === "function") {
+        window.portalApp.admin.renderShuttlesTable();
+      }
       if (typeof window.portalApp.renderUserShuttleNotificationBanner === "function") {
         window.portalApp.renderUserShuttleNotificationBanner();
       }
@@ -1168,6 +1171,9 @@ export class CateringShuttleModule {
       this.render();
       this.renderShuttleModalContent();
       if (window.portalApp) {
+        if (window.portalApp.admin && typeof window.portalApp.admin.renderShuttlesTable === "function") {
+          window.portalApp.admin.renderShuttlesTable();
+        }
         if (typeof window.portalApp.renderUserShuttleNotificationBanner === "function") {
           window.portalApp.renderUserShuttleNotificationBanner();
         }

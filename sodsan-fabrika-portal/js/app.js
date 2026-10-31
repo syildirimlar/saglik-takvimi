@@ -1,17 +1,17 @@
 // SODSAN Fabrika Portalı - Ana Uygulama Yöneticisi (app.js)
-import { appState, ROLES, getRoleInfo, logSystemAction, isAdmin, isIdariIslerOrAdmin, isViewer, isUserVisibleToCurrentSession } from './data.js?v=8.7';
-import { CalendarModule } from './calendar.js?v=8.7';
-import { ProductsModule } from './products.js?v=8.7';
-import { SuppliesModule } from './supplies.js?v=8.7';
-import { LeaveModule } from './leave.js?v=8.7';
-import { OvertimeModule } from './overtime.js?v=8.7';
-import { ForkliftModule } from './forklift.js?v=8.7';
-import { BreakdownModule } from './breakdown.js?v=8.7';
-import { ProductionModule } from './production.js?v=8.7';
-import { AdminModule } from './admin.js?v=8.7';
-import { CateringShuttleModule, getUserShuttleBanners } from './catering_shuttle.js?v=8.7';
-import { DocumentsModule } from './documents.js?v=8.7';
-import { cloudSync } from './cloud_sync.js?v=8.7';
+import { appState, ROLES, getRoleInfo, logSystemAction, isAdmin, isIdariIslerOrAdmin, isViewer, isUserVisibleToCurrentSession } from './data.js?v=9.0';
+import { CalendarModule } from './calendar.js?v=9.0';
+import { ProductsModule } from './products.js?v=9.0';
+import { SuppliesModule } from './supplies.js?v=9.0';
+import { LeaveModule } from './leave.js?v=9.0';
+import { OvertimeModule } from './overtime.js?v=9.0';
+import { ForkliftModule } from './forklift.js?v=9.0';
+import { BreakdownModule } from './breakdown.js?v=9.0';
+import { ProductionModule } from './production.js?v=9.0';
+import { AdminModule } from './admin.js?v=9.0';
+import { CateringShuttleModule, getUserShuttleBanners } from './catering_shuttle.js?v=9.0';
+import { DocumentsModule } from './documents.js?v=9.0';
+import { cloudSync } from './cloud_sync.js?v=9.0';
 
 class App {
   constructor() {
@@ -635,16 +635,16 @@ class App {
         desc: "Bölümlerin üretim ve işletme sarf malzeme ihtiyaçları ve sipariş durumları"
       },
       "tab-leave": {
-        title: "🏖️ İK: Personel İzin & Fazla Mesai",
-        desc: "Yıllık izin talepleri, İK onayları ve departman fazla mesai çizelgesi"
+        title: "👔 İdari Kısım: İzin, Servis & Mesai",
+        desc: "Yıllık izin talepleri, personel servisleri, yemek menüsü ve fazla mesai çizelgesi"
       },
       "tab-forklift": {
         title: "🚜 Forklift & Saha Taşıma Operasyonu",
         desc: "Saha içi yük taşıma, hammadde ve kalıp taşıma çağrıları"
       },
       "tab-admin": {
-        title: "🛡️ Sistem Yönetimi & İK Paneli",
-        desc: "Kullanıcı tanımları, yetki rolleri, departmanlar ve sistem yedekleme"
+        title: "🛡️ Sistem Yönetimi & İdari Ayarlar",
+        desc: "Kullanıcı tanımları, yetki rolleri, departmanlar, servis yönetimi ve sistem yedekleme"
       }
     };
 
@@ -654,6 +654,14 @@ class App {
   }
 
   switchTab(tabId) {
+    if (tabId === "tab-shuttle") {
+      this.switchTab("tab-leave");
+      if (this.cateringShuttle) {
+        this.cateringShuttle.switchIkSubtab("shuttle");
+      }
+      return;
+    }
+
     if (tabId === "tab-admin" && !isAdmin()) {
       alert("Yetki Hatası: Yönetim & Admin paneline erişim yetkisi yalnızca Sistem Yöneticisine (Admin) aittir!");
       tabId = "tab-calendar";
