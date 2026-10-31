@@ -238,27 +238,13 @@
             </div>
           </div>
 
-          <!-- 6. İdari Kısım: İzin & Mesai -->
+          <!-- 6. İK: İzin, Servis & Mesai -->
           <div role="button" tabindex="0" class="nav-tab-btn w-full select-none cursor-pointer" data-tab="tab-leave">
-            <span class="text-lg">🏖️</span>
+            <span class="text-lg">👔</span>
             <div class="flex-1 text-left min-w-0">
-              <div class="text-xs font-bold leading-tight">İdari Kısım (İzin & Mesai)</div>
-              <div class="text-[10px] text-slate-400 dark:text-slate-500 font-normal truncate">Personel İzinleri & Fazla Mesai</div>
+              <div class="text-xs font-bold leading-tight">İK</div>
+              <div class="text-[10px] text-slate-400 dark:text-slate-500 font-normal truncate">İzinler, Servisler & Mesai</div>
             </div>
-            <div class="reorder-actions hidden items-center gap-0.5 ml-1">
-              <span role="button" tabindex="0" class="btn-move-tab-up p-1 text-[11px] hover:bg-slate-200 dark:hover:bg-slate-700 rounded text-slate-500 hover:text-blue-600 transition cursor-pointer" title="Yukarı Taşı">▲</span>
-              <span role="button" tabindex="0" class="btn-move-tab-down p-1 text-[11px] hover:bg-slate-200 dark:hover:bg-slate-700 rounded text-slate-500 hover:text-blue-600 transition cursor-pointer" title="Aşağı Taşı">▼</span>
-            </div>
-          </div>
-
-          <!-- 7. Personel Servisleri & Canlı Takip -->
-          <div role="button" tabindex="0" class="nav-tab-btn w-full select-none cursor-pointer" data-tab="tab-shuttle">
-            <span class="text-lg">🚐</span>
-            <div class="flex-1 text-left min-w-0">
-              <div class="text-xs font-bold leading-tight">Personel Servisleri</div>
-              <div class="text-[10px] text-slate-400 dark:text-slate-500 font-normal truncate">Güzergahlar & Arvento Canlı Takip</div>
-            </div>
-            <span id="shuttle-active-count" class="badge-tab bg-indigo-600 text-white text-[10px] font-black px-1.5 py-0.2 rounded-full">1</span>
             <div class="reorder-actions hidden items-center gap-0.5 ml-1">
               <span role="button" tabindex="0" class="btn-move-tab-up p-1 text-[11px] hover:bg-slate-200 dark:hover:bg-slate-700 rounded text-slate-500 hover:text-blue-600 transition cursor-pointer" title="Yukarı Taşı">▲</span>
               <span role="button" tabindex="0" class="btn-move-tab-down p-1 text-[11px] hover:bg-slate-200 dark:hover:bg-slate-700 rounded text-slate-500 hover:text-blue-600 transition cursor-pointer" title="Aşağı Taşı">▼</span>
@@ -4337,7 +4323,7 @@
         }
       });
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js?v=70').then((reg) => {
+        navigator.serviceWorker.register('sw.js?v=71').then((reg) => {
           if (reg) reg.update();
         }).catch(err => {
           console.log('SW registration failed:', err);
@@ -4347,6 +4333,6 @@
   </script>
 
   <!-- ES Modül Girişi -->
-  <script type="module" src="js/app.js?v=9.0"></script>
+  <script type="module" src="js/app.js?v=9.1"></script>
 </body>
 </html>

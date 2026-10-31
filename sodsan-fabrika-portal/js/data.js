@@ -9,7 +9,7 @@ export const DEFAULT_DEPARTMENTS = [
   { id: "dep_bakim", name: "Bakım & Onarım", icon: "🛠️", color: "#ef4444" },
   { id: "dep_kalite", name: "Kalite Kontrol", icon: "🔍", color: "#10b981" },
   { id: "dep_satinalma", name: "Satın Alma", icon: "🛒", color: "#6366f1" },
-  { id: "dep_ik", name: "İdari Kısım", icon: "👔", color: "#ec4899" },
+  { id: "dep_ik", name: "İdari İşler", icon: "👔", color: "#ec4899" },
   { id: "dep_yonetim", name: "Fabrika Müdürlüğü / Yönetim", icon: "🏢", color: "#1e293b" },
   { id: "dep_1792617714014", name: "1400 ÜRETİM", icon: "🏢", color: "#2563eb" },
   { id: "dep_1792617758042", name: "1400 DEPO", icon: "🏢", color: "#2563eb" },
@@ -58,7 +58,7 @@ export const DEFAULT_ROLES = [
   },
   {
     key: "IK",
-    title: "İdari Kısım",
+    title: "İdari İşler",
     badge: "bg-pink-100 text-pink-800",
     permissions: {
       canViewAllLeaveBalances: true,
@@ -2216,16 +2216,17 @@ export const DEFAULT_SHUTTLE_ROUTES = [
     driverName: "Ayhan",
     driverPhone: "0541 448 60 33",
     capacity: 16,
-    stops: "",
-    notes: "",
-    arventoUrl: "",
-    arventoVehicleId: "",
+    stops: "Yıldırım - Ankara Yolu - İzmir Yolu - Kayapa OSB",
+    notes: "16 SPL 40 Vardiya Servisi",
+    arventoUrl: "https://web.arvento.com/ui/shareVehiclesLink/ShareVehiclesLink.aspx?g=486597b7c5594071IB6zmbsR5u2EXLKmYgtgEg==ac0cb80e24b00adf&ed=20261229082724&sd=20261030082725&lc=tr&ln=0",
+    arventoVehicleId: "C11L00008461 - 16SPL90",
     passengerEmployeeIds: [
       "u_1792699659049",
       "u_ik",
       "u_1792699612413"
     ],
-    createdAt: "2026-10-30T04:49:50.484Z"
+    createdAt: "2026-10-30T04:49:50.484Z",
+    updatedAt: "2026-10-31T04:58:41.738Z"
   }
 ];
 
@@ -2459,10 +2460,10 @@ export class StateManager {
           }
         });
       }
-      // Kullanıcı isteği gereği departman adını İdari Kısım olarak sabitle
+      // Kullanıcı isteği gereği departman adını İdari İşler olarak sabitle
       parsed.departments.forEach(d => {
         if (d.id === "dep_ik" && (!d.name || d.name.includes("İnsan Kaynakları"))) {
-          d.name = "İdari Kısım";
+          d.name = "İdari İşler";
         }
       });
 
@@ -2486,8 +2487,8 @@ export class StateManager {
           if (r.key === "USTA" && (!r.title || r.title === "Usta / Formen")) {
             r.title = "Vardiya Amiri";
           }
-          if (r.key === "IK" && (!r.title || r.title === "İnsan Kaynakları" || r.title.includes("İnsan Kaynakları"))) {
-            r.title = "İdari Kısım";
+          if (r.key === "IK" && (!r.title || r.title === "İnsan Kaynakları" || r.title === "İdari Kısım")) {
+            r.title = "İdari İşler";
           }
         });
       }
@@ -2682,13 +2683,31 @@ export class StateManager {
         };
       }
 
-      // Personel Servis Güzergahları (DEFAULT_SHUTTLE_ROUTES ile eksiksiz birleştir)
+      // Personel Servis Güzergahları (16 SPL 40 ve DEFAULT_SHUTTLE_ROUTES eksiksiz birleştir ve koru)
       if (!Array.isArray(parsed.shuttleRoutes) || parsed.shuttleRoutes.length === 0) {
         parsed.shuttleRoutes = JSON.parse(JSON.stringify(DEFAULT_SHUTTLE_ROUTES));
       } else {
         DEFAULT_SHUTTLE_ROUTES.forEach(defRoute => {
-          if (!parsed.shuttleRoutes.some(r => r.id === defRoute.id || (r.plateNumber && defRoute.plateNumber && r.plateNumber.trim().toUpperCase() === defRoute.plateNumber.trim().toUpperCase()))) {
-            parsed.shuttleRoutes.push(defRoute);
+          const existing = parsed.shuttleRoutes.find(r => 
+            r.id === defRoute.id || 
+            (r.plateNumber && defRoute.plateNumber && r.plateNumber.trim().toUpperCase() === defRoute.plateNumber.trim().toUpperCase())
+          );
+          if (!existing) {
+            parsed.shuttleRoutes.unshift(JSON.parse(JSON.stringify(defRoute)));
+          } else {
+            // Eğer arventoUrl boşsa veya eksikse kullanıcının Arvento linkini tamamla
+            if (!existing.arventoUrl && defRoute.arventoUrl) {
+              existing.arventoUrl = defRoute.arventoUrl;
+            }
+            if (!existing.arventoVehicleId && defRoute.arventoVehicleId) {
+              existing.arventoVehicleId = defRoute.arventoVehicleId;
+            }
+            if (!existing.driverPhone && defRoute.driverPhone) {
+              existing.driverPhone = defRoute.driverPhone;
+            }
+            if (!existing.stops && defRoute.stops) {
+              existing.stops = defRoute.stops;
+            }
           }
         });
       }
@@ -3186,7 +3205,15 @@ export class StateManager {
         if (Array.isArray(local.shuttleRoutes)) {
           local.shuttleRoutes.forEach(s => {
             const key = s.plateNumber?.trim().toUpperCase() || s.id;
-            shuttleMap.set(key, { ...(shuttleMap.get(key) || {}), ...s });
+            const existing = shuttleMap.get(key) || {};
+            shuttleMap.set(key, { 
+              ...existing, 
+              ...s,
+              arventoUrl: s.arventoUrl || existing.arventoUrl || "",
+              arventoVehicleId: s.arventoVehicleId || existing.arventoVehicleId || "",
+              stops: s.stops || existing.stops || "",
+              driverPhone: s.driverPhone || existing.driverPhone || ""
+            });
           });
         }
         if (Array.isArray(parsed.shuttleRoutes)) {
@@ -3195,7 +3222,15 @@ export class StateManager {
             const existing = shuttleMap.get(key);
             if (existing) {
               const passengers = Array.from(new Set([...(existing.passengerEmployeeIds || []), ...(s.passengerEmployeeIds || [])]));
-              shuttleMap.set(key, { ...existing, ...s, passengerEmployeeIds: passengers });
+              shuttleMap.set(key, { 
+                ...existing, 
+                ...s, 
+                arventoUrl: s.arventoUrl || existing.arventoUrl || "",
+                arventoVehicleId: s.arventoVehicleId || existing.arventoVehicleId || "",
+                stops: s.stops || existing.stops || "",
+                driverPhone: s.driverPhone || existing.driverPhone || "",
+                passengerEmployeeIds: passengers 
+              });
             } else {
               shuttleMap.set(key, { ...s });
             }
@@ -3265,15 +3300,15 @@ export class StateManager {
         }
         const mergedRoles = Array.from(roleMap.values()).map(r => {
           if (r.key === "USTA" && (!r.title || r.title === "Usta / Formen")) r.title = "Vardiya Amiri";
-          if (r.key === "IK" && (!r.title || r.title === "İnsan Kaynakları" || r.title.includes("İnsan Kaynakları"))) r.title = "İdari Kısım";
+          if (r.key === "IK" && (!r.title || r.title === "İnsan Kaynakları" || r.title === "İdari Kısım")) r.title = "İdari İşler";
           return r;
         });
 
-        // Departmanlar: dep_ik her zaman İdari Kısım olarak korunur
+        // Departmanlar: dep_ik varsayılan olarak İdari İşler
         const rawDeps = Array.isArray(parsed.departments) && parsed.departments.length > 0 ? parsed.departments : (local.departments || DEFAULT_DEPARTMENTS);
         const mergedDepartments = rawDeps.map(d => {
           if (d.id === "dep_ik" && (!d.name || d.name.includes("İnsan Kaynakları"))) {
-            return { ...d, name: "İdari Kısım" };
+            return { ...d, name: "İdari İşler" };
           }
           return d;
         });

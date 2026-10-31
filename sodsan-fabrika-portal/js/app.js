@@ -635,7 +635,7 @@ class App {
         desc: "Bölümlerin üretim ve işletme sarf malzeme ihtiyaçları ve sipariş durumları"
       },
       "tab-leave": {
-        title: "👔 İdari Kısım: İzin, Servis & Mesai",
+        title: "👔 İK: İzin, Servis & Fazla Mesai",
         desc: "Yıllık izin talepleri, personel servisleri, yemek menüsü ve fazla mesai çizelgesi"
       },
       "tab-forklift": {
