@@ -935,6 +935,12 @@ export class CateringShuttleModule {
     const route = (appState.state.shuttleRoutes || []).find(r => r.id === shuttleId);
     if (!route) return;
 
+    // Kritik: Eğer Canlı Konum Modal'ı açıksa, arka planda kalmaması için hemen kapat
+    const liveLocModal = document.getElementById("modal-live-shuttle-location");
+    if (liveLocModal) {
+      liveLocModal.classList.remove("show");
+    }
+
     const modal = document.getElementById("modal-add-edit-shuttle");
     const form = document.getElementById("form-add-edit-shuttle");
     const titleEl = document.getElementById("modal-shuttle-form-title");
@@ -1179,24 +1185,52 @@ export class CateringShuttleModule {
 
       if (hasCustomUrl) {
         container.innerHTML = `
-          <!-- Canlı Harita İframe Önizleme -->
-          <div class="w-full rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900 shadow-inner relative">
-            <iframe src="${arventoPortalUrl}" class="w-full h-72 sm:h-80 border-0 rounded-2xl" loading="lazy" allow="geolocation" title="Arvento Canlı Servis Haritası"></iframe>
+          <!-- Canlı Arvento GPS Takip Paneli -->
+          <div class="w-full bg-gradient-to-br from-indigo-950 via-slate-900 to-blue-950 text-white rounded-2xl p-5 sm:p-6 shadow-xl border border-indigo-500/40 flex flex-col items-center text-center space-y-3.5 relative overflow-hidden">
+            <div class="absolute -right-10 -top-10 w-36 h-36 rounded-full bg-indigo-500/15 blur-2xl pointer-events-none"></div>
+
+            <div class="w-16 h-16 rounded-2xl bg-indigo-600/30 border border-indigo-400/40 text-emerald-400 flex items-center justify-center text-3xl shadow-inner">
+              🛰️
+            </div>
+
+            <div>
+              <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-xs font-bold">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                <span>Arvento Canlı GPS Yayını Bağlı</span>
+              </div>
+              <h4 class="text-base sm:text-lg font-black text-white mt-2">${route.plateNumber} • ${route.routeName}</h4>
+              <p class="text-xs text-slate-300 max-w-md mt-1 leading-relaxed">
+                Aracın anlık harita konumu, canlı hızı ve güzergah üzerindeki ilerleyişi hazırdır. Kesintisiz canlı uydu takibi için butona tıklayınız.
+              </p>
+            </div>
+
+            <!-- Ana Aksiyon: Doğrudan Haritayı Başlat -->
+            <a href="${arventoPortalUrl}" target="_blank" rel="noopener noreferrer" class="w-full max-w-md bg-gradient-to-r from-emerald-500 via-teal-500 to-blue-600 hover:from-emerald-600 hover:to-blue-700 text-white font-black text-sm sm:text-base py-3.5 px-6 rounded-2xl shadow-xl transition transform active:scale-95 flex items-center justify-center gap-2.5 cursor-pointer">
+              <span class="text-xl">🗺️</span>
+              <span>Canlı Haritayı Aç (Arvento GPS)</span>
+              <span class="bg-white/20 text-white text-[11px] px-2 py-0.5 rounded-full font-bold">Tam Ekran ↗</span>
+            </a>
+
+            <!-- Bilgilendirme Notu -->
+            <div class="bg-indigo-900/40 border border-indigo-700/40 rounded-xl p-2.5 text-[11px] text-indigo-200 max-w-md text-left leading-relaxed flex items-start gap-2">
+              <span class="text-base flex-shrink-0">💡</span>
+              <span><b>Güvenlik Notu:</b> Arvento, kullanıcı verilerini korumak için takip ekranlarını web sayfaları içine gömmeyi kısıtlar (<i>X-Frame-Options: DENY</i>). Yukarıdaki butona bastığınızda doğrudan Arvento'nun resmi canlı harita ekranı tam ekran açılarak kesintisiz takip sağlar.</span>
+            </div>
+
+            <div class="text-[10px] text-slate-400 font-mono">
+              Plaka / Takip ID: <b>${arventoId}</b> • Son Güncelleme: ${new Date().toLocaleTimeString("tr-TR")}
+            </div>
           </div>
 
-          <div class="flex items-center flex-wrap gap-2 justify-center pt-1">
-            <a href="${arventoPortalUrl}" target="_blank" rel="noopener noreferrer" class="bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white font-black text-xs py-2 px-4 rounded-xl shadow-md transition flex items-center gap-1.5 cursor-pointer active:scale-95">
-              <span>🗺️</span> <span>Haritayı Yeni Sekmede / Tam Ekran Aç</span> <span>↗</span>
+          <div class="flex items-center flex-wrap gap-2 justify-center pt-2">
+            <a href="${arventoPortalUrl}" target="_blank" rel="noopener noreferrer" class="bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 text-indigo-700 dark:text-indigo-300 font-bold text-xs py-2 px-3.5 rounded-xl border border-indigo-200 dark:border-indigo-800 transition flex items-center gap-1.5 cursor-pointer">
+              <span>🌐</span> <span>Haritayı Tekrar Aç</span> <span>↗</span>
             </a>
             ${isManagerOrHr() ? `
               <button type="button" onclick="window.portalApp.cateringShuttle.openEditShuttleModal('${route.id}')" class="bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 font-bold text-xs py-2 px-3 rounded-xl transition flex items-center gap-1 cursor-pointer">
                 <span>⚙️</span> <span>Ayarları Düzenle</span>
               </button>
             ` : ""}
-          </div>
-
-          <div class="text-[10px] text-slate-400 font-mono text-center">
-            Plaka / Cihaz No: <b>${arventoId}</b> • Son Sorgu: ${new Date().toLocaleTimeString("tr-TR")}
           </div>
         `;
       } else {
