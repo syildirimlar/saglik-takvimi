@@ -248,15 +248,26 @@ export class CateringShuttleModule {
   // YEMEK MENÜSÜ FONKSİYONLARI
   // ==========================================
 
+  formatMonthTitle(yearMonth) {
+    if (!yearMonth || yearMonth.length < 7) return "Yemek Menüsü";
+    const [y, m] = yearMonth.split("-");
+    const monthNamesTr = {
+      "01": "Ocak", "02": "Şubat", "03": "Mart", "04": "Nisan",
+      "05": "Mayıs", "06": "Haziran", "07": "Temmuz", "08": "Ağustos",
+      "09": "Eylül", "10": "Ekim", "11": "Kasım", "12": "Aralık"
+    };
+    return `${monthNamesTr[m] || m} ${y}`;
+  },
+
   openCateringModal() {
     this.renderCateringModalContent();
     const modal = document.getElementById("modal-catering-menu");
     if (modal) {
       modal.classList.add("show");
     }
-  }
+  },
 
-  renderCateringModalContent() {
+  renderCateringModalContent(customMonth = null) {
     const config = appState.state.cateringConfig || {};
     const titleEl = document.getElementById("modal-catering-title");
     const subtitleEl = document.getElementById("modal-catering-subtitle");
@@ -271,16 +282,30 @@ export class CateringShuttleModule {
       linkBtn.style.display = "none";
     }
 
-    // Yalnızca içinde bulunduğumuz aktif ayın menüsünü göster
     const now = new Date();
-    const currentYearMonth = now.toISOString().slice(0, 7); // Örn: "2026-10"
-    const monthNamesTr = ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"];
-    const currentMonthName = monthNamesTr[now.getMonth()];
-    const currentYear = now.getFullYear();
-    const currentMonthTitle = `${currentMonthName} ${currentYear}`;
+    const currentYearMonth = now.toISOString().slice(0, 7); // Örn: "2026-11"
+    const todayStr = now.toISOString().split("T")[0]; // Örn: "2026-11-02"
+
+    const allDays = Array.isArray(config.menuDays) ? config.menuDays : [];
+    const availableMonths = [...new Set(allDays.map(d => (d.date || '').slice(0, 7)).filter(Boolean))].sort().reverse();
+
+    // Hangi ay gösterilecek? (Aktif ay varsa o, yoksa en güncel kayıtlı ay veya customMonth)
+    let targetMonth = customMonth;
+    if (!targetMonth) {
+      if (availableMonths.includes(currentYearMonth)) {
+        targetMonth = currentYearMonth;
+      } else if (availableMonths.length > 0) {
+        targetMonth = availableMonths[0]; // Akıllı Fallback: Ay geçişinde boş ekran göstermez!
+      } else {
+        targetMonth = currentYearMonth;
+      }
+    }
+
+    this.selectedCateringMonth = targetMonth;
+    const targetMonthTitle = this.formatMonthTitle(targetMonth);
 
     if (titleEl) {
-      titleEl.textContent = `🍽️ ${currentMonthTitle} Yemek Menüsü`;
+      titleEl.textContent = `🍽️ ${targetMonthTitle} Yemek Menüsü`;
     }
 
     if (subtitleEl) {
@@ -309,15 +334,12 @@ export class CateringShuttleModule {
       }
     }
 
-    // Bugünün Tarihi
-    const todayStr = now.toISOString().split("T")[0];
+    // Seçili aya ait menü günleri
+    const monthDays = allDays.filter(d => d.date && d.date.startsWith(targetMonth));
 
-    // Sadece içinde bulunulan aya ait menü günlerini filtrele
-    const monthDays = (config.menuDays || []).filter(d => d.date && d.date.startsWith(currentYearMonth));
-
-    // Bugünün Yemekleri Banner'ı
+    // Bugünün Yemekleri Banner'ı (Tüm listeden bugünün tarihine bakar)
     if (todayBanner) {
-      const todayMeal = monthDays.find(m => m.date === todayStr);
+      const todayMeal = allDays.find(m => m.date === todayStr);
 
       if (todayMeal && (todayMeal.soup || todayMeal.mainDish || (Array.isArray(todayMeal.items) && todayMeal.items.length > 0))) {
         const soup = todayMeal.soup || (todayMeal.items && todayMeal.items[0]) || "";
@@ -357,18 +379,42 @@ export class CateringShuttleModule {
     // Menü İçerik Alanı (Aylık Liste & Kartlar)
     if (container) {
       if (monthDays.length > 0) {
+        const isNotCurrent = targetMonth !== currentYearMonth;
         container.innerHTML = `
           <div class="space-y-4">
-            <!-- Arama & Filtreleme Çubuğu -->
+            ${isNotCurrent ? `
+              <div class="p-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 rounded-xl text-xs flex items-center gap-2">
+                <span class="text-base">ℹ️</span>
+                <span><b>${this.formatMonthTitle(currentYearMonth)}</b> menüsü henüz tedarikçiden yüklenmediğinden son kayıtlı olan <b>${targetMonthTitle}</b> menüsü görüntülenmektedir.</span>
+              </div>
+            ` : ''}
+
+            <!-- Arama & Filtreleme & Ay Seçimi Çubuğu -->
             <div class="flex items-center justify-between flex-wrap gap-2.5 bg-slate-50 dark:bg-slate-800/60 p-3 rounded-2xl border border-slate-200 dark:border-slate-700">
               <div class="flex-1 min-w-[200px] relative">
-                <input type="text" id="input-search-catering-menu" placeholder="Menüde yemek ara... (Örn: Köfte, Çorba, Fasulye, Makarna)" class="w-full text-xs pl-8 pr-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 outline-none focus:ring-2 focus:ring-blue-500 text-slate-800 dark:text-slate-100 font-medium">
+                <input type="text" id="input-search-catering-menu" placeholder="Menüde yemek ara... (Örn: Köfte, Çorba, Fasulye, Pilav)" class="w-full text-xs pl-8 pr-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 outline-none focus:ring-2 focus:ring-blue-500 text-slate-800 dark:text-slate-100 font-medium">
                 <span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs">🔍</span>
               </div>
-              <div class="text-xs font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-                <span class="bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-md font-black text-[11px]">${monthDays.length} Gün</span>
-                <span>${currentMonthTitle}</span>
-              </div>
+
+              <!-- Ay Seçici Dropdown -->
+              ${availableMonths.length > 1 ? `
+                <div class="flex items-center gap-1.5">
+                  <label for="select-catering-month" class="text-[11px] font-bold text-slate-500 dark:text-slate-400">Ay:</label>
+                  <select id="select-catering-month" class="text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-2.5 py-1.5 font-bold text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
+                    ${availableMonths.map(ym => `
+                      <option value="${ym}" ${ym === targetMonth ? 'selected' : ''}>
+                        📅 ${this.formatMonthTitle(ym)} (${allDays.filter(d => d.date.startsWith(ym)).length} Gün)
+                      </option>
+                    `).join('')}
+                  </select>
+                </div>
+              ` : `
+                <div class="text-xs font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                  <span class="bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-md font-black text-[11px]">${monthDays.length} Gün</span>
+                  <span>${targetMonthTitle}</span>
+                </div>
+              `}
+
               ${config.menuImage ? `
                 <div class="flex items-center gap-1.5">
                   <button type="button" id="btn-toggle-menu-view-list" class="bg-blue-600 text-white text-[11px] font-bold px-2.5 py-1.5 rounded-lg transition cursor-pointer">📋 Günlük Liste</button>
@@ -385,17 +431,19 @@ export class CateringShuttleModule {
                 const main = day.mainDish || (day.items && day.items[1]) || "-";
                 const side = day.sideDish || (day.items && day.items[2]) || "-";
                 const extra = day.extra || (day.items && day.items[3]) || "-";
+                const dayNum = (day.date || '').split('-')[2] || '';
+                const mTitle = this.formatMonthTitle((day.date || '').slice(0, 7)).split(' ')[0] || '';
 
                 return `
-                  <div class="catering-day-card p-3.5 rounded-2xl border transition ${isToday ? 'border-emerald-500 bg-emerald-50/40 dark:bg-emerald-950/20 ring-2 ring-emerald-500/30' : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700'}" data-menu-text="${(day.items || [soup, main, side, extra]).join(' ').toLowerCase()}">
+                  <div class="catering-day-card p-3.5 rounded-2xl border transition ${isToday ? 'border-emerald-500 bg-emerald-50/40 dark:bg-emerald-950/20 ring-2 ring-emerald-500/30 shadow-md' : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700'}" data-menu-text="${(day.items || [soup, main, side, extra]).join(' ').toLowerCase()}">
                     <div class="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800 mb-2">
                       <div class="flex items-center gap-1.5">
                         <span class="text-xs font-black ${isToday ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-800 dark:text-slate-200'}">
-                          ${day.date.split('-')[2]} ${currentMonthName}
+                          ${dayNum} ${mTitle}
                         </span>
                         <span class="text-[11px] text-slate-500 dark:text-slate-400 font-semibold">(${day.dayName || ''})</span>
                       </div>
-                      ${isToday ? '<span class="bg-emerald-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full">BUGÜN</span>' : ''}
+                      ${isToday ? '<span class="bg-emerald-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full shadow-xs">BUGÜN</span>' : ''}
                     </div>
 
                     <div class="space-y-1.5 text-xs">
@@ -434,6 +482,14 @@ export class CateringShuttleModule {
             ` : ''}
           </div>
         `;
+
+        // Ay seçici dinleyicisi
+        const monthSelect = container.querySelector("#select-catering-month");
+        if (monthSelect) {
+          monthSelect.addEventListener("change", (e) => {
+            this.renderCateringModalContent(e.target.value);
+          });
+        }
 
         // Arama kutusu canlı filtreleme
         const searchInput = container.querySelector("#input-search-catering-menu");
@@ -507,16 +563,21 @@ export class CateringShuttleModule {
           };
         }
       } else {
-        // Menü henüz bulunmuyor
+        // Menü henüz bulunmuyor ama başka ay varsa link göster
         container.innerHTML = `
           <div class="bg-slate-50 dark:bg-slate-800/60 border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-3xl p-8 sm:p-12 text-center flex flex-col items-center justify-center">
             <div class="w-16 h-16 rounded-2xl bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center text-3xl mb-3 shadow-inner">
               🍽️
             </div>
-            <h4 class="text-base font-black text-slate-800 dark:text-white">${currentMonthTitle} Menüsü Hazırlanmaktadır</h4>
+            <h4 class="text-base font-black text-slate-800 dark:text-white">${targetMonthTitle} Menüsü Hazırlanmaktadır</h4>
             <p class="text-xs text-slate-500 dark:text-slate-400 max-w-md mt-1 mb-4">
               Bu aya ait yemek menüsü bilgileri yemek şirketinden güncellendiğinde burada otomatik olarak yayınlanacaktır.
             </p>
+            ${availableMonths.length > 0 ? `
+              <button type="button" onclick="window.portalApp.cateringShuttle.renderCateringModalContent('${availableMonths[0]}')" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black py-2.5 px-4 rounded-xl shadow-sm transition flex items-center gap-1.5 cursor-pointer">
+                <span>📅</span> <span>Kayıtlı Menüyü Görüntüle (${this.formatMonthTitle(availableMonths[0])})</span>
+              </button>
+            ` : ''}
           </div>
         `;
       }
@@ -634,11 +695,107 @@ export class CateringShuttleModule {
     const monthEl = document.getElementById("ik-catering-month-display");
     const companyEl = document.getElementById("ik-catering-company-display");
 
-    if (monthEl) monthEl.textContent = config.menuMonth || "Ekim 2026";
-    if (companyEl) companyEl.textContent = config.companyName || "Yemek Şirketi";
+    const now = new Date();
+    const currentYearMonth = now.toISOString().slice(0, 7);
+    const todayStr = now.toISOString().split("T")[0];
+    const allDays = Array.isArray(config.menuDays) ? config.menuDays : [];
+
+    const activeMonth = config.menuMonth || this.formatMonthTitle(currentYearMonth);
+    if (monthEl) monthEl.textContent = activeMonth;
+    if (companyEl) companyEl.textContent = config.companyName || "Kayra Yemek";
 
     if (imgPreview) {
-      if (config.menuImage) {
+      if (allDays.length > 0) {
+        // Bugün ve sonraki 2 günün yemeklerini önizlemede özet olarak göster
+        const todayMeal = allDays.find(m => m.date === todayStr);
+        const upcomingDays = allDays.filter(m => (m.date || '') >= todayStr).slice(0, 3);
+        const displayList = upcomingDays.length > 0 ? upcomingDays : allDays.slice(-3);
+
+        imgPreview.innerHTML = `
+          <div class="w-full space-y-4">
+            <!-- Bugünün Menüsü Vurgu Kartı -->
+            ${todayMeal ? `
+              <div class="bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 text-white p-4 rounded-2xl shadow-md border border-emerald-500 flex items-center justify-between flex-wrap gap-3">
+                <div class="flex items-center gap-3 min-w-0">
+                  <span class="text-3xl bg-white/20 p-2.5 rounded-xl flex-shrink-0">🍲</span>
+                  <div class="min-w-0">
+                    <div class="text-[11px] font-black uppercase tracking-wider text-emerald-100 flex items-center gap-2">
+                      <span>⭐ BUGÜNÜN MENÜSÜ</span>
+                      <span class="bg-white/25 px-2 py-0.5 rounded text-[10px] font-bold">${todayMeal.date} &bull; ${todayMeal.dayName || ''}</span>
+                    </div>
+                    <div class="text-xs sm:text-sm font-bold mt-1 flex flex-wrap gap-x-4 gap-y-1 text-white">
+                      <span>🥣 <b class="font-black">${todayMeal.soup || (todayMeal.items && todayMeal.items[0]) || '-'}</b></span>
+                      <span>🥩 <b class="font-black">${todayMeal.mainDish || (todayMeal.items && todayMeal.items[1]) || '-'}</b></span>
+                      <span>🍚 <b class="font-black">${todayMeal.sideDish || (todayMeal.items && todayMeal.items[2]) || '-'}</b></span>
+                      <span>🥗 <b class="font-black">${todayMeal.extra || (todayMeal.items && todayMeal.items[3]) || '-'}</b></span>
+                    </div>
+                  </div>
+                </div>
+                <button type="button" onclick="window.portalApp.cateringShuttle.openCateringModal()" class="bg-white hover:bg-emerald-50 text-emerald-800 text-xs font-black px-3.5 py-2 rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer flex-shrink-0">
+                  <span>🔍</span> <span>Tüm Ayı Gör</span>
+                </button>
+              </div>
+            ` : ''}
+
+            <!-- Yaklaşan Günlerin Yemekleri Önizleme Izgarası -->
+            <div>
+              <div class="flex items-center justify-between mb-2.5">
+                <h4 class="text-xs font-extrabold text-slate-700 dark:text-slate-200 flex items-center gap-1.5">
+                  <span>📅</span> <span>Haftalık Yemek Akışı</span>
+                  <span class="text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-bold px-2 py-0.5 rounded-full">${allDays.length} Gün Kayıtlı</span>
+                </h4>
+                <button type="button" onclick="window.portalApp.cateringShuttle.openCateringModal()" class="text-xs text-blue-600 dark:text-blue-400 hover:underline font-bold cursor-pointer">
+                  Tüm Ayın Menüsünü Aç (30 Gün) &rarr;
+                </button>
+              </div>
+
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                ${displayList.map(day => {
+                  const isToday = day.date === todayStr;
+                  const soup = day.soup || (day.items && day.items[0]) || "-";
+                  const main = day.mainDish || (day.items && day.items[1]) || "-";
+                  const side = day.sideDish || (day.items && day.items[2]) || "-";
+                  const extra = day.extra || (day.items && day.items[3]) || "-";
+                  const dayNum = (day.date || '').split('-')[2] || '';
+                  const mTitle = this.formatMonthTitle((day.date || '').slice(0, 7)).split(' ')[0] || '';
+
+                  return `
+                    <div class="p-3 rounded-xl border ${isToday ? 'border-emerald-500 bg-emerald-50/40 dark:bg-emerald-950/20' : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900'} space-y-1.5 shadow-xs">
+                      <div class="flex items-center justify-between pb-1.5 border-b border-slate-100 dark:border-slate-800">
+                        <span class="text-xs font-black ${isToday ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-800 dark:text-slate-200'}">${dayNum} ${mTitle} (${day.dayName || ''})</span>
+                        ${isToday ? '<span class="bg-emerald-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full">BUGÜN</span>' : ''}
+                      </div>
+                      <div class="text-[11px] space-y-1 text-slate-700 dark:text-slate-300">
+                        <div class="truncate">🥣 <span class="font-medium">${soup}</span></div>
+                        <div class="truncate">🥩 <span class="font-black text-blue-700 dark:text-blue-400">${main}</span></div>
+                        <div class="truncate">🍚 <span>${side}</span></div>
+                        <div class="truncate">🥗 <span class="text-slate-500">${extra}</span></div>
+                      </div>
+                    </div>
+                  `;
+                }).join("")}
+              </div>
+            </div>
+
+            <!-- Eylem Butonları -->
+            <div class="pt-2 flex items-center justify-between flex-wrap gap-2 border-t border-slate-100 dark:border-slate-800">
+              <span class="text-[11px] text-slate-500 dark:text-slate-400">
+                Tedarikçi: <b class="text-slate-700 dark:text-slate-300">${config.companyName || "Kayra Yemek"}</b> &bull; Otomatik Menü Takvimi
+              </span>
+              <div class="flex items-center gap-2">
+                <button type="button" onclick="window.portalApp.cateringShuttle.openCateringModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black py-2 px-4 rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer">
+                  <span>📋</span> <span>Aylık Listeyi Tam Ekran Aç</span>
+                </button>
+                ${config.menuImage ? `
+                  <button type="button" onclick="window.portalApp.cateringShuttle.openCateringModal()" class="bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold py-2 px-3 rounded-xl transition flex items-center gap-1 cursor-pointer">
+                    <span>🖼️</span> <span>Görsel Menü</span>
+                  </button>
+                ` : ''}
+              </div>
+            </div>
+          </div>
+        `;
+      } else if (config.menuImage) {
         imgPreview.innerHTML = `
           <div class="relative bg-slate-900 rounded-2xl p-2 flex flex-col items-center overflow-hidden">
             <img src="${config.menuImage}" alt="Aylık Yemek Menüsü" class="max-h-[60vh] w-auto max-w-full object-contain rounded-xl shadow-lg">
@@ -656,8 +813,8 @@ export class CateringShuttleModule {
         imgPreview.innerHTML = `
           <div class="p-8 text-center bg-slate-50 dark:bg-slate-800/50 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-700">
             <span class="text-3xl block mb-2">🍽️</span>
-            <div class="text-xs font-bold text-slate-700 dark:text-slate-200">Görsel Yüklenmedi</div>
-            <p class="text-[11px] text-slate-500 mt-1">Yönetici panelinden bu aya ait menü resmini yükleyebilirsiniz.</p>
+            <div class="text-xs font-bold text-slate-700 dark:text-slate-200">Menü Yüklenmedi</div>
+            <p class="text-[11px] text-slate-500 mt-1">Yönetici panelinden bu aya ait menü bilgilerini güncelleyebilirsiniz.</p>
           </div>
         `;
       }

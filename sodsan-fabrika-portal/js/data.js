@@ -2168,10 +2168,43 @@ export const DEFAULT_CATERING_CONFIG = {
   password: "2025",
   menuUrl: "",
   menuImage: "",
-  menuMonth: "Ekim 2026",
-  updatedAt: "2026-10-24T10:30:00.000Z",
+  menuMonth: "Kasım 2026",
+  updatedAt: "2026-11-02T10:00:00.000Z",
   updatedBy: "Kayra Yemek Entegrasyonu",
   menuDays: [
+    // Kasım 2026 Günlük Menü Listesi (30 Gün Eksiksiz)
+    { date: "2026-11-01", dayName: "Pazar", soup: "MERCİMEK ÇORBA", mainDish: "İZMİR KÖFTE", sideDish: "PİRİNÇ PİLAVI", extra: "MEVSİM SALATA", items: ["MERCİMEK ÇORBA", "İZMİR KÖFTE", "PİRİNÇ PİLAVI", "MEVSİM SALATA"] },
+    { date: "2026-11-02", dayName: "Pazartesi", soup: "ŞEF ÇORBA", mainDish: "ORMAN KEBABI", sideDish: "ŞEHRİYELİ BULGUR PİLAVI", extra: "AYRAN", items: ["ŞEF ÇORBA", "ORMAN KEBABI", "ŞEHRİYELİ BULGUR PİLAVI", "AYRAN"] },
+    { date: "2026-11-03", dayName: "Salı", soup: "EZOGELİN ÇORBA", mainDish: "KURU FASULYE", sideDish: "MELEK PİLAVI", extra: "KARIŞIK TURŞU", items: ["EZOGELİN ÇORBA", "KURU FASULYE", "MELEK PİLAVI", "KARIŞIK TURŞU"] },
+    { date: "2026-11-04", dayName: "Çarşamba", soup: "YAYLA ÇORBA", mainDish: "PİLİÇ FAJİTA", sideDish: "FESLEĞENLİ BURGU MAKARNA", extra: "SUPANGLE", items: ["YAYLA ÇORBA", "PİLİÇ FAJİTA", "FESLEĞENLİ BURGU MAKARNA", "SUPANGLE"] },
+    { date: "2026-11-05", dayName: "Perşembe", soup: "DOMATES ÇORBA", mainDish: "AFYON KÖFTE", sideDish: "FIRIN MAKARNA", extra: "AYRAN", items: ["DOMATES ÇORBA", "AFYON KÖFTE", "FIRIN MAKARNA", "AYRAN"] },
+    { date: "2026-11-06", dayName: "Cuma", soup: "DÜĞÜN ÇORBA", mainDish: "KAĞIT KEBABI", sideDish: "PİRİNÇ PİLAVI", extra: "SÜTLÜ İRMİK TATLISI", items: ["DÜĞÜN ÇORBA", "KAĞIT KEBABI", "PİRİNÇ PİLAVI", "SÜTLÜ İRMİK TATLISI"] },
+    { date: "2026-11-07", dayName: "Cumartesi", soup: "TARHANA ÇORBA", mainDish: "PİLİÇ ŞİNİTZEL / PATATES PÜRE", sideDish: "BULGUR PİLAVI", extra: "MEYVE", items: ["TARHANA ÇORBA", "PİLİÇ ŞİNİTZEL / PATATES PÜRE", "BULGUR PİLAVI", "MEYVE"] },
+    { date: "2026-11-08", dayName: "Pazar", soup: "ROMEN ÇORBA", mainDish: "KIYMALI BEZELYE", sideDish: "SOSLU MAKARNA", extra: "YOĞURT", items: ["ROMEN ÇORBA", "KIYMALI BEZELYE", "SOSLU MAKARNA", "YOĞURT"] },
+    { date: "2026-11-09", dayName: "Pazartesi", soup: "TUTMAÇ ÇORBA", mainDish: "KARNIYARIK", sideDish: "PİRİNÇ PİLAVI", extra: "CACIK", items: ["TUTMAÇ ÇORBA", "KARNIYARIK", "PİRİNÇ PİLAVI", "CACIK"] },
+    { date: "2026-11-10", dayName: "Salı", soup: "MERCİMEK ÇORBA", mainDish: "PİLİÇ ROSTO / GARNİTÜR", sideDish: "SOSLU ERİŞTE", extra: "KEMALPAŞA TATLISI", items: ["MERCİMEK ÇORBA", "PİLİÇ ROSTO / GARNİTÜR", "SOSLU ERİŞTE", "KEMALPAŞA TATLISI"] },
+    { date: "2026-11-11", dayName: "Çarşamba", soup: "TAVUKSUYU ÇORBA", mainDish: "ETLİ NOHUT", sideDish: "MELEK PİLAVI", extra: "KARIŞIK TURŞU", items: ["TAVUKSUYU ÇORBA", "ETLİ NOHUT", "MELEK PİLAVI", "KARIŞIK TURŞU"] },
+    { date: "2026-11-12", dayName: "Perşembe", soup: "ŞEHRİYE ÇORBA", mainDish: "HASANPAŞA KÖFTE", sideDish: "FIRIN MAKARNA", extra: "AYRAN", items: ["ŞEHRİYE ÇORBA", "HASANPAŞA KÖFTE", "FIRIN MAKARNA", "AYRAN"] },
+    { date: "2026-11-13", dayName: "Cuma", soup: "TANDIR ÇORBA", mainDish: "FIRIN TAS KEBABI", sideDish: "ŞEHRİYELİ PİRİNÇ PİLAVI", extra: "REVANİ", items: ["TANDIR ÇORBA", "FIRIN TAS KEBABI", "ŞEHRİYELİ PİRİNÇ PİLAVI", "REVANİ"] },
+    { date: "2026-11-14", dayName: "Cumartesi", soup: "EZOGELİN ÇORBA", mainDish: "PİLİÇ SOTE", sideDish: "BULGUR PİLAVI", extra: "MEYVE", items: ["EZOGELİN ÇORBA", "PİLİÇ SOTE", "BULGUR PİLAVI", "MEYVE"] },
+    { date: "2026-11-15", dayName: "Pazar", soup: "YAYLA ÇORBA", mainDish: "ZEYTİNYAĞLI TAZE FASULYE", sideDish: "SU BÖREĞİ", extra: "KOMPOSTO", items: ["YAYLA ÇORBA", "ZEYTİNYAĞLI TAZE FASULYE", "SU BÖREĞİ", "KOMPOSTO"] },
+    { date: "2026-11-16", dayName: "Pazartesi", soup: "MERCİMEK ÇORBA", mainDish: "KADINBUDU KÖFTE / ELMA DİLİM PATATES", sideDish: "KUSKUS PİLAVI", extra: "AYRAN", items: ["MERCİMEK ÇORBA", "KADINBUDU KÖFTE / ELMA DİLİM PATATES", "KUSKUS PİLAVI", "AYRAN"] },
+    { date: "2026-11-17", dayName: "Salı", soup: "ANTEP ÇORBA", mainDish: "KURU FASULYE", sideDish: "PİRİNÇ PİLAVI", extra: "CACIK", items: ["ANTEP ÇORBA", "KURU FASULYE", "PİRİNÇ PİLAVI", "CACIK"] },
+    { date: "2026-11-18", dayName: "Çarşamba", soup: "ŞEF ÇORBA", mainDish: "KÖRİ SOSLU TAVUK", sideDish: "SOSLU PENNE MAKARNA", extra: "ÇİKOLATALI PUDİNG", items: ["ŞEF ÇORBA", "KÖRİ SOSLU TAVUK", "SOSLU PENNE MAKARNA", "ÇİKOLATALI PUDİNG"] },
+    { date: "2026-11-19", dayName: "Perşembe", soup: "DOMATES ÇORBA", mainDish: "DALYAN KÖFTE", sideDish: "PATATES PÜRESİ", extra: "ŞEKERPARE", items: ["DOMATES ÇORBA", "DALYAN KÖFTE", "PATATES PÜRESİ", "ŞEKERPARE"] },
+    { date: "2026-11-20", dayName: "Cuma", soup: "DÜĞÜN ÇORBA", mainDish: "DANA KAVURMA", sideDish: "ŞEHRİYELİ PİRİNÇ PİLAVI", extra: "AYRAN", items: ["DÜĞÜN ÇORBA", "DANA KAVURMA", "ŞEHRİYELİ PİRİNÇ PİLAVI", "AYRAN"] },
+    { date: "2026-11-21", dayName: "Cumartesi", soup: "TUTMAÇ ÇORBA", mainDish: "SEBZELİ TAVUK GÜVEÇ", sideDish: "BULGUR PİLAVI", extra: "MEYVE", items: ["TUTMAÇ ÇORBA", "SEBZELİ TAVUK GÜVEÇ", "BULGUR PİLAVI", "MEYVE"] },
+    { date: "2026-11-22", dayName: "Pazar", soup: "ROMEN ÇORBA", mainDish: "KIYMALI ISPANAK", sideDish: "FIRIN MAKARNA", extra: "YOĞURT", items: ["ROMEN ÇORBA", "KIYMALI ISPANAK", "FIRIN MAKARNA", "YOĞURT"] },
+    { date: "2026-11-23", dayName: "Pazartesi", soup: "MERCİMEK ÇORBA", mainDish: "İNEGÖL KÖFTE / KÖZ BİBER", sideDish: "PİRİNÇ PİLAVI", extra: "PİYAZ", items: ["MERCİMEK ÇORBA", "İNEGÖL KÖFTE / KÖZ BİBER", "PİRİNÇ PİLAVI", "PİYAZ"] },
+    { date: "2026-11-24", dayName: "Salı", soup: "TAVUKSUYU ÇORBA", mainDish: "ETLİ NOHUT", sideDish: "MELEK PİLAVI", extra: "KARIŞIK TURŞU", items: ["TAVUKSUYU ÇORBA", "ETLİ NOHUT", "MELEK PİLAVI", "KARIŞIK TURŞU"] },
+    { date: "2026-11-25", dayName: "Çarşamba", soup: "YAYLA ÇORBA", mainDish: "ÇITIR TAVUK SCHNITZEL", sideDish: "NAPOLİTEN MAKARNA", extra: "MEYVE", items: ["YAYLA ÇORBA", "ÇITIR TAVUK SCHNITZEL", "NAPOLİTEN MAKARNA", "MEYVE"] },
+    { date: "2026-11-26", dayName: "Perşembe", soup: "EZOGELİN ÇORBA", mainDish: "İZMİR KÖFTE", sideDish: "BULGUR PİLAVI", extra: "AYRAN", items: ["EZOGELİN ÇORBA", "İZMİR KÖFTE", "BULGUR PİLAVI", "AYRAN"] },
+    { date: "2026-11-27", dayName: "Cuma", soup: "TANDIR ÇORBA", mainDish: "HÜNKAR BEĞENDİ", sideDish: "PİRİNÇ PİLAVI", extra: "KALBURABASTI", items: ["TANDIR ÇORBA", "HÜNKAR BEĞENDİ", "PİRİNÇ PİLAVI", "KALBURABASTI"] },
+    { date: "2026-11-28", dayName: "Cumartesi", soup: "ŞEHRİYE ÇORBA", mainDish: "PİLİÇ BAGET / FIRIN PATATES", sideDish: "ERİŞTE", extra: "MEYVE SUYU", items: ["ŞEHRİYE ÇORBA", "PİLİÇ BAGET / FIRIN PATATES", "ERİŞTE", "MEYVE SUYU"] },
+    { date: "2026-11-29", dayName: "Pazar", soup: "TARHANA ÇORBA", mainDish: "KURU FASULYE", sideDish: "PİRİNÇ PİLAVI", extra: "TURŞU", items: ["TARHANA ÇORBA", "KURU FASULYE", "PİRİNÇ PİLAVI", "TURŞU"] },
+    { date: "2026-11-30", dayName: "Pazartesi", soup: "MERCİMEK ÇORBA", mainDish: "FIRIN KÖFTE PATATES", sideDish: "SOSLU SPAGETTİ", extra: "FIRIN SÜTLAÇ", items: ["MERCİMEK ÇORBA", "FIRIN KÖFTE PATATES", "SOSLU SPAGETTİ", "FIRIN SÜTLAÇ"] },
+
+    // Ekim 2026 Günlük Menü Listesi (Geçmiş Ay Kayıtları Korunur)
     { date: "2026-10-01", dayName: "Perşembe", soup: "ŞEF ÇORBA", mainDish: "AFYON KÖFTE (4 ADET)", sideDish: "KETÇAPLI İNCE UZUN MAKARNA", extra: "AYRAN", items: ["ŞEF ÇORBA", "AFYON KÖFTE (4 ADET)", "KETÇAPLI İNCE UZUN MAKARNA", "AYRAN"] },
     { date: "2026-10-02", dayName: "Cuma", soup: "TAVUKSUYU ÇORBA", mainDish: "YOĞURTLU SEBZE TAVA", sideDish: "SU BÖREĞİ (H)", extra: "REVANİ", items: ["TAVUKSUYU ÇORBA", "YOĞURTLU SEBZE TAVA", "SU BÖREĞİ (H)", "REVANİ"] },
     { date: "2026-10-03", dayName: "Cumartesi", soup: "MERCİMEK ÇORBA", mainDish: "PİLİÇ ORMAN", sideDish: "ERİŞTE", extra: "ARMUT", items: ["MERCİMEK ÇORBA", "PİLİÇ ORMAN", "ERİŞTE", "ARMUT"] },
@@ -2666,7 +2699,16 @@ export class StateManager {
       if (!parsed.cateringConfig || typeof parsed.cateringConfig !== "object") {
         parsed.cateringConfig = JSON.parse(JSON.stringify(DEFAULT_CATERING_CONFIG));
       } else {
-        const hasDays = Array.isArray(parsed.cateringConfig.menuDays) && parsed.cateringConfig.menuDays.length > 0;
+        const existingDays = Array.isArray(parsed.cateringConfig.menuDays) ? parsed.cateringConfig.menuDays : [];
+        const mergedDays = [...existingDays];
+        // DEFAULT_CATERING_CONFIG içerisindeki yeni ay menülerini (Örn: Kasım 2026) otomatik birleştir
+        (DEFAULT_CATERING_CONFIG.menuDays || []).forEach(defDay => {
+          if (!mergedDays.some(d => d.date === defDay.date)) {
+            mergedDays.push(defDay);
+          }
+        });
+        mergedDays.sort((a, b) => (a.date || "").localeCompare(b.date || ""));
+
         parsed.cateringConfig = {
           companyName: parsed.cateringConfig.companyName && parsed.cateringConfig.companyName !== "Yemek Şirketi"
             ? parsed.cateringConfig.companyName 
@@ -2676,8 +2718,10 @@ export class StateManager {
           password: parsed.cateringConfig.password || DEFAULT_CATERING_CONFIG.password,
           menuUrl: parsed.cateringConfig.menuUrl || DEFAULT_CATERING_CONFIG.menuUrl,
           menuImage: parsed.cateringConfig.menuImage || "",
-          menuMonth: parsed.cateringConfig.menuMonth || DEFAULT_CATERING_CONFIG.menuMonth,
-          menuDays: hasDays ? parsed.cateringConfig.menuDays : JSON.parse(JSON.stringify(DEFAULT_CATERING_CONFIG.menuDays)),
+          menuMonth: (!parsed.cateringConfig.menuMonth || parsed.cateringConfig.menuMonth === "Ekim 2026") 
+            ? DEFAULT_CATERING_CONFIG.menuMonth 
+            : parsed.cateringConfig.menuMonth,
+          menuDays: mergedDays,
           updatedAt: parsed.cateringConfig.updatedAt || DEFAULT_CATERING_CONFIG.updatedAt,
           updatedBy: parsed.cateringConfig.updatedBy || DEFAULT_CATERING_CONFIG.updatedBy
         };
