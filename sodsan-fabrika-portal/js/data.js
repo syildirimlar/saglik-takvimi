@@ -2536,9 +2536,14 @@ export class StateManager {
           if (!existing) {
             parsed.users.push(defUser);
           } else {
-            // Admin şifresini eğer boşsa veya 1234 ise kullanıcının asıl PIN'i (58105810) ile güncelle
-            if (defUser.username === "admin" && (!existing.pin || existing.pin === "1234")) {
-              existing.pin = defUser.pin;
+            // Admin kullanıcısının rolünü ve erişim yetkilerini daima garanti et
+            if (defUser.username === "admin" || defUser.id === "u_admin") {
+              existing.role = "ADMIN";
+              existing.username = "admin";
+              existing.id = "u_admin";
+              if (!existing.pin || existing.pin === "1234") {
+                existing.pin = defUser.pin;
+              }
             }
           }
         });

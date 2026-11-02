@@ -71,7 +71,7 @@
       </div>
 
       <!-- Giriş Formu -->
-      <form id="form-auth-login" class="space-y-4">
+      <form id="form-auth-login" class="space-y-4" onsubmit="event.preventDefault(); if(window.portalApp){window.portalApp.handleLoginSubmit();} return false;">
         
         <!-- Kullanıcı Adı Girişi (Mobilde otomatik zoom yapmaması için 16px text-base) -->
         <div>
@@ -109,13 +109,13 @@
         </div>
 
         <!-- Giriş Yap Butonu -->
-        <button type="submit" id="btn-submit-login" class="w-full bg-blue-600 hover:bg-blue-700 active:scale-[0.99] text-white font-black text-sm py-3.5 px-4 rounded-xl shadow-lg shadow-blue-600/20 transition flex items-center justify-center gap-2 cursor-pointer">
+        <button type="submit" id="btn-submit-login" onclick="event.preventDefault(); if(window.portalApp){window.portalApp.handleLoginSubmit();}" class="w-full bg-blue-600 hover:bg-blue-700 active:scale-[0.99] text-white font-black text-sm py-3.5 px-4 rounded-xl shadow-lg shadow-blue-600/20 transition flex items-center justify-center gap-2 cursor-pointer">
           <span>🚀</span> <span>Güvenli Giriş Yap</span>
         </button>
 
         <!-- Hızlı Tek Tıkla Yönetici Girişi -->
         <div class="pt-2">
-          <button type="button" id="btn-quick-admin-login" class="w-full bg-slate-900 hover:bg-slate-800 active:scale-[0.99] text-white font-black text-xs py-3 px-3 rounded-xl shadow-md border border-blue-500/40 transition flex items-center justify-center gap-2 cursor-pointer">
+          <button type="button" id="btn-quick-admin-login" onclick="event.preventDefault(); if(window.portalApp && typeof window.portalApp.directLoginAsAdmin === 'function'){window.portalApp.directLoginAsAdmin();} else { localStorage.setItem('sodsan_auth_user_id','u_admin'); sessionStorage.setItem('sodsan_session_user_id','u_admin'); location.reload(); }" class="w-full bg-slate-900 hover:bg-slate-800 active:scale-[0.99] text-white font-black text-xs py-3 px-3 rounded-xl shadow-md border border-blue-500/40 transition flex items-center justify-center gap-2 cursor-pointer">
             <span>👑</span> <span>Tek Tıkla Yönetici (Admin) Girişi</span>
           </button>
           <div class="text-[11px] text-center text-slate-500 dark:text-slate-400 mt-2">
@@ -4338,7 +4338,7 @@
         }
       });
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js?v=73').then((reg) => {
+        navigator.serviceWorker.register('sw.js?v=74').then((reg) => {
           if (reg) reg.update();
         }).catch(err => {
           console.log('SW registration failed:', err);
@@ -4348,6 +4348,6 @@
   </script>
 
   <!-- ES Modül Girişi -->
-  <script type="module" src="js/app.js?v=9.3"></script>
+  <script type="module" src="js/app.js?v=9.4"></script>
 </body>
 </html>

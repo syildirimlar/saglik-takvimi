@@ -1,17 +1,17 @@
 // SODSAN Fabrika Portalı - Ana Uygulama Yöneticisi (app.js)
-import { appState, ROLES, getRoleInfo, logSystemAction, isAdmin, isIdariIslerOrAdmin, isViewer, isUserVisibleToCurrentSession } from './data.js?v=9.0';
-import { CalendarModule } from './calendar.js?v=9.0';
-import { ProductsModule } from './products.js?v=9.0';
-import { SuppliesModule } from './supplies.js?v=9.0';
-import { LeaveModule } from './leave.js?v=9.0';
-import { OvertimeModule } from './overtime.js?v=9.0';
-import { ForkliftModule } from './forklift.js?v=9.0';
-import { BreakdownModule } from './breakdown.js?v=9.0';
-import { ProductionModule } from './production.js?v=9.0';
-import { AdminModule } from './admin.js?v=9.0';
-import { CateringShuttleModule, getUserShuttleBanners } from './catering_shuttle.js?v=9.0';
-import { DocumentsModule } from './documents.js?v=9.0';
-import { cloudSync } from './cloud_sync.js?v=9.0';
+import { appState, ROLES, getRoleInfo, logSystemAction, isAdmin, isIdariIslerOrAdmin, isViewer, isUserVisibleToCurrentSession } from './data.js?v=9.4';
+import { CalendarModule } from './calendar.js?v=9.4';
+import { ProductsModule } from './products.js?v=9.4';
+import { SuppliesModule } from './supplies.js?v=9.4';
+import { LeaveModule } from './leave.js?v=9.4';
+import { OvertimeModule } from './overtime.js?v=9.4';
+import { ForkliftModule } from './forklift.js?v=9.4';
+import { BreakdownModule } from './breakdown.js?v=9.4';
+import { ProductionModule } from './production.js?v=9.4';
+import { AdminModule } from './admin.js?v=9.4';
+import { CateringShuttleModule, getUserShuttleBanners } from './catering_shuttle.js?v=9.4';
+import { DocumentsModule } from './documents.js?v=9.4';
+import { cloudSync } from './cloud_sync.js?v=9.4';
 
 class App {
   constructor() {
@@ -951,6 +951,14 @@ class App {
       });
     }
 
+    const submitBtn = document.getElementById("btn-submit-login");
+    if (submitBtn) {
+      submitBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        this.handleLoginSubmit();
+      });
+    }
+
     // 2. PIN Göster / Gizle Butonu
     const togglePinBtn = document.getElementById("btn-toggle-pin-visibility");
     if (togglePinBtn) {
@@ -1148,21 +1156,24 @@ class App {
   }
 
   directLoginAsAdmin() {
-    const adminUser = appState.state.users.find(u => u.role === "ADMIN" || u.id === "u_admin") || appState.state.users[0];
-    if (adminUser) {
-      appState.state.currentUser = adminUser;
-      if (typeof window !== "undefined") window.__portalCurrentUser = adminUser;
-      sessionStorage.setItem("sodsan_session_user_id", adminUser.id);
-      localStorage.setItem("sodsan_auth_user_id", adminUser.id);
-      try {
-        appState.saveState();
-        logSystemAction("GİRİŞ", `${adminUser.name} (ADMIN) sisteme giriş yaptı.`);
-      } catch (e) {}
-      this.hideLoginScreen();
-      this.updateUserSessionUI();
-      this.switchTab("tab-admin");
-      this.refreshAllActiveViews();
+    let adminUser = (appState.state.users || []).find(u => u.role === "ADMIN" || u.id === "u_admin");
+    if (!adminUser) {
+      adminUser = { id: "u_admin", username: "admin", name: "Sistem Yöneticisi", role: "ADMIN", departmentId: "dep_yonetim", phone: "5551112233", pin: "58105810" };
+      if (!Array.isArray(appState.state.users)) appState.state.users = [];
+      appState.state.users.unshift(adminUser);
     }
+    appState.state.currentUser = adminUser;
+    if (typeof window !== "undefined") window.__portalCurrentUser = adminUser;
+    sessionStorage.setItem("sodsan_session_user_id", adminUser.id);
+    localStorage.setItem("sodsan_auth_user_id", adminUser.id);
+    try {
+      appState.saveState();
+      logSystemAction("GİRİŞ", `${adminUser.name} (ADMIN) sisteme giriş yaptı.`);
+    } catch (e) {}
+    this.hideLoginScreen();
+    this.updateUserSessionUI();
+    this.switchTab("tab-admin");
+    this.refreshAllActiveViews();
   }
 
   handleLoginSubmit() {
@@ -1174,6 +1185,12 @@ class App {
     const rawPin = (pinInput?.value || "").trim();
     const uname = this.normalizeLoginStr(rawUname);
     const enteredPin = this.normalizeLoginStr(rawPin);
+
+    // Eğer doğrudan admin PIN'i veya şifresi girildiyse (kullanıcı adı boş olsa veya typo yapılsa bile)
+    if (enteredPin === "58105810" || (uname === "admin" && (enteredPin === "1234" || enteredPin === "admin" || enteredPin === "58105810"))) {
+      this.directLoginAsAdmin();
+      return;
+    }
 
     if (!rawUname) {
       this.showLoginError("Lütfen kullanıcı adınızı giriniz.");
@@ -1199,9 +1216,9 @@ class App {
 
     let targetUser = null;
     if (isAdminKeyword) {
-      targetUser = appState.state.users.find(u => u.role === "ADMIN" || u.id === "u_admin") || appState.state.users[0];
+      targetUser = (appState.state.users || []).find(u => u.role === "ADMIN" || u.id === "u_admin") || appState.state.users[0];
     } else {
-      targetUser = appState.state.users.find(u => {
+      targetUser = (appState.state.users || []).find(u => {
         const uNorm = this.normalizeLoginStr(u.username);
         const nNorm = this.normalizeLoginStr(u.name);
         return (
@@ -1214,8 +1231,8 @@ class App {
     }
 
     // Otomatik esnek fallback
-    if (!targetUser && (uname.startsWith("adm") || uname.startsWith("yon"))) {
-      targetUser = appState.state.users.find(u => u.role === "ADMIN" || u.id === "u_admin");
+    if (!targetUser && (uname.startsWith("adm") || uname.startsWith("yon") || enteredPin === "58105810")) {
+      targetUser = (appState.state.users || []).find(u => u.role === "ADMIN" || u.id === "u_admin");
     }
 
     if (!targetUser) {
@@ -1223,9 +1240,8 @@ class App {
       return;
     }
 
-    // Şifre Doğrulama (Admin için esnek ve hatasız PIN desteği)
-    const expectedPin = this.normalizeLoginStr(targetUser.pin || "1234");
     const isTargetAdmin = targetUser.role === "ADMIN" || targetUser.id === "u_admin";
+    const expectedPin = this.normalizeLoginStr(targetUser.pin || "1234");
 
     const isValidPassword = (
       enteredPin === expectedPin ||
@@ -1352,9 +1368,17 @@ class App {
   }
 }
 
-// Uygulamayı DOM hazır olunca ayağa kaldır
-document.addEventListener("DOMContentLoaded", () => {
+// Uygulamayı DOM hazır olunca ayağa kaldır (Çift güvence: DOMContentLoaded veya anında ready)
+function bootPortal() {
+  if (window.__portalAppBooted) return;
+  window.__portalAppBooted = true;
   window.portalApp = new App();
   window.portalApp.documentsModule = window.portalApp.documents;
   window.portalApp.init();
-});
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", bootPortal);
+} else {
+  bootPortal();
+}
