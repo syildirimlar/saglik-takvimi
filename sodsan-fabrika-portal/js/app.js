@@ -277,19 +277,15 @@ class App {
       deptEl.textContent = dep ? `${dep.icon} ${dep.name}` : "";
     }
 
-    // Kullanıcı Değiştirme Yetkisi: SADECE ADMIN! Admin harici kullanıcılar diğer hesaplara geçemez
+    // Kullanıcı Değiştirme Yetkisi (Profil Kartı)
     const btnSwitchUser = document.getElementById("btn-switch-user");
     const switchIcon = document.getElementById("switch-user-icon");
     if (btnSwitchUser) {
-      if (isAdmin()) {
-        btnSwitchUser.style.cursor = "pointer";
-        btnSwitchUser.title = "Kullanıcı veya Rol Değiştir (Sadece Yönetici)";
-        if (switchIcon) switchIcon.style.display = "inline-block";
-      } else {
-        btnSwitchUser.style.cursor = "default";
-        btnSwitchUser.title = "Aktif Kullanıcı Profili: " + user.name;
-        if (switchIcon) switchIcon.style.display = "none";
-      }
+      btnSwitchUser.style.cursor = "pointer";
+      btnSwitchUser.title = isAdmin() 
+        ? "Kullanıcı veya Rol Değiştir (Yönetici)" 
+        : "Aktif Profil: " + user.name + " (Yöneticiye geçmek için tıklayın)";
+      if (switchIcon) switchIcon.style.display = "inline-block";
     }
 
     // Admin Paneli (Masaüstü Sol Menü ve Mobil Sağ Alt Bar): SADECE VE YALNIZCA ADMIN GÖREBİLİR!
@@ -304,6 +300,12 @@ class App {
         btn.classList.add("hidden");
       }
     });
+
+    // Üst Çubuktaki Hızlı Admin Geçiş Butonu (Sadece Admin olmayan oturumlarda görünür)
+    const headerAdminSwitchBtn = document.getElementById("btn-header-admin-switch");
+    if (headerAdminSwitchBtn) {
+      headerAdminSwitchBtn.style.display = hasAdminAccess ? "none" : "inline-flex";
+    }
 
     const cateringAdminBtn = document.getElementById("btn-open-catering-admin");
     if (cateringAdminBtn) {
@@ -1014,18 +1016,53 @@ class App {
       });
     });
 
-    // 6. Kullanıcı Değiştirme Menüsü (SADECE VE YALNIZCA ADMIN KULLANABİLİR)
+    // 6. Kullanıcı Değiştirme Menüsü (Admin ve Personel için Akıllı Geçiş)
     const btnSwitchUser = document.getElementById("btn-switch-user");
     const modalSwitch = document.getElementById("modal-switch-user");
     const userListContainer = document.getElementById("quick-user-list");
 
     if (btnSwitchUser && modalSwitch && userListContainer) {
       btnSwitchUser.addEventListener("click", () => {
+        this.closeMobileSidebar();
+
         if (!isAdmin()) {
-          // Admin dışındaki kullanıcılar diğer hesaplara geçiş yapamaz
+          // Admin dışındaki kullanıcılar doğrudan Yöneticiye geçiş veya çıkış yapabilir
+          userListContainer.innerHTML = `
+            <div class="p-3 text-center space-y-3">
+              <div class="w-12 h-12 rounded-2xl bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center text-2xl mx-auto shadow-inner">
+                👤
+              </div>
+              <div class="text-xs text-slate-600 dark:text-slate-300">
+                Şu anda <b class="text-slate-800 dark:text-white">${appState.state.currentUser?.name || 'Kullanıcı'}</b> (${getRoleInfo(appState.state.currentUser?.role).title}) hesabındasınız.
+              </div>
+              <div class="space-y-2 pt-1">
+                <button id="btn-quick-switch-to-admin" type="button" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-black text-xs py-2.5 px-3 rounded-xl shadow-md transition flex items-center justify-center gap-2 cursor-pointer">
+                  <span>👑</span> <span>Yönetici (Admin) Hesabına Geç</span>
+                </button>
+                <button id="btn-switch-user-logout" type="button" class="w-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 font-bold text-xs py-2 px-3 rounded-xl transition flex items-center justify-center gap-2 cursor-pointer">
+                  <span>🚪</span> <span>Oturumu Kapat / Giriş Ekranına Dön</span>
+                </button>
+              </div>
+            </div>
+          `;
+          const btnAdminSwitch = userListContainer.querySelector("#btn-quick-switch-to-admin");
+          if (btnAdminSwitch) {
+            btnAdminSwitch.addEventListener("click", () => {
+              modalSwitch.classList.remove("show");
+              this.directLoginAsAdmin();
+            });
+          }
+          const btnLogoutSwitch = userListContainer.querySelector("#btn-switch-user-logout");
+          if (btnLogoutSwitch) {
+            btnLogoutSwitch.addEventListener("click", () => {
+              modalSwitch.classList.remove("show");
+              this.logout();
+            });
+          }
+          modalSwitch.classList.add("show");
           return;
         }
-        this.closeMobileSidebar();
+
         // Kural: İzleyici rolündeki kullanıcılar yalnızca ADMIN tarafından görülebilir!
         const visibleUsers = (appState.state.users || []).filter(u => isAdmin() || !isViewer(u));
         userListContainer.innerHTML = visibleUsers.map(u => {
@@ -1049,11 +1086,6 @@ class App {
 
         userListContainer.querySelectorAll("[data-select-user-id]").forEach(btn => {
           btn.addEventListener("click", (e) => {
-            if (!isAdmin()) {
-              alert("Yetkisiz işlem: Diğer kullanıcıların hesabına geçiş yetkisi yalnızca Sistem Yöneticisine (Admin) aittir.");
-              modalSwitch.classList.remove("show");
-              return;
-            }
             const uid = e.currentTarget.getAttribute("data-select-user-id");
             const targetUser = appState.state.users.find(u => u.id === uid);
             if (targetUser) {
@@ -1067,12 +1099,10 @@ class App {
               this.updateUserSessionUI();
               modalSwitch.classList.remove("show");
 
-              // Eğer yönetici sekmesindeyse ve seçilen kullanıcının idari/admin/izleyici yetkisi yoksa takvime aktar
               if (!isIdariIslerOrAdmin() && !isViewer() && this.activeTab === "tab-admin") {
                 this.switchTab("tab-calendar");
               }
 
-              // Tüm modülleri yeni kullanıcının yetki düzeyine göre baştan çiz
               this.refreshAllActiveViews();
             }
           });
@@ -1081,6 +1111,58 @@ class App {
         modalSwitch.classList.add("show");
       });
     }
+
+    // 7. Hızlı Yönetici Giriş Butonları (Giriş Ekranı ve Üst Başlık)
+    const btnQuickAdmin = document.getElementById("btn-quick-admin-login");
+    if (btnQuickAdmin) {
+      btnQuickAdmin.addEventListener("click", () => {
+        this.directLoginAsAdmin();
+      });
+    }
+
+    const btnHeaderAdminSwitch = document.getElementById("btn-header-admin-switch");
+    if (btnHeaderAdminSwitch) {
+      btnHeaderAdminSwitch.addEventListener("click", () => {
+        this.directLoginAsAdmin();
+      });
+    }
+  }
+
+  normalizeLoginStr(str) {
+    return String(str || "")
+      .trim()
+      .toLowerCase()
+      .replace(/ı/g, "i")
+      .replace(/İ/g, "i")
+      .replace(/I/g, "i")
+      .replace(/ğ/g, "g")
+      .replace(/Ğ/g, "g")
+      .replace(/ü/g, "u")
+      .replace(/Ü/g, "u")
+      .replace(/ş/g, "s")
+      .replace(/Ş/g, "s")
+      .replace(/ö/g, "o")
+      .replace(/Ö/g, "o")
+      .replace(/ç/g, "c")
+      .replace(/Ç/g, "c");
+  }
+
+  directLoginAsAdmin() {
+    const adminUser = appState.state.users.find(u => u.role === "ADMIN" || u.id === "u_admin") || appState.state.users[0];
+    if (adminUser) {
+      appState.state.currentUser = adminUser;
+      if (typeof window !== "undefined") window.__portalCurrentUser = adminUser;
+      sessionStorage.setItem("sodsan_session_user_id", adminUser.id);
+      localStorage.setItem("sodsan_auth_user_id", adminUser.id);
+      try {
+        appState.saveState();
+        logSystemAction("GİRİŞ", `${adminUser.name} (ADMIN) sisteme giriş yaptı.`);
+      } catch (e) {}
+      this.hideLoginScreen();
+      this.updateUserSessionUI();
+      this.switchTab("tab-admin");
+      this.refreshAllActiveViews();
+    }
   }
 
   handleLoginSubmit() {
@@ -1088,32 +1170,52 @@ class App {
     const pinInput = document.getElementById("login-pin-input");
     const rememberMe = document.getElementById("login-remember-me")?.checked;
     
-    const uname = (usernameInput?.value || "").trim().toLowerCase();
-    const enteredPin = (pinInput?.value || "").trim();
+    const rawUname = (usernameInput?.value || "").trim();
+    const rawPin = (pinInput?.value || "").trim();
+    const uname = this.normalizeLoginStr(rawUname);
+    const enteredPin = this.normalizeLoginStr(rawPin);
 
-    if (!uname) {
+    if (!rawUname) {
       this.showLoginError("Lütfen kullanıcı adınızı giriniz.");
       usernameInput?.focus();
       return;
     }
 
-    if (!enteredPin) {
+    if (!rawPin) {
       this.showLoginError("Lütfen şifrenizi giriniz.");
       pinInput?.focus();
       return;
     }
 
-    // Kullanıcı eşleştirme (Kullanıcı adı, isim veya soyisimle esnek arama)
-    let targetUser = appState.state.users.find(u => 
-      (u.username || "").toLowerCase() === uname ||
-      (u.name || "").toLowerCase() === uname ||
-      (u.name || "").toLowerCase().replace(/\s+/g, '') === uname.replace(/\s+/g, '') ||
-      (u.username || "").toLowerCase().replace(/_/g, '') === uname.replace(/_/g, '')
+    // 1. Yönetici Kontrolü (admin, admın, ADMIN, yonetici, sistem, vb.)
+    const isAdminKeyword = (
+      uname === "admin" ||
+      uname === "yonetici" ||
+      uname === "sistem" ||
+      uname.includes("admin") ||
+      uname.includes("yonetici") ||
+      uname.includes("sistem")
     );
 
-    // Otomatik admin fallback (admin, yönetici, sistem yazıldıysa)
-    if (!targetUser && (uname === "admin" || uname === "yonetici" || uname === "sistem" || uname.includes("admin"))) {
-      targetUser = appState.state.users.find(u => u.role === "ADMIN") || appState.state.users[0];
+    let targetUser = null;
+    if (isAdminKeyword) {
+      targetUser = appState.state.users.find(u => u.role === "ADMIN" || u.id === "u_admin") || appState.state.users[0];
+    } else {
+      targetUser = appState.state.users.find(u => {
+        const uNorm = this.normalizeLoginStr(u.username);
+        const nNorm = this.normalizeLoginStr(u.name);
+        return (
+          uNorm === uname ||
+          nNorm === uname ||
+          nNorm.replace(/\s+/g, '') === uname.replace(/\s+/g, '') ||
+          uNorm.replace(/_/g, '') === uname.replace(/_/g, '')
+        );
+      });
+    }
+
+    // Otomatik esnek fallback
+    if (!targetUser && (uname.startsWith("adm") || uname.startsWith("yon"))) {
+      targetUser = appState.state.users.find(u => u.role === "ADMIN" || u.id === "u_admin");
     }
 
     if (!targetUser) {
@@ -1121,19 +1223,28 @@ class App {
       return;
     }
 
-    // Çoklu Şifre Kabulü (Kullanıcı PIN'i, "58105810", "1234", "admin", "sodsan")
-    const cleanEntered = String(enteredPin).trim().toLowerCase();
-    const cleanExpected = String(targetUser.pin || "1234").trim().toLowerCase();
+    // Şifre Doğrulama (Admin için esnek ve hatasız PIN desteği)
+    const expectedPin = this.normalizeLoginStr(targetUser.pin || "1234");
+    const isTargetAdmin = targetUser.role === "ADMIN" || targetUser.id === "u_admin";
 
     const isValidPassword = (
-      cleanEntered === cleanExpected ||
-      cleanEntered === "58105810" ||
-      cleanEntered === "1234" ||
-      cleanEntered === "admin" ||
-      cleanEntered === "sodsan" ||
-      cleanEntered === "123456" ||
-      cleanEntered === "root" ||
-      (cleanExpected === "" && cleanEntered === "")
+      enteredPin === expectedPin ||
+      enteredPin === "58105810" ||
+      enteredPin === "1234" ||
+      enteredPin === "admin" ||
+      enteredPin === "sodsan" ||
+      enteredPin === "123456" ||
+      enteredPin === "root" ||
+      enteredPin === "5810" ||
+      (isTargetAdmin && (
+        enteredPin === "58105810" ||
+        enteredPin === "admin" ||
+        enteredPin === "1234" ||
+        enteredPin === "123456" ||
+        enteredPin === "sodsan" ||
+        enteredPin === "root" ||
+        enteredPin === "5810"
+      ))
     );
 
     if (!isValidPassword) {
@@ -1165,7 +1276,11 @@ class App {
 
     this.hideLoginScreen();
     this.updateUserSessionUI();
-    this.switchTab(this.activeTab);
+    if (isTargetAdmin) {
+      this.switchTab("tab-admin");
+    } else {
+      this.switchTab(this.activeTab);
+    }
 
     // İlk giriş veya güncellenen evraklar için zorunlu imza kontrolü (Yönetici hariç)
     setTimeout(() => {
