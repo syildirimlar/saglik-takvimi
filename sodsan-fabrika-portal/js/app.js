@@ -1,17 +1,17 @@
 // SODSAN Fabrika Portalı - Ana Uygulama Yöneticisi (app.js)
-import { appState, ROLES, getRoleInfo, logSystemAction, isAdmin, isIdariIslerOrAdmin, isViewer, isUserVisibleToCurrentSession } from './data.js?v=9.5';
-import { CalendarModule } from './calendar.js?v=9.5';
-import { ProductsModule } from './products.js?v=9.5';
-import { SuppliesModule } from './supplies.js?v=9.5';
-import { LeaveModule } from './leave.js?v=9.5';
-import { OvertimeModule } from './overtime.js?v=9.5';
-import { ForkliftModule } from './forklift.js?v=9.5';
-import { BreakdownModule } from './breakdown.js?v=9.5';
-import { ProductionModule } from './production.js?v=9.5';
-import { AdminModule } from './admin.js?v=9.5';
-import { CateringShuttleModule, getUserShuttleBanners } from './catering_shuttle.js?v=9.5';
-import { DocumentsModule } from './documents.js?v=9.5';
-import { cloudSync } from './cloud_sync.js?v=9.5';
+import { appState, ROLES, getRoleInfo, logSystemAction, isAdmin, isIdariIslerOrAdmin, isViewer, isUserVisibleToCurrentSession } from './data.js?v=9.6';
+import { CalendarModule } from './calendar.js?v=9.6';
+import { ProductsModule } from './products.js?v=9.6';
+import { SuppliesModule } from './supplies.js?v=9.6';
+import { LeaveModule } from './leave.js?v=9.6';
+import { OvertimeModule } from './overtime.js?v=9.6';
+import { ForkliftModule } from './forklift.js?v=9.6';
+import { BreakdownModule } from './breakdown.js?v=9.6';
+import { ProductionModule } from './production.js?v=9.6';
+import { AdminModule } from './admin.js?v=9.6';
+import { CateringShuttleModule, getUserShuttleBanners } from './catering_shuttle.js?v=9.6';
+import { DocumentsModule } from './documents.js?v=9.6';
+import { cloudSync } from './cloud_sync.js?v=9.6';
 
 class App {
   constructor() {
@@ -947,10 +947,10 @@ class App {
 
     const submitBtn = document.getElementById("btn-submit-login");
     if (submitBtn) {
-      submitBtn.addEventListener("click", (e) => {
+      submitBtn.onclick = (e) => {
         e.preventDefault();
         this.handleLoginSubmit();
-      });
+      };
     }
 
     // 2. PIN Göster / Gizle Butonu
@@ -1129,106 +1129,111 @@ class App {
   }
 
   handleLoginSubmit() {
-    const usernameInput = document.getElementById("login-username-input");
-    const pinInput = document.getElementById("login-pin-input");
-    const rememberMe = document.getElementById("login-remember-me")?.checked;
-    
-    const rawUname = (usernameInput?.value || "").trim();
-    const rawPin = (pinInput?.value || "").trim();
-
-    if (!rawUname) {
-      this.showLoginError("Lütfen kullanıcı adınızı giriniz.");
-      usernameInput?.focus();
-      return;
-    }
-
-    if (!rawPin) {
-      this.showLoginError("Lütfen şifrenizi giriniz.");
-      pinInput?.focus();
-      return;
-    }
-
-    const unameNorm = this.normalizeLoginStr(rawUname);
-
-    // 1. Kullanıcıyı Bul (kullanıcı adı veya ad-soyad üzerinden)
-    let targetUser = (appState.state.users || []).find(u => {
-      const uNorm = this.normalizeLoginStr(u.username);
-      const nNorm = this.normalizeLoginStr(u.name);
-      return (
-        uNorm === unameNorm ||
-        nNorm === unameNorm ||
-        uNorm.replace(/_/g, '') === unameNorm.replace(/_/g, '') ||
-        nNorm.replace(/\s+/g, '') === unameNorm.replace(/\s+/g, '')
-      );
-    });
-
-    // 2. Yönetici Anahtar Kelimeleri (admin, yonetici, sistem)
-    if (!targetUser && (unameNorm === "admin" || unameNorm === "yonetici" || unameNorm === "sistem")) {
-      targetUser = (appState.state.users || []).find(u => u.role === "ADMIN" || u.id === "u_admin");
-    }
-
-    if (!targetUser) {
-      this.showLoginError("Kullanıcı adı veya şifre hatalı.");
-      return;
-    }
-
-    // 3. Kesin Şifre Doğrulama:
-    // SADECE ve YALNIZCA kullanıcının belirlediği / sistemde kayıtlı şifre doğrulanır.
-    // Asla '1234' gibi genel şifreler veya arka kapı geçişleri admin için kabul edilmez.
-    const storedPin = String(targetUser.pin || "").trim();
-    const isTargetAdmin = targetUser.role === "ADMIN" || targetUser.id === "u_admin";
-    const expectedPin = storedPin || (isTargetAdmin ? "58105810" : "1234");
-
-    if (rawPin !== expectedPin) {
-      this.showLoginError("Kullanıcı adı veya şifre hatalı.");
-      return;
-    }
-
-    // Başarılı Giriş
-    appState.state.currentUser = targetUser;
-    if (typeof window !== "undefined") window.__portalCurrentUser = targetUser;
     try {
-      appState.saveState();
-    } catch (e) {
-      console.warn("State kaydedilemedi:", e);
-    }
+      const usernameInput = document.getElementById("login-username-input");
+      const pinInput = document.getElementById("login-pin-input");
+      const rememberMe = document.getElementById("login-remember-me")?.checked;
+      
+      const rawUname = (usernameInput?.value || "").trim();
+      const rawPin = (pinInput?.value || "").trim();
 
-    if (rememberMe) {
-      localStorage.setItem("sodsan_auth_user_id", targetUser.id);
-    } else {
-      localStorage.removeItem("sodsan_auth_user_id");
-    }
-    sessionStorage.setItem("sodsan_session_user_id", targetUser.id);
-
-    try {
-      logSystemAction("GİRİŞ", `${targetUser.name} (${targetUser.role}) kullanıcı adı ile giriş yaptı.`);
-    } catch (e) {
-      console.warn("Giriş logu yazılamadı:", e);
-    }
-
-    this.hideLoginScreen();
-    this.updateUserSessionUI();
-    if (isTargetAdmin) {
-      this.switchTab("tab-admin");
-    } else {
-      this.switchTab(this.activeTab);
-    }
-
-    // İlk giriş veya güncellenen evraklar için zorunlu imza kontrolü (Yönetici hariç)
-    setTimeout(() => {
-      if (targetUser.role !== "ADMIN" && targetUser.id !== "u_admin") {
-        this.documents?.checkPendingSignaturesAndPrompt?.(targetUser);
+      if (!rawUname) {
+        this.showLoginError("Lütfen kullanıcı adınızı giriniz.");
+        usernameInput?.focus();
+        return;
       }
-    }, 350);
 
-    // Giriş sonrası modül içeriklerini ve yetki görünümlerini tazele
-    try {
-      if (this.production && typeof this.production.render === "function") this.production.render();
-      if (this.breakdown && typeof this.breakdown.render === "function") this.breakdown.render();
-      if (this.products && typeof this.products.render === "function") this.products.render();
-      if (this.calendar && typeof this.calendar.render === "function") this.calendar.render();
-    } catch (e) {
-      console.warn("Giriş sonrası modül tazeleme uyarısı:", e);
+      if (!rawPin) {
+        this.showLoginError("Lütfen şifrenizi giriniz.");
+        pinInput?.focus();
+        return;
+      }
+
+      const unameNorm = this.normalizeLoginStr(rawUname);
+
+      // 1. Kullanıcıyı Bul (kullanıcı adı veya ad-soyad üzerinden)
+      let targetUser = (appState.state.users || []).find(u => {
+        const uNorm = this.normalizeLoginStr(u.username);
+        const nNorm = this.normalizeLoginStr(u.name);
+        return (
+          uNorm === unameNorm ||
+          nNorm === unameNorm ||
+          uNorm.replace(/_/g, '') === unameNorm.replace(/_/g, '') ||
+          nNorm.replace(/\s+/g, '') === unameNorm.replace(/\s+/g, '')
+        );
+      });
+
+      // 2. Yönetici Anahtar Kelimeleri (admin, yonetici, sistem)
+      if (!targetUser && (unameNorm === "admin" || unameNorm === "yonetici" || unameNorm === "sistem")) {
+        targetUser = (appState.state.users || []).find(u => u.role === "ADMIN" || u.id === "u_admin");
+      }
+
+      if (!targetUser) {
+        this.showLoginError("Kullanıcı adı veya şifre hatalı.");
+        return;
+      }
+
+      // 3. Kesin Şifre Doğrulama:
+      // SADECE ve YALNIZCA kullanıcının belirlediği / sistemde kayıtlı şifre doğrulanır.
+      // Asla '1234' gibi genel şifreler veya arka kapı geçişleri admin için kabul edilmez.
+      const storedPin = String(targetUser.pin || "").trim();
+      const isTargetAdmin = targetUser.role === "ADMIN" || targetUser.id === "u_admin";
+      const expectedPin = storedPin || (isTargetAdmin ? "58105810" : "1234");
+
+      if (rawPin !== expectedPin) {
+        this.showLoginError("Kullanıcı adı veya şifre hatalı.");
+        return;
+      }
+
+      // Başarılı Giriş
+      appState.state.currentUser = targetUser;
+      if (typeof window !== "undefined") window.__portalCurrentUser = targetUser;
+      try {
+        appState.saveState();
+      } catch (e) {
+        console.warn("State kaydedilemedi:", e);
+      }
+
+      if (rememberMe) {
+        localStorage.setItem("sodsan_auth_user_id", targetUser.id);
+      } else {
+        localStorage.removeItem("sodsan_auth_user_id");
+      }
+      sessionStorage.setItem("sodsan_session_user_id", targetUser.id);
+
+      try {
+        logSystemAction("GİRİŞ", `${targetUser.name} (${targetUser.role}) kullanıcı adı ile giriş yaptı.`);
+      } catch (e) {
+        console.warn("Giriş logu yazılamadı:", e);
+      }
+
+      this.hideLoginScreen();
+      this.updateUserSessionUI();
+      if (isTargetAdmin) {
+        this.switchTab("tab-admin");
+      } else {
+        this.switchTab(this.activeTab);
+      }
+
+      // İlk giriş veya güncellenen evraklar için zorunlu imza kontrolü (Yönetici hariç)
+      setTimeout(() => {
+        if (targetUser.role !== "ADMIN" && targetUser.id !== "u_admin") {
+          this.documents?.checkPendingSignaturesAndPrompt?.(targetUser);
+        }
+      }, 350);
+
+      // Giriş sonrası modül içeriklerini ve yetki görünümlerini tazele
+      try {
+        if (this.production && typeof this.production.render === "function") this.production.render();
+        if (this.breakdown && typeof this.breakdown.render === "function") this.breakdown.render();
+        if (this.products && typeof this.products.render === "function") this.products.render();
+        if (this.calendar && typeof this.calendar.render === "function") this.calendar.render();
+      } catch (e) {
+        console.warn("Giriş sonrası modül tazeleme uyarısı:", e);
+      }
+    } catch (err) {
+      console.error("Giriş işlemi sırasında hata oluştu:", err);
+      this.showLoginError("Giriş sırasında bir hata oluştu: " + (err.message || err));
     }
   }
 

@@ -257,7 +257,7 @@ export class CateringShuttleModule {
       "09": "Eylül", "10": "Ekim", "11": "Kasım", "12": "Aralık"
     };
     return `${monthNamesTr[m] || m} ${y}`;
-  },
+  }
 
   openCateringModal() {
     this.renderCateringModalContent();
@@ -265,7 +265,7 @@ export class CateringShuttleModule {
     if (modal) {
       modal.classList.add("show");
     }
-  },
+  }
 
   renderCateringModalContent(customMonth = null) {
     const config = appState.state.cateringConfig || {};

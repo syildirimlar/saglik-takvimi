@@ -2452,6 +2452,22 @@ export function fixMojibake(val) {
   return val;
 }
 
+// Güvenli ID Bazlı Dizi Birleştirici (Tüm modüller ve loadState için küresel)
+export function mergeById(baseArr, incomingArr) {
+  const map = new Map();
+  if (Array.isArray(baseArr)) {
+    baseArr.forEach(item => { if (item && item.id) map.set(item.id, { ...item }); });
+  }
+  if (Array.isArray(incomingArr)) {
+    incomingArr.forEach(item => {
+      if (item && item.id) {
+        map.set(item.id, { ...(map.get(item.id) || {}), ...item });
+      }
+    });
+  }
+  return Array.from(map.values());
+}
+
 // LocalStorage Veri Yükleyici & Saklayıcı
 export class StateManager {
   constructor() {
@@ -3328,7 +3344,17 @@ export class StateManager {
           local.users.forEach(u => { if (u && u.id) userMap.set(u.id, u); });
         }
         if (Array.isArray(parsed.users)) {
-          parsed.users.forEach(u => { if (u && u.id) userMap.set(u.id, { ...(userMap.get(u.id) || {}), ...u }); });
+          parsed.users.forEach(u => {
+            if (u && u.id) {
+              const existing = userMap.get(u.id);
+              // Güvenlik Kalkanı: Yerelde belirlenen şifre, buluttan gelen eski veriyle asla ezilemez!
+              if (existing && existing.pin) {
+                userMap.set(u.id, { ...u, pin: existing.pin });
+              } else {
+                userMap.set(u.id, { ...(existing || {}), ...u });
+              }
+            }
+          });
         }
 
         // 7. Yardımcı fonksiyon: ID bazlı birleştirme
