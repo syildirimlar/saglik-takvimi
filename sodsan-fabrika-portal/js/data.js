@@ -2539,9 +2539,10 @@ export class StateManager {
             // Admin kullanıcısının rolünü ve erişim yetkilerini daima garanti et
             if (defUser.username === "admin" || defUser.id === "u_admin") {
               existing.role = "ADMIN";
-              existing.username = "admin";
               existing.id = "u_admin";
-              if (!existing.pin || existing.pin === "1234") {
+              // YALNIZCA şifre alanı tamamen boşsa varsayılan PIN atanır.
+              // Kullanıcının belirlediği özel şifreye ASLA dokunulmaz ve ezilmez!
+              if (!existing.pin) {
                 existing.pin = defUser.pin;
               }
             }

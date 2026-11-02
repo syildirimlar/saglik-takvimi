@@ -113,16 +113,6 @@
           <span>🚀</span> <span>Güvenli Giriş Yap</span>
         </button>
 
-        <!-- Hızlı Tek Tıkla Yönetici Girişi -->
-        <div class="pt-2">
-          <button type="button" id="btn-quick-admin-login" onclick="event.preventDefault(); if(window.portalApp && typeof window.portalApp.directLoginAsAdmin === 'function'){window.portalApp.directLoginAsAdmin();} else { localStorage.setItem('sodsan_auth_user_id','u_admin'); sessionStorage.setItem('sodsan_session_user_id','u_admin'); location.reload(); }" class="w-full bg-slate-900 hover:bg-slate-800 active:scale-[0.99] text-white font-black text-xs py-3 px-3 rounded-xl shadow-md border border-blue-500/40 transition flex items-center justify-center gap-2 cursor-pointer">
-            <span>👑</span> <span>Tek Tıkla Yönetici (Admin) Girişi</span>
-          </button>
-          <div class="text-[11px] text-center text-slate-500 dark:text-slate-400 mt-2">
-            Admin Bilgileri: Kullanıcı: <b class="text-blue-600 dark:text-blue-400">admin</b> &bull; Şifre: <b class="text-blue-600 dark:text-blue-400">58105810</b> veya <b class="text-blue-600 dark:text-blue-400">1234</b>
-          </div>
-        </div>
-
       </form>
 
       <!-- PWA Uygulama Olarak Yükleme Butonu (Giriş Ekranında) -->
@@ -354,11 +344,6 @@
 
         <!-- Sağ: Hızlı Bildirimler & Tarih -->
         <div class="flex items-center gap-1 sm:gap-1.5 flex-shrink-0">
-          <!-- Yöneticiye Geçiş Hızlı Butonu (Admin dışındaki oturumlarda görünür) -->
-          <button id="btn-header-admin-switch" type="button" class="hidden bg-amber-500 hover:bg-amber-600 active:scale-95 text-white font-extrabold text-xs px-2 py-1.5 sm:px-2.5 sm:py-1.5 rounded-lg shadow-xs transition flex items-center gap-1 cursor-pointer flex-shrink-0" title="Yönetici (Admin) Yetkisine Geç">
-            <span>👑</span> <span class="hidden sm:inline">Admin Girişi</span>
-          </button>
-
           <!-- Yemek Menüsü Hızlı Butonu (En Tepe) -->
           <button data-open-catering-menu class="bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white font-extrabold text-xs px-2 py-1.5 sm:px-2.5 sm:py-1.5 rounded-lg shadow-xs transition flex items-center gap-1 cursor-pointer flex-shrink-0" title="Aylık Yemek Menüsünü Görüntüle">
             <span>🍽️</span> <span class="hidden lg:inline">Yemek Menüsü</span>
@@ -4338,7 +4323,7 @@
         }
       });
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js?v=74').then((reg) => {
+        navigator.serviceWorker.register('sw.js?v=75').then((reg) => {
           if (reg) reg.update();
         }).catch(err => {
           console.log('SW registration failed:', err);
@@ -4348,6 +4333,6 @@
   </script>
 
   <!-- ES Modül Girişi -->
-  <script type="module" src="js/app.js?v=9.4"></script>
+  <script type="module" src="js/app.js?v=9.5"></script>
 </body>
 </html>
