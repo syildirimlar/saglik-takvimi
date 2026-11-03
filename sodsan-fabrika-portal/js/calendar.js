@@ -31,7 +31,9 @@ export class CalendarModule {
     const nextBtn = document.getElementById("cal-next-month");
     const todayBtn = document.getElementById("cal-today-btn");
     const addEventBtn = document.getElementById("btn-add-calendar-event");
+    const addShipmentBtn = document.getElementById("btn-add-shipment-event");
     const modalDayAddBtn = document.getElementById("btn-modal-day-add-event");
+    const modalDayAddShipmentBtn = document.getElementById("btn-modal-day-add-shipment");
 
     if (prevBtn) {
       prevBtn.addEventListener("click", () => {
@@ -57,7 +59,13 @@ export class CalendarModule {
 
     if (addEventBtn) {
       addEventBtn.addEventListener("click", () => {
-        this.openAddEventModal();
+        this.openAddEventModal(null, "MAKINABAKIM");
+      });
+    }
+
+    if (addShipmentBtn) {
+      addShipmentBtn.addEventListener("click", () => {
+        this.openAddEventModal(null, "SEVKIYAT");
       });
     }
 
@@ -65,9 +73,65 @@ export class CalendarModule {
       modalDayAddBtn.addEventListener("click", () => {
         const modalDay = document.getElementById("modal-day-events");
         if (modalDay) modalDay.classList.remove("show");
-        this.openAddEventModal(this.formatDateKey(this.selectedDate));
+        this.openAddEventModal(this.formatDateKey(this.selectedDate), "MAKINABAKIM");
       });
     }
+
+    if (modalDayAddShipmentBtn) {
+      modalDayAddShipmentBtn.addEventListener("click", () => {
+        const modalDay = document.getElementById("modal-day-events");
+        if (modalDay) modalDay.classList.remove("show");
+        this.openAddEventModal(this.formatDateKey(this.selectedDate), "SEVKIYAT");
+      });
+    }
+
+    // Plan Türü Değişince Başlıkları Dinamik Güncelle (Sevkiyat vs Bakım)
+    const eventTypeSelect = document.getElementById("event-type");
+    if (eventTypeSelect) {
+      eventTypeSelect.addEventListener("change", () => {
+        this.updateAddEventModalLabels();
+      });
+    }
+
+    const editEventTypeSelect = document.getElementById("edit-event-type");
+    if (editEventTypeSelect) {
+      editEventTypeSelect.addEventListener("change", () => {
+        this.updateEditEventModalLabels();
+      });
+    }
+
+    // Hızlı Şekil ve Bölge Çipleri Dinleyicisi
+    document.querySelectorAll(".btn-ship-type-chip").forEach(chip => {
+      chip.addEventListener("click", (e) => {
+        e.preventDefault();
+        const text = e.currentTarget.textContent.trim();
+        const titleInput = document.getElementById("event-title");
+        if (titleInput) {
+          const curVal = titleInput.value.trim();
+          if (!curVal) {
+            titleInput.value = text;
+          } else if (curVal.includes("/")) {
+            const parts = curVal.split("/");
+            titleInput.value = `${parts[0].trim()} / ${text}`;
+          } else {
+            titleInput.value = `${curVal} / ${text}`;
+          }
+          titleInput.focus();
+        }
+      });
+    });
+
+    document.querySelectorAll(".btn-ship-zone-chip").forEach(chip => {
+      chip.addEventListener("click", (e) => {
+        e.preventDefault();
+        const text = e.currentTarget.textContent.trim();
+        const notesInput = document.getElementById("event-notes");
+        if (notesInput) {
+          notesInput.value = text;
+          notesInput.focus();
+        }
+      });
+    });
 
     // Modal Form Gönderimi (Yeni Plan Ekleme)
     const formAdd = document.getElementById("form-add-event");
@@ -250,14 +314,20 @@ export class CalendarModule {
       const isEdu = ev.type === "EGITIM";
       const badge = document.createElement("div");
       badge.className = `calendar-badge text-[10px] font-bold py-0.5 px-1 sm:px-1.5 rounded truncate flex items-center gap-1 ${
-        isMaint ? 'bg-red-100 text-red-800 border border-red-200' :
-        isShip ? 'bg-blue-100 text-blue-800 border border-blue-200' :
-        isEdu ? 'bg-indigo-100 text-indigo-800 border border-indigo-200' :
-        'bg-slate-100 text-slate-800 border border-slate-200'
+        isMaint ? 'bg-red-100 dark:bg-red-950/50 text-red-800 dark:text-red-300 border border-red-200 dark:border-red-800' :
+        isShip ? 'bg-blue-100 dark:bg-blue-950/50 text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-800' :
+        isEdu ? 'bg-indigo-100 dark:bg-indigo-950/50 text-indigo-800 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800' :
+        'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700'
       }`;
       const icon = isMaint ? '🛠️' : isShip ? '🚚' : isEdu ? '🎓' : '📌';
-      badge.title = `${ev.title} (${ev.status || 'Planlandı'})`;
-      badge.innerHTML = `<span>${icon}</span> <span class="cal-badge-text truncate">${ev.title}</span>`;
+      if (isShip) {
+        const shipLabel = (ev.plateAndLoadingType || ev.title) + ((ev.companyName || (ev.responsible && ev.responsible !== 'Belirtilmedi')) ? ' • ' + (ev.companyName || ev.responsible) : '');
+        badge.title = `Sevkiyat: ${shipLabel} (${ev.status || 'Planlandı'})`;
+        badge.innerHTML = `<span>🚚</span> <span class="cal-badge-text truncate">${shipLabel}</span>`;
+      } else {
+        badge.title = `${ev.title} (${ev.status || 'Planlandı'})`;
+        badge.innerHTML = `<span>${icon}</span> <span class="cal-badge-text truncate">${ev.title}</span>`;
+      }
       badgesContainer.appendChild(badge);
     });
 
@@ -365,8 +435,63 @@ export class CalendarModule {
         const isEdu = ev.type === "EGITIM";
         const icon = isMaint ? '🛠️' : isShip ? '🚚' : isEdu ? '🎓' : '📌';
         const typeLabel = isMaint ? 'Makine Bakımı' : isShip ? 'Sevkiyat' : isEdu ? 'Personel Eğitimi' : (ev.type || 'Plan');
-        const borderCls = isMaint ? 'border-red-300 bg-red-50/40' : isShip ? 'border-blue-300 bg-blue-50/40' : isEdu ? 'border-indigo-300 bg-indigo-50/40' : 'border-slate-200 bg-slate-50';
-        const badgeCls = isMaint ? 'bg-red-100 text-red-800' : isShip ? 'bg-blue-100 text-blue-800' : isEdu ? 'bg-indigo-100 text-indigo-800' : 'bg-slate-100 text-slate-800';
+        const borderCls = isMaint ? 'border-red-300 dark:border-red-800 bg-red-50/40 dark:bg-red-950/30' : isShip ? 'border-blue-300 dark:border-blue-800 bg-blue-50/40 dark:bg-blue-950/30' : isEdu ? 'border-indigo-300 dark:border-indigo-800 bg-indigo-50/40 dark:bg-indigo-950/30' : 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50';
+        const badgeCls = isMaint ? 'bg-red-100 dark:bg-red-900/60 text-red-800 dark:text-red-300' : isShip ? 'bg-blue-100 dark:bg-blue-900/60 text-blue-800 dark:text-blue-300' : isEdu ? 'bg-indigo-100 dark:bg-indigo-900/60 text-indigo-800 dark:text-indigo-300' : 'bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-300';
+
+        if (isShip) {
+          const plateLoading = ev.plateAndLoadingType || ev.title;
+          const company = ev.companyName || (ev.responsible && ev.responsible !== 'Belirtilmedi' ? ev.responsible : '-');
+          const zone = ev.loadingZone || ev.notes || '-';
+
+          return `
+            <div class="rounded-xl border border-blue-300 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/30 p-3.5 shadow-sm transition space-y-2 cursor-pointer hover:shadow" data-event-card="${ev.id}">
+              <div class="flex items-center justify-between gap-2">
+                <div class="flex items-center gap-2">
+                  <span class="text-xl">🚚</span>
+                  <div>
+                    <h4 class="font-extrabold text-slate-900 dark:text-slate-100 text-sm flex items-center gap-2 flex-wrap">
+                      <span>${plateLoading}</span>
+                      ${company !== '-' ? `<span class="text-xs font-bold text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-900/60 px-2 py-0.5 rounded">${company}</span>` : ''}
+                    </h4>
+                    <span class="text-[10px] font-bold px-2 py-0.5 rounded ${badgeCls}">
+                      Sevkiyat &bull; ${ev.status || 'Planlandı'}
+                    </span>
+                  </div>
+                </div>
+                
+                <div class="flex items-center gap-1.5" onclick="event.stopPropagation()">
+                  ${canEdit ? `
+                    <button data-open-edit-event="${ev.id}" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-1 px-2.5 rounded-lg shadow-sm transition flex items-center gap-1 cursor-pointer">
+                      <span>✏️</span> <span>Düzenle</span>
+                    </button>
+                  ` : ''}
+                </div>
+              </div>
+
+              <!-- Sevkiyat Detay Tablosu -->
+              <div id="event-detail-${ev.id}" class="pt-2 border-t border-blue-200/60 dark:border-blue-900 text-xs space-y-1.5 text-slate-700 dark:text-slate-300">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 bg-white/90 dark:bg-slate-800/90 p-2.5 rounded-lg border border-blue-100 dark:border-blue-900/40 text-[11px]">
+                  <div>
+                    <span class="text-slate-400 dark:text-slate-500 block text-[10px] font-bold uppercase">Araç Plaka / Yükleme Şekli</span>
+                    <b class="text-slate-900 dark:text-white text-xs">${plateLoading}</b>
+                  </div>
+                  <div>
+                    <span class="text-slate-400 dark:text-slate-500 block text-[10px] font-bold uppercase">Firma Adı</span>
+                    <b class="text-blue-700 dark:text-blue-400 text-xs">${company}</b>
+                  </div>
+                  <div>
+                    <span class="text-slate-400 dark:text-slate-500 block text-[10px] font-bold uppercase">Yükleme Bölgesi</span>
+                    <b class="text-amber-700 dark:text-amber-400 text-xs">${zone}</b>
+                  </div>
+                </div>
+                <div class="flex flex-wrap items-center gap-3 text-[11px] text-slate-500 dark:text-slate-400 pt-0.5">
+                  ${ev.createdBy ? `<span>👤 Ekleyen: <b class="text-slate-800 dark:text-slate-200">${ev.createdBy}</b></span>` : ''}
+                  <span>📅 Tarih: <b>${ev.date}</b></span>
+                </div>
+              </div>
+            </div>
+          `;
+        }
 
         return `
           <div class="rounded-xl border ${borderCls} p-3.5 shadow-sm transition space-y-2 cursor-pointer hover:shadow" data-event-card="${ev.id}">
@@ -492,11 +617,13 @@ export class CalendarModule {
 
     document.getElementById("edit-event-id").value = ev.id;
     document.getElementById("edit-event-date").value = ev.date || this.formatDateKey(new Date());
-    document.getElementById("edit-event-title").value = ev.title || "";
+    document.getElementById("edit-event-title").value = ev.plateAndLoadingType || ev.title || "";
     document.getElementById("edit-event-type").value = ev.type || "MAKINABAKIM";
     document.getElementById("edit-event-status").value = ev.status || "Planlandı";
-    document.getElementById("edit-event-responsible").value = ev.responsible || "";
-    document.getElementById("edit-event-notes").value = ev.notes || "";
+    document.getElementById("edit-event-responsible").value = ev.companyName || ev.responsible || "";
+    document.getElementById("edit-event-notes").value = ev.loadingZone || ev.notes || "";
+    this.updateEditEventModalLabels();
+    this.populateCompanyDatalist();
 
     const modal = document.getElementById("modal-edit-calendar-event");
     if (modal) modal.classList.add("show");
@@ -519,16 +646,17 @@ export class CalendarModule {
     const newNotes = document.getElementById("edit-event-notes").value.trim();
 
     if (!newTitle || !newDate) {
-      alert("Lütfen başlık ve tarih alanlarını eksiksiz giriniz.");
+      alert(newType === "SEVKIYAT" ? "Lütfen Araç Plaka / Yükleme Şekli ve Tarih alanlarını eksiksiz giriniz." : "Lütfen başlık ve tarih alanlarını eksiksiz giriniz.");
       return;
     }
 
+    const isShipment = (newType === "SEVKIYAT");
     const changes = [];
-    if (ev.title !== newTitle) changes.push(`Başlık: "${ev.title}" -> "${newTitle}"`);
+    if (ev.title !== newTitle) changes.push(`Başlık/Plaka: "${ev.title}" -> "${newTitle}"`);
     if (ev.date !== newDate) changes.push(`Tarih: ${ev.date} -> ${newDate}`);
     if (ev.type !== newType) changes.push(`Tür: ${ev.type} -> ${newType}`);
     if (ev.status !== newStatus) changes.push(`Durum: ${ev.status} -> ${newStatus}`);
-    if (ev.responsible !== newResponsible) changes.push(`Sorumlu: ${ev.responsible} -> ${newResponsible}`);
+    if (ev.responsible !== newResponsible) changes.push(`Firma/Sorumlu: ${ev.responsible} -> ${newResponsible}`);
 
     ev.title = newTitle;
     ev.date = newDate;
@@ -537,6 +665,11 @@ export class CalendarModule {
     ev.status = newStatus;
     ev.responsible = newResponsible;
     ev.notes = newNotes;
+    if (isShipment) {
+      ev.plateAndLoadingType = newTitle;
+      ev.companyName = newResponsible;
+      ev.loadingZone = newNotes;
+    }
     ev.lastEditedBy = uName;
     ev.lastEditedAt = new Date().toISOString();
 
@@ -611,8 +744,37 @@ export class CalendarModule {
       const isShip = ev.type === "SEVKIYAT";
       const isEdu = ev.type === "EGITIM";
       const icon = isMaintenance ? '🛠️' : isShip ? '🚚' : isEdu ? '🎓' : '📌';
-      const borderCls = isMaintenance ? 'border-red-200 bg-red-50/50' : isShip ? 'border-blue-200 bg-blue-50/50' : isEdu ? 'border-indigo-200 bg-indigo-50/50' : 'border-slate-200 bg-slate-50';
-      const badgeCls = isMaintenance ? 'bg-red-200 text-red-800' : isShip ? 'bg-blue-200 text-blue-800' : isEdu ? 'bg-indigo-200 text-indigo-800' : 'bg-slate-200 text-slate-800';
+      const borderCls = isMaintenance ? 'border-red-200 dark:border-red-800 bg-red-50/50 dark:bg-red-950/30' : isShip ? 'border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/30' : isEdu ? 'border-indigo-200 dark:border-indigo-800 bg-indigo-50/50 dark:bg-indigo-950/30' : 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50';
+      const badgeCls = isMaintenance ? 'bg-red-200 dark:bg-red-900 text-red-800 dark:text-red-300' : isShip ? 'bg-blue-200 dark:bg-blue-900 text-blue-800 dark:text-blue-300' : isEdu ? 'bg-indigo-200 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-300' : 'bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-300';
+
+      if (isShip) {
+        const plateLoading = ev.plateAndLoadingType || ev.title;
+        const company = ev.companyName || (ev.responsible && ev.responsible !== 'Belirtilmedi' ? ev.responsible : '-');
+        const zone = ev.loadingZone || ev.notes || '-';
+        html += `
+          <div class="p-3 rounded-xl border border-blue-200 dark:border-blue-900 bg-blue-50/60 dark:bg-blue-950/30 text-sm space-y-1.5">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-1.5">
+                <span class="text-base">🚚</span>
+                <span class="font-bold text-slate-900 dark:text-white">${plateLoading}</span>
+                <span class="text-xs px-2 py-0.5 rounded-full bg-blue-200 dark:bg-blue-900 text-blue-800 dark:text-blue-300 font-bold">Sevkiyat</span>
+              </div>
+              <div class="flex items-center gap-1">
+                ${canEdit ? `<button data-quick-edit-event="${ev.id}" class="text-blue-600 dark:text-blue-400 hover:text-blue-800 p-1 text-xs font-bold cursor-pointer" title="Düzenle">✏️</button>` : ''}
+                <button data-delete-event="${ev.id}" class="text-slate-400 hover:text-red-600 text-xs p-1 cursor-pointer" title="Sil">✕</button>
+              </div>
+            </div>
+            <div class="text-xs text-slate-700 dark:text-slate-300 bg-white/80 dark:bg-slate-800/80 p-2 rounded-lg border border-blue-100 dark:border-blue-900/40 space-y-0.5">
+              <div>🏢 Firma: <b>${company}</b></div>
+              <div>📍 Yükleme Bölgesi: <b>${zone}</b></div>
+            </div>
+            <div class="text-[11px] text-slate-500 dark:text-slate-400 flex flex-wrap gap-2">
+              ${ev.createdBy ? `<span class="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-1.5 py-0.5 rounded font-semibold">👤 Ekleyen: ${ev.createdBy}</span>` : ''}
+            </div>
+          </div>
+        `;
+        return;
+      }
 
       html += `
         <div class="p-3 rounded-xl border ${borderCls} text-sm flex justify-between items-start">
@@ -721,13 +883,99 @@ export class CalendarModule {
     });
   }
 
-  openAddEventModal(presetDateKey = null) {
+  populateCompanyDatalist() {
+    const dl = document.getElementById("datalist-calendar-companies");
+    if (!dl) return;
+    const companies = appState.state.companies || [];
+    dl.innerHTML = companies.map(c => `<option value="${typeof c === 'string' ? c : (c.name || '')}"></option>`).join("");
+  }
+
+  updateAddEventModalLabels() {
+    const typeSelect = document.getElementById("event-type");
+    const modalTitle = document.getElementById("modal-add-event-title");
+    const lblTitle = document.getElementById("lbl-event-title");
+    const inputTitle = document.getElementById("event-title");
+    const lblResp = document.getElementById("lbl-event-responsible");
+    const inputResp = document.getElementById("event-responsible");
+    const lblNotes = document.getElementById("lbl-event-notes");
+    const inputNotes = document.getElementById("event-notes");
+    const chipsType = document.getElementById("shipment-chips-loading-type");
+    const chipsZone = document.getElementById("shipment-chips-loading-zone");
+
+    if (!typeSelect) return;
+    const isShip = typeSelect.value === "SEVKIYAT";
+
+    if (isShip) {
+      if (modalTitle) modalTitle.innerHTML = "🚚 Takvime Sevkiyat Planı Ekle";
+      if (lblTitle) lblTitle.innerHTML = 'Araç Plaka / Yükleme Şekli: <span class="text-rose-500">*</span>';
+      if (inputTitle) inputTitle.placeholder = "Örn: 16 SPL 40 / Tır Konteyner veya Açık Kasa";
+      if (lblResp) lblResp.innerHTML = 'Firma Adı:';
+      if (inputResp) inputResp.placeholder = "Örn: Burpol, Beyçelik veya Oyak Renault";
+      if (lblNotes) lblNotes.innerHTML = 'Yükleme Bölgesi:';
+      if (inputNotes) inputNotes.placeholder = "Örn: 1400 Sevkiyat Rampası, Ana Depo veya Açık Saha";
+      if (chipsType) chipsType.classList.remove("hidden");
+      if (chipsZone) chipsZone.classList.remove("hidden");
+    } else {
+      if (modalTitle) modalTitle.innerHTML = "📅 Takvime Plan / Bakım Ekle";
+      if (lblTitle) lblTitle.innerHTML = 'Makine Adı / Başlık: <span class="text-rose-500">*</span>';
+      if (inputTitle) inputTitle.placeholder = "Örn: CNC Sünger Kesim 500 Saat Yağ Bakımı";
+      if (lblResp) lblResp.innerHTML = 'Sorumlu Kişi / Ekip:';
+      if (inputResp) inputResp.placeholder = "Örn: Kemal Usta (Bakım Ekibi)";
+      if (lblNotes) lblNotes.innerHTML = 'Bakım / Plan Detayları:';
+      if (inputNotes) inputNotes.placeholder = "Örn: Filtreler değişecek, eksen boşlukları ayarlanacak...";
+      if (chipsType) chipsType.classList.add("hidden");
+      if (chipsZone) chipsZone.classList.add("hidden");
+    }
+  }
+
+  updateEditEventModalLabels() {
+    const typeSelect = document.getElementById("edit-event-type");
+    const modalTitle = document.getElementById("modal-edit-event-title");
+    const modalSubtitle = document.getElementById("modal-edit-event-subtitle");
+    const lblTitle = document.getElementById("lbl-edit-event-title");
+    const inputTitle = document.getElementById("edit-event-title");
+    const lblResp = document.getElementById("lbl-edit-event-responsible");
+    const inputResp = document.getElementById("edit-event-responsible");
+    const lblNotes = document.getElementById("lbl-edit-event-notes");
+    const inputNotes = document.getElementById("edit-event-notes");
+
+    if (!typeSelect) return;
+    const isShip = typeSelect.value === "SEVKIYAT";
+
+    if (isShip) {
+      if (modalTitle) modalTitle.innerHTML = "🚚 Sevkiyat Planını Düzenle";
+      if (modalSubtitle) modalSubtitle.textContent = "Araç plaka, yükleme şekli, firma ve yükleme bölgesi bilgilerini güncelleyin.";
+      if (lblTitle) lblTitle.innerHTML = 'Araç Plaka / Yükleme Şekli: <span class="text-rose-500">*</span>';
+      if (inputTitle) inputTitle.placeholder = "Örn: 16 SPL 40 / Tır Konteyner";
+      if (lblResp) lblResp.innerHTML = 'Firma Adı:';
+      if (inputResp) inputResp.placeholder = "Örn: Burpol, Beyçelik veya Oyak Renault";
+      if (lblNotes) lblNotes.innerHTML = 'Yükleme Bölgesi:';
+      if (inputNotes) inputNotes.placeholder = "Örn: 1400 Sevkiyat Rampası, Ana Depo";
+    } else {
+      if (modalTitle) modalTitle.innerHTML = "✏️ Takvim Planını Düzenle";
+      if (modalSubtitle) modalSubtitle.textContent = "Yetkili kullanıcı olarak bakım veya takvim kaydını güncelleyin.";
+      if (lblTitle) lblTitle.innerHTML = 'Plan / Olay Başlığı: <span class="text-rose-500">*</span>';
+      if (inputTitle) inputTitle.placeholder = "Örn: CNC Sünger Kesim Bakımı";
+      if (lblResp) lblResp.innerHTML = 'Sorumlu Kişi / Usta:';
+      if (inputResp) inputResp.placeholder = "Örn: Kemal Usta";
+      if (lblNotes) lblNotes.innerHTML = 'Açıklama / Notlar:';
+      if (inputNotes) inputNotes.placeholder = "Örn: Filtreler değişti...";
+    }
+  }
+
+  openAddEventModal(presetDateKey = null, defaultType = "MAKINABAKIM") {
     const modal = document.getElementById("modal-add-event");
     const dateInput = document.getElementById("event-date");
+    const typeSelect = document.getElementById("event-type");
 
     if (dateInput) {
       dateInput.value = presetDateKey || this.formatDateKey(this.selectedDate);
     }
+    if (typeSelect) {
+      typeSelect.value = defaultType;
+    }
+    this.updateAddEventModalLabels();
+    this.populateCompanyDatalist();
 
     if (modal) modal.classList.add("show");
   }
@@ -750,20 +998,25 @@ export class CalendarModule {
     const notes = notesInput.value.trim();
 
     if (!title || !date) {
-      alert("Lütfen başlık ve tarih alanlarını eksiksiz doldurunuz.");
+      alert(type === "SEVKIYAT" ? "Lütfen Araç Plaka / Yükleme Şekli ve Tarih alanlarını eksiksiz doldurunuz." : "Lütfen başlık ve tarih alanlarını eksiksiz doldurunuz.");
       return;
     }
 
     const uName = appState.state.currentUser ? appState.state.currentUser.name : "Fabrika Yetkilisi";
+    const isShipment = (type === "SEVKIYAT");
+
     const newEvent = {
       id: "ev_" + Date.now(),
       title,
       type,
       date,
-      responsible: responsible || "Belirtilmedi",
+      responsible: responsible || (isShipment ? "Belirtilmedi" : "Belirtilmedi"),
       status: "Planlandı",
       notes,
-      createdBy: uName
+      createdBy: uName,
+      plateAndLoadingType: isShipment ? title : (title || ""),
+      companyName: isShipment ? responsible : "",
+      loadingZone: isShipment ? notes : ""
     };
 
     if (!Array.isArray(appState.state.calendarEvents)) {
@@ -774,9 +1027,11 @@ export class CalendarModule {
     appState.saveState();
 
     logSystemAction(
-      "TAKVİM_EKLE",
-      `${uName}, "${title}" (${type} - ${date}) plan/bakım kaydını takvime ekledi.`,
-      { title, type, date, responsible }
+      isShipment ? "SEVKİYAT_EKLE" : "TAKVİM_EKLE",
+      isShipment 
+        ? `${uName}, "${title}" (${responsible || 'Firma Yok'} - ${notes || 'Bölge Yok'}) sevkiyat planını ${date} tarihine ekledi.`
+        : `${uName}, "${title}" (${type} - ${date}) plan/bakım kaydını takvime ekledi.`,
+      { title, type, date, responsible, notes }
     );
 
     // Telegram Bot Bildirimi (İlgili Birimlere)
@@ -820,9 +1075,37 @@ export class CalendarModule {
 
     const escapeHtml = (str) => String(str || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     const timeStr = new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
-
     const uName = appState.state.currentUser ? appState.state.currentUser.name : "Fabrika Yetkilisi";
-    const htmlMessage = `
+
+    let htmlMessage = "";
+    let plainMessage = "";
+
+    if (event.type === "SEVKIYAT") {
+      const plate = event.plateAndLoadingType || event.title;
+      const comp = event.companyName || event.responsible || 'Belirtilmedi';
+      const zone = event.loadingZone || event.notes || 'Belirtilmedi';
+      htmlMessage = `
+🚚 <b>YENİ SEVKİYAT PLANI EKLENDİ</b>
+─────────────────────
+🚛 <b>Araç Plaka / Yükleme Şekli:</b> ${escapeHtml(plate)}
+🏢 <b>Firma Adı:</b> ${escapeHtml(comp)}
+📍 <b>Yükleme Bölgesi:</b> ${escapeHtml(zone)}
+📆 <b>Tarih:</b> ${escapeHtml(event.date)}
+👤 <b>Kaydeden:</b> ${escapeHtml(event.createdBy || uName)}
+⏰ <b>Kayıt Zamanı:</b> ${timeStr}
+`.trim();
+      plainMessage = `
+🚚 YENİ SEVKİYAT PLANI EKLENDİ
+─────────────────────
+🚛 Araç Plaka / Yükleme Şekli: ${plate}
+🏢 Firma Adı: ${comp}
+📍 Yükleme Bölgesi: ${zone}
+📆 Tarih: ${event.date}
+👤 Kaydeden: ${event.createdBy || uName}
+⏰ Kayıt Zamanı: ${timeStr}
+`.trim();
+    } else {
+      htmlMessage = `
 ${typeEmoji} <b>PLANLAMA & OPERASYON TAKVİMİ BİLDİRİMİ</b>
 ─────────────────────
 📌 <b>Başlık:</b> ${escapeHtml(event.title)}
@@ -832,8 +1115,7 @@ ${typeEmoji} <b>PLANLAMA & OPERASYON TAKVİMİ BİLDİRİMİ</b>
 ✍️ <b>Kaydeden:</b> ${escapeHtml(event.createdBy || uName)}
 ${event.notes ? `💬 <b>Açıklama / Not:</b> ${escapeHtml(event.notes)}\n` : ''}⏰ <b>Kayıt Zamanı:</b> ${timeStr}
 `.trim();
-
-    const plainMessage = `
+      plainMessage = `
 ${typeEmoji} PLANLAMA & OPERASYON TAKVİMİ BİLDİRİMİ
 ─────────────────────
 📌 Başlık: ${event.title}
@@ -843,6 +1125,7 @@ ${typeEmoji} PLANLAMA & OPERASYON TAKVİMİ BİLDİRİMİ
 ✍️ Kaydeden: ${event.createdBy || uName}
 ${event.notes ? `💬 Not: ${event.notes}\n` : ''}⏰ Kayıt Zamanı: ${timeStr}
 `.trim();
+    }
 
     try {
       const url = `https://api.telegram.org/bot${config.botToken}/sendMessage`;

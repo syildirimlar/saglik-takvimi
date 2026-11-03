@@ -418,6 +418,9 @@
                 <button id="btn-add-calendar-event" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black px-2.5 sm:px-3 py-1.5 rounded-lg shadow-sm transition flex items-center gap-1 cursor-pointer">
                   <span>+</span> <span>Plan/Bakım Ekle</span>
                 </button>
+                <button id="btn-add-shipment-event" class="bg-blue-600 hover:bg-blue-500 text-white text-xs font-black px-2.5 sm:px-3 py-1.5 rounded-lg shadow-sm transition flex items-center gap-1 cursor-pointer" title="Hızlı Sevkiyat Planı Ekle">
+                  <span>🚚</span> <span>Sevkiyat Ekle</span>
+                </button>
               </div>
             </div>
 
@@ -2366,22 +2369,22 @@
   </div>
 
 
-  <!-- MODAL 5: Takvim Etkinliği / Makine Bakımı Ekle -->
+  <!-- MODAL 5: Takvim Etkinliği / Makine Bakımı / Sevkiyat Ekle -->
   <div id="modal-add-event" class="modal-backdrop">
-    <div class="modal-card p-5">
-      <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
-        <h3 class="text-base font-extrabold text-slate-900">📅 Takvime Plan / Bakım Ekle</h3>
-        <button data-close-modal class="text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
+    <div class="modal-card p-5 max-w-lg">
+      <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 mb-4">
+        <h3 class="text-base font-extrabold text-slate-900 dark:text-white" id="modal-add-event-title">📅 Takvime Plan / Bakım Ekle</h3>
+        <button data-close-modal class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 font-bold text-lg">✕</button>
       </div>
-      <form id="form-add-event" class="space-y-3">
+      <form id="form-add-event" class="space-y-3.5">
         <div class="grid grid-cols-2 gap-3">
           <div>
-            <label class="text-xs font-bold text-slate-700 block mb-1">Tarih:</label>
-            <input type="date" id="event-date" required class="w-full text-xs border border-slate-200 rounded-lg p-2 font-bold">
+            <label class="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Tarih:</label>
+            <input type="date" id="event-date" required class="w-full text-xs border border-slate-200 dark:border-slate-700 rounded-lg p-2 font-bold bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 outline-none">
           </div>
           <div>
-            <label class="text-xs font-bold text-slate-700 block mb-1">Plan Türü:</label>
-            <select id="event-type" class="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg p-2 font-semibold">
+            <label class="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Plan Türü:</label>
+            <select id="event-type" class="w-full text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2 font-semibold text-slate-800 dark:text-slate-100 outline-none">
               <option value="MAKINABAKIM">🛠️ Makine Periyodik Bakımı</option>
               <option value="SEVKIYAT">🚚 Sevkiyat / Tır Randevusu</option>
               <option value="EGITIM">🎓 Personel Eğitimi / İSG</option>
@@ -2393,23 +2396,42 @@
         </div>
 
         <div>
-          <label class="text-xs font-bold text-slate-700 block mb-1">Makine Adı / Başlık:</label>
-          <input type="text" id="event-title" required placeholder="Örn: CNC Sünger Kesim 500 Saat Yağ Bakımı" class="w-full text-xs border border-slate-200 rounded-lg p-2 font-bold">
+          <label class="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1" id="lbl-event-title">Makine Adı / Başlık:</label>
+          <input type="text" id="event-title" required placeholder="Örn: CNC Sünger Kesim 500 Saat Yağ Bakımı" class="w-full text-xs border border-slate-200 dark:border-slate-700 rounded-lg p-2.5 font-bold bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 outline-none">
+          <!-- Sevkiyat İçin Hızlı Yükleme Şekli Çipleri -->
+          <div id="shipment-chips-loading-type" class="hidden flex flex-wrap items-center gap-1.5 mt-1.5">
+            <span class="text-[10px] text-slate-400 font-bold">Hızlı Seçim:</span>
+            <button type="button" class="btn-ship-type-chip text-[10px] bg-slate-100 dark:bg-slate-800 hover:bg-blue-100 dark:hover:bg-blue-900 text-slate-700 dark:text-slate-200 font-bold px-2 py-0.5 rounded cursor-pointer transition">Tır Konteyner</button>
+            <button type="button" class="btn-ship-type-chip text-[10px] bg-slate-100 dark:bg-slate-800 hover:bg-blue-100 dark:hover:bg-blue-900 text-slate-700 dark:text-slate-200 font-bold px-2 py-0.5 rounded cursor-pointer transition">Kamyon</button>
+            <button type="button" class="btn-ship-type-chip text-[10px] bg-slate-100 dark:bg-slate-800 hover:bg-blue-100 dark:hover:bg-blue-900 text-slate-700 dark:text-slate-200 font-bold px-2 py-0.5 rounded cursor-pointer transition">Panelvan / Kamyonet</button>
+            <button type="button" class="btn-ship-type-chip text-[10px] bg-slate-100 dark:bg-slate-800 hover:bg-blue-100 dark:hover:bg-blue-900 text-slate-700 dark:text-slate-200 font-bold px-2 py-0.5 rounded cursor-pointer transition">Açık Kasa</button>
+          </div>
         </div>
 
         <div>
-          <label class="text-xs font-bold text-slate-700 block mb-1">Sorumlu Kişi / Ekip:</label>
-          <input type="text" id="event-responsible" placeholder="Örn: Kemal Usta (Bakım Ekibi)" class="w-full text-xs border border-slate-200 rounded-lg p-2">
+          <label class="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1" id="lbl-event-responsible">Sorumlu Kişi / Ekip:</label>
+          <input type="text" id="event-responsible" list="datalist-calendar-companies" placeholder="Örn: Kemal Usta (Bakım Ekibi)" class="w-full text-xs border border-slate-200 dark:border-slate-700 rounded-lg p-2.5 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 outline-none">
+          <datalist id="datalist-calendar-companies"></datalist>
         </div>
 
         <div>
-          <label class="text-xs font-bold text-slate-700 block mb-1">Bakım / Plan Detayları:</label>
-          <textarea id="event-notes" rows="2" placeholder="Örn: Filtreler değişecek, eksen boşlukları ayarlanacak..." class="w-full text-xs border border-slate-200 rounded-lg p-2"></textarea>
+          <label class="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1" id="lbl-event-notes">Bakım / Plan Detayları:</label>
+          <textarea id="event-notes" rows="2" placeholder="Örn: Filtreler değişecek, eksen boşlukları ayarlanacak..." class="w-full text-xs border border-slate-200 dark:border-slate-700 rounded-lg p-2.5 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 outline-none"></textarea>
+          <!-- Sevkiyat İçin Hızlı Yükleme Bölgesi Çipleri -->
+          <div id="shipment-chips-loading-zone" class="hidden flex flex-wrap items-center gap-1.5 mt-1.5">
+            <span class="text-[10px] text-slate-400 font-bold">Hızlı Bölge:</span>
+            <button type="button" class="btn-ship-zone-chip text-[10px] bg-slate-100 dark:bg-slate-800 hover:bg-amber-100 dark:hover:bg-amber-900 text-slate-700 dark:text-slate-200 font-bold px-2 py-0.5 rounded cursor-pointer transition">1400 Sevkiyat Rampası</button>
+            <button type="button" class="btn-ship-zone-chip text-[10px] bg-slate-100 dark:bg-slate-800 hover:bg-amber-100 dark:hover:bg-amber-900 text-slate-700 dark:text-slate-200 font-bold px-2 py-0.5 rounded cursor-pointer transition">1500 Sevkiyat</button>
+            <button type="button" class="btn-ship-zone-chip text-[10px] bg-slate-100 dark:bg-slate-800 hover:bg-amber-100 dark:hover:bg-amber-900 text-slate-700 dark:text-slate-200 font-bold px-2 py-0.5 rounded cursor-pointer transition">Ana Mamul Depo</button>
+            <button type="button" class="btn-ship-zone-chip text-[10px] bg-slate-100 dark:bg-slate-800 hover:bg-amber-100 dark:hover:bg-amber-900 text-slate-700 dark:text-slate-200 font-bold px-2 py-0.5 rounded cursor-pointer transition">Açık Saha</button>
+          </div>
         </div>
 
-        <div class="pt-2 flex justify-end gap-2">
-          <button type="button" data-close-modal class="text-xs font-bold text-slate-500 py-2 px-3 rounded-lg hover:bg-slate-100">İptal</button>
-          <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs py-2 px-5 rounded-lg shadow-sm">Takvime Ekle</button>
+        <div class="pt-2 flex justify-end gap-2 border-t border-slate-100 dark:border-slate-800">
+          <button type="button" data-close-modal class="text-xs font-bold text-slate-500 py-2 px-3 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer">İptal</button>
+          <button type="submit" id="btn-submit-calendar-event" class="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs py-2 px-5 rounded-lg shadow-sm transition flex items-center gap-1 cursor-pointer">
+            <span>💾</span> <span>Takvime Ekle</span>
+          </button>
         </div>
       </form>
     </div>
@@ -3276,39 +3298,44 @@
         <!-- JS tarafından doldurulur -->
       </div>
 
-      <div class="pt-3 border-t border-slate-100 flex items-center justify-between gap-2 flex-wrap">
-        <button id="btn-modal-day-add-event" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-1.5 px-3 rounded-lg shadow-sm transition flex items-center gap-1">
-          <span>+</span> <span>Bu Güne Plan / Sevkiyat / Bakım Ekle</span>
-        </button>
-        <button type="button" data-close-modal class="text-xs font-bold text-slate-500 py-1.5 px-3 rounded-lg hover:bg-slate-100">Kapat</button>
+      <div class="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2 flex-wrap">
+        <div class="flex items-center gap-2 flex-wrap">
+          <button id="btn-modal-day-add-event" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-1.5 px-3 rounded-lg shadow-sm transition flex items-center gap-1 cursor-pointer">
+            <span>+</span> <span>Plan / Bakım Ekle</span>
+          </button>
+          <button id="btn-modal-day-add-shipment" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold py-1.5 px-3 rounded-lg shadow-sm transition flex items-center gap-1 cursor-pointer" title="Seçili güne sevkiyat planı ekle">
+            <span>🚚</span> <span>Sevkiyat Planı Ekle</span>
+          </button>
+        </div>
+        <button type="button" data-close-modal class="text-xs font-bold text-slate-500 py-1.5 px-3 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer">Kapat</button>
       </div>
     </div>
   </div>
 
   <!-- MODAL: Takvim Etkinliği Düzenle (Yetkili Kişi) -->
   <div id="modal-edit-calendar-event" class="modal-backdrop">
-    <div class="modal-card p-5">
-      <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+    <div class="modal-card p-5 max-w-lg">
+      <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 mb-4">
         <div>
-          <h3 class="text-base font-extrabold text-slate-900">✏️ Takvim Planını Düzenle</h3>
-          <p class="text-xs text-slate-500">Yetkili kullanıcı olarak bakım veya sevkiyat kaydını güncelleyin.</p>
+          <h3 class="text-base font-extrabold text-slate-900 dark:text-white" id="modal-edit-event-title">✏️ Takvim Planını Düzenle</h3>
+          <p class="text-xs text-slate-500" id="modal-edit-event-subtitle">Yetkili kullanıcı olarak bakım veya sevkiyat kaydını güncelleyin.</p>
         </div>
-        <button data-close-modal class="text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
+        <button data-close-modal class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 font-bold text-lg">✕</button>
       </div>
-      <form id="form-edit-calendar-event" class="space-y-3">
+      <form id="form-edit-calendar-event" class="space-y-3.5">
         <input type="hidden" id="edit-event-id">
         <div>
-          <label class="text-xs font-bold text-slate-700 block mb-1">Tarih:</label>
-          <input type="date" id="edit-event-date" required class="w-full text-xs border border-slate-200 rounded-lg p-2 font-bold">
+          <label class="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Tarih:</label>
+          <input type="date" id="edit-event-date" required class="w-full text-xs border border-slate-200 dark:border-slate-700 rounded-lg p-2 font-bold bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 outline-none">
         </div>
         <div>
-          <label class="text-xs font-bold text-slate-700 block mb-1">Plan / Olay Başlığı:</label>
-          <input type="text" id="edit-event-title" required class="w-full text-xs border border-slate-200 rounded-lg p-2 font-bold text-slate-900">
+          <label class="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1" id="lbl-edit-event-title">Plan / Olay Başlığı:</label>
+          <input type="text" id="edit-event-title" required class="w-full text-xs border border-slate-200 dark:border-slate-700 rounded-lg p-2.5 font-bold text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800 outline-none">
         </div>
         <div class="grid grid-cols-2 gap-3">
           <div>
-            <label class="text-xs font-bold text-slate-700 block mb-1">Tür / Kategori:</label>
-            <select id="edit-event-type" class="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg p-2 font-semibold">
+            <label class="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Tür / Kategori:</label>
+            <select id="edit-event-type" class="w-full text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2 font-semibold text-slate-800 dark:text-slate-100 outline-none">
               <option value="MAKINABAKIM">🛠️ Makine Bakımı</option>
               <option value="SEVKIYAT">🚚 Sevkiyat</option>
               <option value="EGITIM">🎓 Personel Eğitimi / İSG</option>
@@ -3318,8 +3345,8 @@
             </select>
           </div>
           <div>
-            <label class="text-xs font-bold text-slate-700 block mb-1">Durum:</label>
-            <select id="edit-event-status" class="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg p-2 font-semibold">
+            <label class="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Durum:</label>
+            <select id="edit-event-status" class="w-full text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2 font-semibold text-slate-800 dark:text-slate-100 outline-none">
               <option value="Planlandı">Planlandı</option>
               <option value="Tamamlandı">Tamamlandı</option>
               <option value="Ertelendi">Ertelendi</option>
@@ -3328,14 +3355,19 @@
           </div>
         </div>
         <div>
-          <label class="text-xs font-bold text-slate-700 block mb-1">Sorumlu Kişi / Usta:</label>
-          <input type="text" id="edit-event-responsible" class="w-full text-xs border border-slate-200 rounded-lg p-2 font-medium">
+          <label class="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1" id="lbl-edit-event-responsible">Sorumlu Kişi / Usta:</label>
+          <input type="text" id="edit-event-responsible" list="datalist-calendar-companies" class="w-full text-xs border border-slate-200 dark:border-slate-700 rounded-lg p-2.5 font-medium bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 outline-none">
         </div>
         <div>
-          <label class="text-xs font-bold text-slate-700 block mb-1">Açıklama / Notlar:</label>
-          <textarea id="edit-event-notes" rows="2" class="w-full text-xs border border-slate-200 rounded-lg p-2"></textarea>
+          <label class="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1" id="lbl-edit-event-notes">Açıklama / Notlar:</label>
+          <textarea id="edit-event-notes" rows="2" class="w-full text-xs border border-slate-200 dark:border-slate-700 rounded-lg p-2.5 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 outline-none"></textarea>
         </div>
-        <div class="pt-2 flex justify-end gap-2">
+        <div class="pt-2 flex justify-end gap-2 border-t border-slate-100 dark:border-slate-800">
+          <button type="button" data-close-modal class="text-xs font-bold text-slate-500 py-2 px-3 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer">İptal</button>
+          <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs py-2 px-5 rounded-lg shadow-sm transition flex items-center gap-1 cursor-pointer">
+            <span>💾</span> <span>Değişiklikleri Kaydet</span>
+          </button>
+        </div>
           <button type="button" data-close-modal class="text-xs font-bold text-slate-500 py-2 px-3 rounded-lg hover:bg-slate-100">İptal</button>
           <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs py-2 px-5 rounded-lg shadow-sm">Değişiklikleri Kaydet</button>
         </div>
@@ -4323,7 +4355,7 @@
         }
       });
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js?v=76').then((reg) => {
+        navigator.serviceWorker.register('sw.js?v=77').then((reg) => {
           if (reg) reg.update();
         }).catch(err => {
           console.log('SW registration failed:', err);
@@ -4333,6 +4365,6 @@
   </script>
 
   <!-- ES Modül Girişi -->
-  <script type="module" src="js/app.js?v=9.6"></script>
+  <script type="module" src="js/app.js?v=9.7"></script>
 </body>
 </html>
