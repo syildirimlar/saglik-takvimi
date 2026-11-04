@@ -1,17 +1,17 @@
 // SODSAN Fabrika Portalı - Ana Uygulama Yöneticisi (app.js)
-import { appState, ROLES, getRoleInfo, logSystemAction, isAdmin, isIdariIslerOrAdmin, isViewer, isUserVisibleToCurrentSession } from './data.js?v=9.7';
-import { CalendarModule } from './calendar.js?v=9.7';
-import { ProductsModule } from './products.js?v=9.7';
-import { SuppliesModule } from './supplies.js?v=9.7';
-import { LeaveModule } from './leave.js?v=9.7';
-import { OvertimeModule } from './overtime.js?v=9.7';
-import { ForkliftModule } from './forklift.js?v=9.7';
-import { BreakdownModule } from './breakdown.js?v=9.7';
-import { ProductionModule } from './production.js?v=9.7';
-import { AdminModule } from './admin.js?v=9.7';
-import { CateringShuttleModule, getUserShuttleBanners } from './catering_shuttle.js?v=9.7';
-import { DocumentsModule } from './documents.js?v=9.7';
-import { cloudSync } from './cloud_sync.js?v=9.7';
+import { appState, ROLES, getRoleInfo, logSystemAction, isAdmin, isIdariIslerOrAdmin, isViewer, isUserVisibleToCurrentSession } from './data.js?v=9.8';
+import { CalendarModule } from './calendar.js?v=9.8';
+import { ProductsModule } from './products.js?v=9.8';
+import { SuppliesModule } from './supplies.js?v=9.8';
+import { LeaveModule } from './leave.js?v=9.8';
+import { OvertimeModule } from './overtime.js?v=9.8';
+import { ForkliftModule } from './forklift.js?v=9.8';
+import { BreakdownModule } from './breakdown.js?v=9.8';
+import { ProductionModule } from './production.js?v=9.8';
+import { AdminModule } from './admin.js?v=9.8';
+import { CateringShuttleModule, getUserShuttleBanners } from './catering_shuttle.js?v=9.8';
+import { DocumentsModule } from './documents.js?v=9.8';
+import { cloudSync } from './cloud_sync.js?v=9.8';
 
 class App {
   constructor() {
@@ -179,10 +179,12 @@ class App {
         if (typeof window !== "undefined") window.__portalCurrentUser = user;
         this.hideLoginScreen();
         setTimeout(() => {
-          if (user.role !== "ADMIN" && user.id !== "u_admin" && !isViewer(user)) {
+          if (user.pin === "1234") {
+            this.openChangePasswordModal(true);
+          } else if (user.role !== "ADMIN" && user.id !== "u_admin" && !isViewer(user)) {
             this.documents?.checkPendingSignaturesAndPrompt?.(user);
           }
-        }, 350);
+        }, 800);
         return true;
       }
     }
@@ -196,10 +198,12 @@ class App {
         if (typeof window !== "undefined") window.__portalCurrentUser = user;
         this.hideLoginScreen();
         setTimeout(() => {
-          if (user.role !== "ADMIN" && user.id !== "u_admin" && !isViewer(user)) {
+          if (user.pin === "1234") {
+            this.openChangePasswordModal(true);
+          } else if (user.role !== "ADMIN" && user.id !== "u_admin" && !isViewer(user)) {
             this.documents?.checkPendingSignaturesAndPrompt?.(user);
           }
-        }, 350);
+        }, 800);
         return true;
       }
     }
@@ -1007,7 +1011,24 @@ class App {
       });
     });
 
-    // 5. Çıkış Yap Butonları
+    // 5. Şifremi Değiştir Butonu ve Formu (Google İhlal Uyarılarını Önleme)
+    const btnOpenChangePwd = document.getElementById("btn-open-change-password");
+    if (btnOpenChangePwd) {
+      btnOpenChangePwd.addEventListener("click", () => {
+        this.closeMobileSidebar();
+        this.openChangePasswordModal(false);
+      });
+    }
+
+    const formChangePwd = document.getElementById("form-change-password");
+    if (formChangePwd) {
+      formChangePwd.addEventListener("submit", (e) => {
+        e.preventDefault();
+        this.handleChangePasswordSubmit();
+      });
+    }
+
+    // 6. Çıkış Yap Butonları
     document.querySelectorAll("#btn-logout, .btn-logout-action").forEach(btn => {
       btn.addEventListener("click", () => {
         const modalSwitch = document.getElementById("modal-switch-user");
@@ -1215,12 +1236,14 @@ class App {
         this.switchTab(this.activeTab);
       }
 
-      // İlk giriş veya güncellenen evraklar için zorunlu imza kontrolü (Yönetici hariç)
+      // İlk giriş veya varsayılan 1234 şifresi kullananlar için şifre değiştirme uyarısı
       setTimeout(() => {
-        if (targetUser.role !== "ADMIN" && targetUser.id !== "u_admin") {
+        if (targetUser.pin === "1234") {
+          this.openChangePasswordModal(true);
+        } else if (targetUser.role !== "ADMIN" && targetUser.id !== "u_admin") {
           this.documents?.checkPendingSignaturesAndPrompt?.(targetUser);
         }
-      }, 350);
+      }, 700);
 
       // Giriş sonrası modül içeriklerini ve yetki görünümlerini tazele
       try {
@@ -1243,6 +1266,100 @@ class App {
       errEl.textContent = msg;
       errEl.classList.remove("hidden");
     }
+  }
+
+  openChangePasswordModal(isForced = false) {
+    const modal = document.getElementById("modal-change-password");
+    if (!modal) return;
+    const warnBox = document.getElementById("change-pwd-warning-box");
+    const errBox = document.getElementById("change-pwd-error");
+    const curInput = document.getElementById("input-cur-pwd");
+    const newInput = document.getElementById("input-new-pwd");
+    const confirmInput = document.getElementById("input-new-pwd-confirm");
+
+    if (warnBox) {
+      if (isForced || appState.state.currentUser?.pin === "1234") {
+        warnBox.classList.remove("hidden");
+      } else {
+        warnBox.classList.add("hidden");
+      }
+    }
+    if (errBox) errBox.classList.add("hidden");
+    if (curInput) curInput.value = "";
+    if (newInput) newInput.value = "";
+    if (confirmInput) confirmInput.value = "";
+
+    modal.classList.add("show");
+    setTimeout(() => curInput?.focus(), 150);
+  }
+
+  handleChangePasswordSubmit() {
+    const errBox = document.getElementById("change-pwd-error");
+    const curInput = document.getElementById("input-cur-pwd");
+    const newInput = document.getElementById("input-new-pwd");
+    const confirmInput = document.getElementById("input-new-pwd-confirm");
+
+    const curVal = (curInput?.value || "").trim();
+    const newVal = (newInput?.value || "").trim();
+    const confirmVal = (confirmInput?.value || "").trim();
+
+    const showError = (msg) => {
+      if (errBox) {
+        errBox.textContent = msg;
+        errBox.classList.remove("hidden");
+      }
+    };
+
+    if (!appState.state.currentUser) {
+      showError("Oturum açık değil.");
+      return;
+    }
+
+    const currentPin = String(appState.state.currentUser.pin || "1234").trim();
+    if (curVal !== currentPin) {
+      showError("Mevcut şifreniz hatalı!");
+      curInput?.focus();
+      return;
+    }
+
+    if (newVal.length < 4) {
+      showError("Yeni şifreniz en az 4 karakter olmalıdır.");
+      newInput?.focus();
+      return;
+    }
+
+    if (newVal === "1234") {
+      showError("Google güvenlik uyarılarını engellemek için lütfen '1234' dışında kendinize özel bir şifre belirleyiniz.");
+      newInput?.focus();
+      return;
+    }
+
+    if (newVal !== confirmVal) {
+      showError("Yeni şifreler birbiriyle eşleşmiyor!");
+      confirmInput?.focus();
+      return;
+    }
+
+    // Şifreyi kaydet
+    appState.state.currentUser.pin = newVal;
+    const u = (appState.state.users || []).find(x => x.id === appState.state.currentUser.id);
+    if (u) {
+      u.pin = newVal;
+    }
+    try {
+      appState.saveState();
+    } catch (e) {
+      console.warn("Şifre güncellenirken state kaydedilemedi:", e);
+    }
+
+    try {
+      logSystemAction("ŞİFRE_DEĞİŞTİRME", `${appState.state.currentUser.name} kendi giriş şifresini başarıyla güncelledi.`);
+    } catch (e) {}
+
+    alert("✅ Şifreniz başarıyla güncellendi!\n\nYeni şifreniz Google ve tarayıcı güvenlik kontrolleriyle tam uyumludur. Lütfen yeni şifrenizi unutmamak için bir yere not ediniz.");
+
+    const modal = document.getElementById("modal-change-password");
+    if (modal) modal.classList.remove("show");
   }
 
   initPwa() {
