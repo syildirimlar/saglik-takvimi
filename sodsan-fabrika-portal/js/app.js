@@ -1,17 +1,17 @@
 // SODSAN Fabrika Portalı - Ana Uygulama Yöneticisi (app.js)
-import { appState, ROLES, getRoleInfo, logSystemAction, isAdmin, isIdariIslerOrAdmin, isViewer, isUserVisibleToCurrentSession } from './data.js?v=9.8';
-import { CalendarModule } from './calendar.js?v=9.8';
-import { ProductsModule } from './products.js?v=9.8';
-import { SuppliesModule } from './supplies.js?v=9.8';
-import { LeaveModule } from './leave.js?v=9.8';
-import { OvertimeModule } from './overtime.js?v=9.8';
-import { ForkliftModule } from './forklift.js?v=9.8';
-import { BreakdownModule } from './breakdown.js?v=9.8';
-import { ProductionModule } from './production.js?v=9.8';
-import { AdminModule } from './admin.js?v=9.8';
-import { CateringShuttleModule, getUserShuttleBanners } from './catering_shuttle.js?v=9.8';
-import { DocumentsModule } from './documents.js?v=9.8';
-import { cloudSync } from './cloud_sync.js?v=9.8';
+import { appState, ROLES, getRoleInfo, logSystemAction, isAdmin, isIdariIslerOrAdmin, isViewer, isUserVisibleToCurrentSession } from './data.js?v=9.9';
+import { CalendarModule } from './calendar.js?v=9.9';
+import { ProductsModule } from './products.js?v=9.9';
+import { SuppliesModule } from './supplies.js?v=9.9';
+import { LeaveModule } from './leave.js?v=9.9';
+import { OvertimeModule } from './overtime.js?v=9.9';
+import { ForkliftModule } from './forklift.js?v=9.9';
+import { BreakdownModule } from './breakdown.js?v=9.9';
+import { ProductionModule } from './production.js?v=9.9';
+import { AdminModule } from './admin.js?v=9.9';
+import { CateringShuttleModule, getUserShuttleBanners } from './catering_shuttle.js?v=9.9';
+import { DocumentsModule } from './documents.js?v=9.9';
+import { cloudSync } from './cloud_sync.js?v=9.9';
 
 class App {
   constructor() {
@@ -269,6 +269,14 @@ class App {
     const deptEl = document.getElementById("current-user-dept");
 
     if (nameEl) nameEl.textContent = user.name;
+
+    const topbarNameEl = document.getElementById("topbar-user-name");
+    if (topbarNameEl) topbarNameEl.textContent = user.name;
+
+    const btnTopbarUser = document.getElementById("btn-topbar-user-profile");
+    if (btnTopbarUser) {
+      btnTopbarUser.title = `${user.name} - Şifrenizi Değiştirmek İçin Tıklayın`;
+    }
     
     const roleInfo = getRoleInfo(user.role);
     if (roleEl) {
@@ -1020,6 +1028,13 @@ class App {
       });
     }
 
+    const btnTopbarUser = document.getElementById("btn-topbar-user-profile");
+    if (btnTopbarUser) {
+      btnTopbarUser.addEventListener("click", () => {
+        this.openChangePasswordModal(false);
+      });
+    }
+
     const formChangePwd = document.getElementById("form-change-password");
     if (formChangePwd) {
       formChangePwd.addEventListener("submit", (e) => {
@@ -1276,6 +1291,11 @@ class App {
     const curInput = document.getElementById("input-cur-pwd");
     const newInput = document.getElementById("input-new-pwd");
     const confirmInput = document.getElementById("input-new-pwd-confirm");
+    const modalUserEl = document.getElementById("change-pwd-modal-user-name");
+
+    if (modalUserEl && appState.state.currentUser) {
+      modalUserEl.textContent = appState.state.currentUser.name;
+    }
 
     if (warnBox) {
       if (isForced || appState.state.currentUser?.pin === "1234") {

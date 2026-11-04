@@ -347,6 +347,17 @@
 
         <!-- Sağ: Hızlı Bildirimler & Tarih -->
         <div class="flex items-center gap-1 sm:gap-1.5 flex-shrink-0">
+          <!-- Personel Profil & Şifre Değiştir Butonu (Üst Çubuk) -->
+          <button id="btn-topbar-user-profile" type="button" class="group flex items-center gap-1.5 px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-xl border border-blue-200 dark:border-blue-800/80 bg-blue-50/90 dark:bg-blue-950/60 hover:bg-blue-100 dark:hover:bg-blue-900/80 text-blue-950 dark:text-blue-100 transition shadow-2xs cursor-pointer flex-shrink-0" title="Şifrenizi Değiştirmek İçin Tıklayın">
+            <span class="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-[10px] sm:text-xs font-black shadow-xs flex-shrink-0 group-hover:scale-105 transition">👤</span>
+            <div class="flex flex-col text-left leading-tight min-w-0 max-w-[95px] xs:max-w-[130px] sm:max-w-[170px]">
+              <span id="topbar-user-name" class="font-black truncate text-[11px] sm:text-xs text-slate-900 dark:text-slate-100">Personel</span>
+              <span class="text-[9px] text-blue-600 dark:text-blue-400 font-bold flex items-center gap-0.5 truncate">
+                <span>🔑</span> <span class="hidden sm:inline">Şifre Değiştir</span><span class="sm:hidden">Şifre</span>
+              </span>
+            </div>
+          </button>
+
           <!-- Yemek Menüsü Hızlı Butonu (En Tepe) -->
           <button data-open-catering-menu class="bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white font-extrabold text-xs px-2 py-1.5 sm:px-2.5 sm:py-1.5 rounded-lg shadow-xs transition flex items-center gap-1 cursor-pointer flex-shrink-0" title="Aylık Yemek Menüsünü Görüntüle">
             <span>🍽️</span> <span class="hidden lg:inline">Yemek Menüsü</span>
@@ -3409,7 +3420,9 @@
           <h3 class="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-1.5">
             <span>🔑</span> <span>Şifremi Değiştir</span>
           </h3>
-          <p class="text-xs text-slate-500 dark:text-slate-400">Google sızıntı uyarılarını engellemek ve hesabınızı korumak için kendinize özel yeni bir şifre belirleyin.</p>
+          <p class="text-xs text-slate-500 dark:text-slate-400">
+            <span id="change-pwd-modal-user-name" class="font-bold text-slate-700 dark:text-slate-200">Personel</span> hesabı için yeni şifre belirleyin.
+          </p>
         </div>
         <button data-close-modal class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 font-bold text-lg cursor-pointer">✕</button>
       </div>
@@ -4415,7 +4428,7 @@
         }
       });
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js?v=78').then((reg) => {
+        navigator.serviceWorker.register('sw.js?v=79').then((reg) => {
           if (reg) reg.update();
         }).catch(err => {
           console.log('SW registration failed:', err);
@@ -4425,6 +4438,6 @@
   </script>
 
   <!-- ES Modül Girişi -->
-  <script type="module" src="js/app.js?v=9.8"></script>
+  <script type="module" src="js/app.js?v=9.9"></script>
 </body>
 </html>
